@@ -32,6 +32,7 @@
   - "Another site" means: not the app's own host (with or without `www.`), not the page currently shown, and not in `internal_hosts`. The JavaScript rule and the Rust rule (`WebApp::is_internal`) are checked against each other by a test.
   - Popups to the app's own sites, or to a site the window has already loaded (a redirect target, a sign-in page), open as app windows with the same rules.
   - Other schemes such as `mailto:` go to the OS, at most one per second; `file:` and custom app schemes are dropped. `on_download` saves to the Downloads folder without overwriting.
+- **Navigation keys**: there is no toolbar, so an injected script gives every window Alt+Left/Right (Cmd+[ and ] on macOS), the mouse's back/forward buttons and F5/Ctrl+R. It only acts when the page did not handle the key itself.
 - **Single window**: each running app owns a loopback port derived from its id. A second launch asks the first to focus and exits. The manager and CLI use the same port to tell whether an app is running (clearing data refuses when it is).
 - **Isolation of the host**: only the `manager` window has a capability and IPC commands. Wrapped sites get no Penates API at all (`withGlobalTauri` is off, and Tauri refuses IPC from remote origins). The manager page has a content security policy that allows only its own files.
 - **Permissions (Linux)**: notifications and camera/microphone are answered from the app's settings; screen capture, location and everything else are denied.

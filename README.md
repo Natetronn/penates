@@ -18,6 +18,7 @@ AppImage, .deb, .rpm, Windows installer, macOS .dmg, or `paru -S penates-bin` on
 - **Per-app options:** window size, zoom, maximized/fullscreen/frameless, always on top, user agent, extra in-app hosts, custom CSS/JS, devtools, notification and camera/microphone permissions.
 - **App catalog:** add known sites (GitHub, Notion, Discord, Proton Mail, YouTube and more) in one click from Create → Popular apps, with small fixes such as in-app sign-in from the shared [penates-apps](https://github.com/Natetronn/penates-apps) catalog.
 - **Smart links:** links to other sites open in your browser; same-site popups (sign-in flows) stay in the app; downloads go to your Downloads folder.
+- **Browser keys without a browser:** Alt+←/→ or the mouse's side buttons go back and forward, F5 or Ctrl+R reloads.
 - **Share and back up:** export one app or all of them to a `.penates` file and import it elsewhere; logins are never included. See [docs/SHARING.md](docs/SHARING.md).
 - **Housekeeping:** clear cache (keeps you signed in) or clear cookies and data, update checks with versioned presets, icons from a file or URL.
 - **Themeable manager:** light/dark/system, six accents, four looks, all from plain CSS tokens.

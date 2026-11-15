@@ -30,6 +30,7 @@ What has actually been run, and where. Last updated 2026-11-15, version 0.1.0.
 | App window | launches, the site loads, title-bar icon is the site icon, registered under the launcher's name, shown in the taskbar |
 | Taskbar and tray | taskbar entry and tray icon show the app icon; tray icon read back in color and grayscale |
 | Downloads | saved to `~/Downloads`, a second download gets a new name |
+| Navigation keys (automated) | on a local test site: Alt+Left went back, the mouse's forward button went forward, F5 reloaded (script-sent events; real mouse side buttons still to be tried) |
 | Links (automated, 2026-11-15) | a local test site: an embedded frame from another site loads, a same-site link navigates in the app, and a link to another site does **not** load in the app |
 | Links (real clicks, before the 2026-11-15 refactor) | an external link opened the browser; a same-site `target=_blank` link opened a second app window; a link inside that popup opened the browser |
 | Wrapped-site isolation | a page inside an app window cannot call Tauri commands |

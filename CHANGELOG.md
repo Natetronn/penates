@@ -6,6 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 ## [Unreleased]
 
 ### Added
+- App windows have browser-style navigation: Alt+Left/Right (Cmd+[ and ] on macOS) and the mouse's back and forward buttons go back and forward; F5 and Ctrl+R reload. A page that uses one of these keys itself keeps it.
 - Development builds show their commit next to the version (`0.1.0+8b4141a`) in the manager and `penates --version`; release builds show the plain version.
 - Popular apps show each site's real icon, fetched once and cached for 30 days (`~/.cache/penates/catalog-icons/`, safe to delete).
 

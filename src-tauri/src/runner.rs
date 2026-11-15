@@ -186,6 +186,27 @@ document.addEventListener("click", (e) => {{
     )
 }
 
+/// Browser-style navigation for windows that have no toolbar: Alt+Left/Right (Cmd+[ and ] on macOS) and
+/// the mouse's back/forward buttons go back and forward; F5 and Ctrl+R reload. A page that handles one
+/// of these itself (it calls preventDefault) keeps it.
+const NAVIGATION_SCRIPT: &str = r#"(() => {
+  if (window.top !== window) return;
+  addEventListener("keydown", (e) => {
+    if (e.defaultPrevented || e.repeat) return;
+    const back = (e.altKey && e.key === "ArrowLeft") || (e.metaKey && e.key === "[");
+    const forward = (e.altKey && e.key === "ArrowRight") || (e.metaKey && e.key === "]");
+    const reload = e.key === "F5" || ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "r");
+    if (!back && !forward && !reload) return;
+    e.preventDefault();
+    if (reload) location.reload(); else history.go(back ? -1 : 1);
+  });
+  addEventListener("mouseup", (e) => {
+    if (e.defaultPrevented || (e.button !== 3 && e.button !== 4)) return;
+    e.preventDefault();
+    history.go(e.button === 3 ? -1 : 1);
+  });
+})();"#;
+
 /// Hosts the app's main window has actually loaded (the site itself, redirect targets). Popups to
 /// these stay in the app, like popups to its own site.
 type Visited = Arc<Mutex<Vec<String>>>;
@@ -206,6 +227,7 @@ fn with_rules<'a, M: Manager<tauri::Wry>>(
     visited: &Visited,
     handle: tauri::AppHandle,
 ) -> WebviewWindowBuilder<'a, tauri::Wry, M> {
+    b = b.initialization_script(NAVIGATION_SCRIPT);
     if cfg.external_links_in_browser {
         b = b.initialization_script(link_guard_script(cfg));
     }
