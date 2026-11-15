@@ -485,8 +485,10 @@ fn set_aumid(id: &str) {
 }
 
 fn run_manager(start: Option<String>) -> tauri::Result<()> {
-    // Packaged builds ship their own launcher (StartupWMClass=penates-desktop, the default
-    // window class), so only dev runs write one.
+    // The window's app_id is "penates" and must equal a launcher file name (penates.desktop) for the
+    // desktop to show the right icon. Packages ship that file; dev runs write it.
+    #[cfg(target_os = "linux")]
+    gtk::glib::set_prgname(Some("penates"));
     #[cfg(all(target_os = "linux", debug_assertions))]
     {
         if let Ok(exe) = std::env::current_exe() {

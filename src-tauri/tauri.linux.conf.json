@@ -1,0 +1,9 @@
+{
+  "productName": "penates",
+  "bundle": {
+    "linux": {
+      "deb": { "desktopTemplate": "penates.desktop.hbs" },
+      "rpm": { "desktopTemplate": "penates.desktop.hbs" }
+    }
+  }
+}
