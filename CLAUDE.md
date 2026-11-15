@@ -10,6 +10,8 @@ Linux (WebKitGTK) is the main platform; Windows and macOS are built, tested and 
 - `src-tauri`: `penates-desktop`. `main.rs` dispatch, `commands.rs` manager IPC, `runner.rs` the per-app window.
 - `ui/`: the manager front end, plain HTML/JS/CSS, no build step (`app.js`, `boot.js`, `tokens.css`, `skins.css`).
 - `design/`: logo sources, brand sheet, `preview/` (a browser copy of the manager with a mock backend).
+- `site/`: the website and docs (Astro + Starlight, served by Cloudflare Workers at getpenates.com). `site/scripts/sync.mjs`
+  copies in `docs/*.md`, the screenshots, logo, preview and catalog; edit those at their source.
 - Presets (per-site fixes) live in a separate repo, `Natetronn/penates-apps`; `crates/penates-core/data/presets.json`
   is the built-in copy of its `catalog.json`.
 - Docs: `docs/*.md` (architecture, CLI, configuration, updates, sharing, packaging, releasing, status).
@@ -21,6 +23,7 @@ cargo test --workspace                                   # includes a Node check
 cargo clippy --workspace --all-targets -- -D warnings    # CI runs this on Linux, Windows and macOS
 python3 design/preview/build.py                          # after any ui/ change; keep design/preview/mock.js in step with commands.rs
 python3 scripts/gen-credits.py                           # after dependency changes: credits and license texts (CI checks them)
+(cd site && npm ci && npm run build)                     # the website; npm run dev serves it at localhost:4321/
 xvfb-run -a dbus-run-session -- ./scripts/smoke-linux.sh # CI smoke test (opens real windows without Xvfb)
 cargo build --release --workspace --features penates-desktop/custom-protocol   # embeds the UI
 ```

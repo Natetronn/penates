@@ -1,0 +1,12 @@
+// Served by Cloudflare Workers as static files. Workers Builds builds it from the repo on each push to main
+// (root directory: site, build command: npm run build, deploy command: npx wrangler deploy).
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "penates-site",
+  "compatibility_date": "2026-11-15",
+  "send_metrics": false,
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page"
+  }
+}

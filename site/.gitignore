@@ -1,0 +1,11 @@
+# build output and installs
+dist/
+.astro/
+node_modules/
+# copied from the rest of the repo by scripts/sync.mjs
+src/content/docs/docs/
+src/assets/lockup-*.svg
+src/data/
+src/assets/screens/
+public/demo/
+public/favicon.svg

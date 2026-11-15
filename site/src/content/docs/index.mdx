@@ -1,0 +1,67 @@
+---
+title: Penates
+description: Turn websites into desktop apps, each with its own window, icon, taskbar entry and login.
+template: splash
+hero:
+  title: Every site gets a home of its own
+  tagline: Penates turns websites and web apps into desktop apps, each with its own window, icon, taskbar entry and separate login. Free and open source, for Linux, Windows and macOS.
+  image:
+    dark: ../../assets/screens/manager-apps.png
+    light: ../../assets/screens/manager-apps-light.png
+    alt: The Penates manager listing five apps
+  actions:
+    - text: Download
+      link: https://github.com/Natetronn/penates/releases/latest
+      icon: external
+      variant: primary
+    - text: Get started
+      link: getting-started/
+      icon: right-arrow
+      variant: secondary
+    - text: Try the manager
+      link: demo/
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+import { Image } from 'astro:assets';
+import edit from '../../assets/screens/manager-edit.png';
+import settings from '../../assets/screens/manager-settings.png';
+import light from '../../assets/screens/manager-apps-light.png';
+
+<div class="shots">
+  <figure><Image src={edit} alt="Editing an app: name, address, icon and window options" /><figcaption>Every app has its own options</figcaption></figure>
+  <figure><Image src={settings} alt="Settings: four looks, light or dark, and accent colors" /><figcaption>Four looks, light or dark, your accent</figcaption></figure>
+  <figure><Image src={light} alt="The app list in light mode" /><figcaption>Light mode</figcaption></figure>
+</div>
+
+<CardGrid>
+  <Card title="A real app window" icon="laptop">
+    Its own taskbar entry and icon, a system tray icon if you want one, and single-window mode. Start it as a
+    window, minimized or only in the tray.
+  </Card>
+  <Card title="Separate logins" icon="seti:lock">
+    Every app keeps its own cookies and storage, so a work and a personal account can run side by side.
+  </Card>
+  <Card title="One command or a few clicks" icon="rocket">
+    `penates create github.com` or the manager's Create tab: the name and icon come from the site.
+  </Card>
+  <Card title="Smart links" icon="external">
+    Links to other sites open in your browser; sign-in popups stay in the app. Alt+← and the mouse's side
+    buttons go back and forward.
+  </Card>
+  <Card title="An app catalog" icon="star">
+    Known sites get small fixes, such as keeping sign-in inside the window. Add one in a click, and share
+    your own fixes back.
+  </Card>
+  <Card title="Yours to keep" icon="open-book">
+    MIT licensed, signed updates, no account and no telemetry. Export your apps to a file and take them anywhere.
+  </Card>
+</CardGrid>
+
+## Get it
+
+<CardGrid>
+  <LinkCard title="Linux" description="AppImage, .deb, .rpm, or the AUR: penates-bin (prebuilt) and penates (built from source)." href="https://github.com/Natetronn/penates/releases/latest" />
+  <LinkCard title="Windows and macOS" description="Installers on the releases page. macOS 14 or later." href="https://github.com/Natetronn/penates/releases/latest" />
+</CardGrid>

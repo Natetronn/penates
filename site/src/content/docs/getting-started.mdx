@@ -1,0 +1,60 @@
+---
+title: Getting started
+description: Install Penates and make your first app.
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+## Install
+
+<Tabs syncKey="os">
+  <TabItem label="Linux">
+    Get the AppImage, `.deb` or `.rpm` from the [releases page](https://github.com/Natetronn/penates/releases/latest).
+    On Arch and its relatives, use the AUR:
+
+    ```sh
+    paru -S penates-bin   # prebuilt
+    paru -S penates       # built from source
+    ```
+  </TabItem>
+  <TabItem label="Windows">
+    Run the installer from the [releases page](https://github.com/Natetronn/penates/releases/latest). If
+    SmartScreen says it protected your PC, choose **More info → Run anyway**: the installer is not signed with
+    a Microsoft certificate yet.
+  </TabItem>
+  <TabItem label="macOS">
+    Open the `.dmg` from the [releases page](https://github.com/Natetronn/penates/releases/latest) and drag
+    Penates to Applications (macOS 14 or later). The first time, allow it under **System Settings → Privacy &
+    Security → Open Anyway**: it is not signed with an Apple certificate yet.
+  </TabItem>
+</Tabs>
+
+Penates updates itself (AppImage, `.deb`, `.rpm`, Windows and macOS); the updates are signed and checked
+before they install. AUR packages update with your package manager.
+
+## Make your first app
+
+<Steps>
+1. Open **Penates** from your application menu.
+2. Go to **Create**. Pick one from **Popular apps**, or paste any site's address and choose **Create app**.
+3. The app appears in your application menu and opens in its own window, with its own login.
+</Steps>
+
+Or from a terminal:
+
+```sh
+penates create github.com
+penates run github
+```
+
+## Good to know
+
+- **Links to other sites** open in your browser; the site's own pages and its sign-in popups stay in the app.
+- **Back and forward:** Alt+← and Alt+→, or your mouse's side buttons. F5 or Ctrl+R reloads.
+- **Each app's options** (window size, tray icon, start minimized or in the tray, permissions) are under its **Edit** button.
+- **Updates** for Penates and for your apps are under **Updates**.
+
+<Aside>
+  Logins never leave the app's own storage. Exporting apps to a `.penates` file copies their settings and
+  icons, never cookies or logins. See [Sharing](../docs/sharing/).
+</Aside>

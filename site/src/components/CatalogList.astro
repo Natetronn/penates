@@ -1,0 +1,14 @@
+---
+// The apps in the Penates app catalog (src/data/catalog.json, written by scripts/sync.mjs).
+import catalog from '../data/catalog.json';
+const host = (url: string) => new URL(url).host.replace(/^www\./, '');
+---
+<table>
+  <thead><tr><th>App</th><th>Site</th><th>What the preset does</th></tr></thead>
+  <tbody>
+    {catalog.map((app) => (
+      <tr><td><strong>{app.name}</strong></td><td><a href={app.url}>{host(app.url)}</a></td><td>{app.notes}</td></tr>
+    ))}
+  </tbody>
+</table>
+<p>{catalog.length} apps.</p>
