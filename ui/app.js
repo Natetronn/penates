@@ -115,6 +115,7 @@ async function renderApps() {
   if (editing) return renderEdit(root);
   if (importing) return renderImport(root);
   const { apps, broken } = await invoke("list_apps");
+  const pending = pendingUpdates();
   const updateAll = el("button", { textContent: "Update all", onclick: (ev) => busy(ev.target, "Updating…", async () => { await updateAllApps(); renderApps(); }) });
   put(root,
     el("div", { class: "toolbar" },
@@ -123,7 +124,7 @@ async function renderApps() {
       el("button", { textContent: "Export all", title: "Save every app to a .penates file in Downloads", onclick: async () => {
         try { say("Saved to " + (await invoke("export_apps", { ids: [], withSettings: false }))); } catch (e) { fail(e); } } }),
       updateAll),
-    apps.length ? apps.map(appRow) : el("p", { class: "hint" }, "No apps yet. Use the Create tab to add one."),
+    apps.length ? apps.map((a) => appRow(a, pending)) : el("p", { class: "hint" }, "No apps yet. Use the Create tab to add one."),
     broken.map(brokenRow));
 }
 
@@ -134,11 +135,21 @@ function brokenRow(b) {
       try { await invoke("remove_app", { id: b.id, purge: false }); say(b.id + " removed."); renderApps(); } catch (e) { fail(e); } } }));
 }
 
+/** Update one app (newer preset, fresh site icon) and say what changed. */
+async function updateApp(a) {
+  const o = await invoke("update_app", { id: a.id });
+  sayWith(`${a.name}: icon ${o.icon_refreshed ? "refreshed" : "unchanged"}` + (o.preset ? `, preset ${o.preset} applied` : "") + ".", o.warning);
+  refreshReport(); renderApps();
+}
+/** Apps with a newer catalog preset waiting, from the last update check. */
+const pendingUpdates = () => new Set((checks.apps.report?.apps || []).map((u) => u.id));
+
 function appMenu(a, actions, menuBtn) {
   const item = (label, fn) => el("button", { textContent: label, onclick: async () => { closeMenus(); try { await fn(); } catch (e) { fail(e); } } });
   const cache = item("Clear cache", async () => { const n = await invoke("clear_cache", { id: a.id }); say(`Cleared ${fmtBytes(n)} of cache for ${a.name}. You stay signed in.`); });
   invoke("cache_info", { id: a.id }).then((i) => { cache.textContent = `Clear cache (${fmtBytes(i.bytes)})`; cache.disabled = i.bytes === 0; }).catch(() => {});
   const menu = el("div", { class: "menu", role: "menu", "aria-label": "More actions for " + a.name },
+    item("Update (preset and icon)", () => updateApp(a)),
     item("Export app…", async () => say("Saved to " + (await invoke("export_apps", { ids: [a.id], withSettings: false })))),
     cache,
     confirmItem("Clear cookies & data…", "Click again: sign out & clear", async () => { await invoke("clear_data", { id: a.id }); say("Cleared cookies and data for " + a.name + "."); }),
@@ -150,26 +161,30 @@ function appMenu(a, actions, menuBtn) {
   menu.querySelector("button").focus();
 }
 
-function appRow(a) {
+function appRow(a, pending) {
+  const open = () => invoke("run_app", { id: a.id }).catch(fail);
   const menuBtn = el("button", { textContent: "⋮", title: "More", "aria-label": "More actions for " + a.name, "aria-haspopup": "menu", "aria-expanded": "false" });
+  const hasUpdate = pending.has(a.id);
   const actions = el("div", { class: "actions" },
+    el("button", { class: "primary", textContent: "Open", onclick: open }),
+    // Only when this app has a newer preset waiting; otherwise Update lives in the ⋮ menu.
+    hasUpdate ? el("button", { textContent: "Update", onclick: (ev) => busy(ev.target, "Updating…", () => updateApp(a)) }) : null,
     el("button", { textContent: "Edit", onclick: () => { editing = structuredClone(a); renderApps(); } }),
-    el("button", { class: "primary", textContent: "Open", onclick: () => invoke("run_app", { id: a.id }).catch(fail) }),
-    el("button", { textContent: "Update", onclick: (ev) => busy(ev.target, "Updating…", async () => {
-      const o = await invoke("update_app", { id: a.id });
-      sayWith(`${a.name}: icon ${o.icon_refreshed ? "refreshed" : "unchanged"}` + (o.preset ? `, preset ${o.preset} applied` : "") + ".", o.warning);
-      refreshReport(); renderApps();
-    }) }),
     menuBtn);
   menuBtn.onclick = (ev) => {
     ev.stopPropagation();
     const wasOpen = actions.querySelector(".menu"); closeMenus();
     if (!wasOpen) appMenu(a, actions, menuBtn);
   };
-  return el("div", { class: "app" }, iconEl(a),
+  // Double-clicking the icon or name opens the app, like a launcher (the buttons keep their own clicks).
+  const row = el("div", { class: "app opens", title: "Double-click to open " + a.name,
+      ondblclick: (e) => { if (!e.target.closest(".actions")) open(); } },
+    iconEl(a),
     el("div", { class: "meta" }, el("b", {}, a.name), el("span", { class: "url" }, a.url)),
-    a.catalog_version ? el("span", { class: "chip", title: "Catalog preset version" }, "preset " + a.catalog_version) : null,
+    hasUpdate ? el("span", { class: "chip new", title: "A newer preset is waiting in the app catalog" }, "update available")
+      : a.catalog_version ? el("span", { class: "chip", title: "Catalog preset version" }, "preset " + a.catalog_version) : null,
     actions);
+  return row;
 }
 
 // ---- import ----
@@ -455,6 +470,7 @@ async function refreshReport() {
   $("ubadge").hidden = !n; $("ubadge").textContent = n;
   put($("banner"), checks.penates.update ? selfUpdateBlock(checks.penates.update) : null);
   if (tab === "updates") renderUpdates();
+  else if (tab === "apps" && !editing && !importing) renderApps().catch(fail); // show or hide Update buttons
 }
 
 function penatesStatus() {
