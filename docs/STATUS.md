@@ -10,9 +10,9 @@ What has actually been run, and where. Last updated 2026-11-15, version 0.1.0.
 | macOS (Intel) | release build only | no | no |
 
 ## Automated (every push)
-- **Unit tests** (37): config and URL handling, the id rule, host patterns and matching, names from pages and
+- **Unit tests** (38): config and URL handling, the id rule, host patterns and matching, names from pages and
   addresses (including other alphabets), icon ranking, size limits, ICO files with grayscale PNG entries, grayscale tray icons, catalog parsing and presets
-  (including "never JavaScript"), the catalog listing, settings migration, export format and import safety, single-instance
+  (including "never JavaScript"), the catalog listing, catalog submissions, settings migration, export format and import safety, single-instance
   messaging, download names, CLI argument rules, and the CLI exiting quietly on a closed pipe. One test runs the runner's JavaScript link rule in Node and
   checks it against the Rust rule.
 - **Clippy** with warnings as errors, on Linux, Windows and macOS.
