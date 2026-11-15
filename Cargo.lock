@@ -117,54 +117,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
-name = "penates-cli"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "penates-core",
- "clap",
- "open",
- "serde_json",
-]
-
-[[package]]
-name = "penates-core"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "base64 0.22.1",
- "dirs 5.0.1",
- "icns",
- "image",
- "scraper",
- "semver",
- "serde",
- "serde_json",
- "toml 0.8.2",
- "ureq",
- "url",
-]
-
-[[package]]
-name = "penates-desktop"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "penates-core",
- "dirs 5.0.1",
- "gtk",
- "open",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-updater",
- "url",
- "webkit2gtk",
- "windows-sys 0.59.0",
-]
-
-[[package]]
 name = "atk"
 version = "0.18.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2755,6 +2707,54 @@ dependencies = [
  "redox_syscall",
  "smallvec",
  "windows-link",
+]
+
+[[package]]
+name = "penates-cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "open",
+ "penates-core",
+ "serde_json",
+]
+
+[[package]]
+name = "penates-core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "base64 0.22.1",
+ "dirs 5.0.1",
+ "icns",
+ "image",
+ "scraper",
+ "semver",
+ "serde",
+ "serde_json",
+ "toml 0.8.2",
+ "ureq",
+ "url",
+]
+
+[[package]]
+name = "penates-desktop"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "dirs 5.0.1",
+ "gtk",
+ "open",
+ "penates-core",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-updater",
+ "url",
+ "webkit2gtk",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
