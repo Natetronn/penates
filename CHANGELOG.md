@@ -5,27 +5,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
-### Changed
-- Updates are in one place: the Updates tab has a Penates section and a Your apps section, each with its own check (and Update all apps under Your apps). Settings → Updates only holds settings. The Apps tab lost its "Update all" button.
+## [0.1.1] - 2026-11-15
+Share apps with the catalog, start apps in the tray, browser keys in app windows, Credits with full license texts, and a round of fixes.
 
 ### Added
-- AUR package `penates`, built from the tagged source (beside `penates-bin`, the prebuilt release); x86_64 and aarch64.
-- A second app for the same site gets a numbered name ("GitHub 2") when its name comes from the site, so menus and taskbars tell them apart; a name you type is kept as typed. Edit shows each app's id.
 - Share an app with the app catalog: ⋮ → **Share with the app catalog…** (or `penates submit <id> --notes "…"`) shows the entry for review and opens GitHub with it filled in, as a new file for a new site or an issue suggesting a change for a site already in the catalog. Custom JavaScript is never included, and Penates sends nothing itself.
-- Credits in the About dialog: who made Penates, what it is built on, every open-source component with its license, and the full license texts. Every package carries `THIRD-PARTY-LICENSES.txt`; the AppImage also carries `SYSTEM-LIBRARIES.txt`, the license notices and source references of the system libraries it bundles.
-- App list: every row has Open, Edit and ⋮ in the same places; Update is in the ⋮ menu, and an "update available" pill (linking to the Updates tab) shows when that app has a newer preset; double-click an app's icon or name to open it.
 - "When it starts" per app (Edit → Window): open the window, start minimized, or start only in the tray. Without a tray icon, "only in the tray" starts minimized so the app is never unreachable.
 - App windows have browser-style navigation: Alt+Left/Right (Cmd+[ and ] on macOS) and the mouse's back and forward buttons go back and forward; F5 and Ctrl+R reload. A page that uses one of these keys itself keeps it.
-- Development builds show their commit next to the version (`0.1.0+8b4141a`) in the manager and `penates --version`; release builds show the plain version.
 - Popular apps show each site's real icon, fetched once and cached for 30 days (`~/.cache/penates/catalog-icons/`, safe to delete).
+- Credits in the About dialog: who made Penates, what it is built on, every open-source component with its license, and the full license texts. Every package carries `THIRD-PARTY-LICENSES.txt`; the AppImage also carries `SYSTEM-LIBRARIES.txt`, the license notices and source references of the system libraries it bundles.
+- A second app for the same site gets a numbered name ("GitHub 2") when its name comes from the site, so menus and taskbars tell them apart; a name you type is kept as typed. Edit shows each app's id.
+- Development builds show their commit next to the version (`0.1.1+8b4141a`) in the manager and `penates --version`; release builds show the plain version.
+- AUR package `penates`, built from the tagged source (beside `penates-bin`, the prebuilt release); x86_64 and aarch64.
+
+### Changed
+- Updates are in one place: the Updates tab has a Penates section and a Your apps section, each with its own check, and Update all apps under Your apps. Settings → Updates holds only settings.
+- App list: every row has Open, Edit and ⋮ in the same places. Update is in the ⋮ menu, and an "update available" pill (linking to Updates) shows when an app has a newer preset. Double-click an app's icon or name to open it.
 
 ### Fixed
-- Choosing "System" in the manager's Light or dark setting forced light on Linux after picking Light or Dark; it now follows the desktop (read from the XDG settings portal).
-- Favicons in ICO files whose largest image is a grayscale or palette PNG (Tailscale's, for one) were rejected; Penates now reads the file's images one by one.
-- After installing from the tarball, KDE's menu shows the Penates icon right away (the installer tells KDE programs the icon theme changed).
-- Import's file chooser showed no `.penates` files on Linux (the file filter only understood JSON); it now shows all files and checks the one you pick.
-- Apps opened from the manager no longer linger as defunct processes after you close them.
-- The CLI no longer panics when its output is cut short, e.g. `penates check | head -1`; it exits quietly like other command line tools.
+- Choosing "System" in the manager's Light or dark setting forced light on Linux after picking Light or Dark; it follows the desktop (read from the XDG settings portal).
+- Favicons in ICO files whose largest image is a grayscale or palette PNG (Tailscale's, for one) were rejected; Penates reads the file's images one by one.
+- After installing from the tarball, KDE's menu shows the Penates icon right away.
+- Import's file chooser showed no `.penates` files on Linux; it shows all files and checks the one you pick.
+- Apps opened from the manager lingered as defunct processes after you closed them.
+- The CLI panicked when its output was cut short, e.g. `penates check | head -1`; it exits quietly like other command line tools.
 
 ## [0.1.0] - 2026-11-15
 First release. Verified by hand on Linux (KDE Plasma, Wayland); Linux, Windows and macOS pass CI smoke tests.
@@ -71,5 +74,6 @@ First release. Verified by hand on Linux (KDE Plasma, Wayland); Linux, Windows a
 - A page's own script can still navigate the window to another site (only link clicks are sent to the browser).
 - Two apps whose ids hash to the same loopback port lose single-window mode and the "is it running" check (rare).
 
-[Unreleased]: https://github.com/Natetronn/penates/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Natetronn/penates/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/Natetronn/penates/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Natetronn/penates/releases/tag/v0.1.0

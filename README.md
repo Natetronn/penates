@@ -26,9 +26,9 @@ AppImage, .deb, .rpm, Windows installer, macOS .dmg, or on Arch `paru -S penates
 ## Screenshots
 | Your apps (light) | Edit an app |
 |---|---|
-| <img src="docs/images/manager-apps-light.png" width="400" alt="The app list in light mode"> | <img src="docs/images/manager-edit.png" width="400" alt="Editing GitHub: name, URL, icon picker and window options"> |
+| <img src="docs/images/manager-apps-light.png" width="400" alt="The app list in light mode"> | <img src="docs/images/manager-edit.png" width="400" alt="Editing GitHub: name, URL, id, icon picker and window options"> |
 | **Settings** | **About** |
-| <img src="docs/images/manager-settings.png" width="400" alt="Settings: four looks, light or dark, accent colors and update checks"> | <img src="docs/images/manager-about.png" width="400" alt="About Penates: logo, version and credits"> |
+| <img src="docs/images/manager-settings.png" width="400" alt="Settings: four looks, light or dark, accent colors, update checking and the app catalog"> | <img src="docs/images/manager-about.png" width="400" alt="About Penates: logo, version, links and Credits"> |
 
 ## Install
 Get an installer from the [releases page](https://github.com/Natetronn/penates/releases/latest). macOS needs version 14 or later.

@@ -2711,7 +2711,7 @@ dependencies = [
 
 [[package]]
 name = "penates-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -2723,7 +2723,7 @@ dependencies = [
 
 [[package]]
 name = "penates-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -2741,7 +2741,7 @@ dependencies = [
 
 [[package]]
 name = "penates-desktop"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
