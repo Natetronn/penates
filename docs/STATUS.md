@@ -12,6 +12,7 @@ What has actually been run, and where. Last updated 2026-11-14, version 0.1.0.
 | App window | launches, GitHub loads, title-bar icon is the site icon, registered with the window manager under the launcher's name, shown in the taskbar list |
 | Taskbar and tray (seen on screen) | confirmed by eye: taskbar entry and tray icon show the app icon; tray item registered; tray icon read back in color and grayscale (equal RGB on every visible pixel) |
 | Downloads | saved to `~/Downloads`, second download gets a new name |
+| Same-site popups | a real click on a `target=_blank` link to the app's own site opened a second app window (confirmed on screen) |
 | External links | real clicks sent to the browser (logged by a stand-in `xdg-open`); `steam:` blocked, `mailto:` and `https:` passed, `file:` refused by WebKit |
 | Wrapped-site isolation | a page inside an app window cannot call Tauri commands (all refused) |
 | Cache | clearing frees the cache and keeps cookies and storage |
@@ -20,7 +21,6 @@ What has actually been run, and where. Last updated 2026-11-14, version 0.1.0.
 | Packages | see [PACKAGING](PACKAGING.md) |
 
 ## Not verified
-- Same-site popup windows opened by a real click.
 - Import and Export buttons in the real manager window (only the preview and the CLI were exercised).
 - File chooser in the icon picker; the Save and Update buttons end to end in the real window.
 - Notifications from sites, camera and microphone prompts.
