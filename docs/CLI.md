@@ -1,6 +1,6 @@
 # CLI reference
 
-`penates <command>`. Run `penates <command> --help` for every flag.
+The `penates` command makes and manages apps from a terminal: `penates <command>`. Run `penates <command> --help` for every flag.
 
 | Command | What it does |
 |---|---|

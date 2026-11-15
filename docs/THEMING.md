@@ -1,6 +1,6 @@
 # Theming
 
-There are three independent layers.
+How Penates looks comes from three independent layers: the manager's look, its tokens and skins, and each app window's theme.
 
 ## 1. Manager look (Settings tab)
 Saved in `settings.toml` under `[appearance]` and applied by setting three attributes on `<html>`:
