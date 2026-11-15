@@ -43,4 +43,5 @@ package() {
   install -Dm644 src-tauri/icons/icon.png       "$pkgdir/usr/share/icons/hicolor/512x512/apps/penates.png"
   install -Dm644 src-tauri/icons/icon.svg       "$pkgdir/usr/share/icons/hicolor/scalable/apps/penates.svg"
   install -Dm644 LICENSE                        "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 THIRD-PARTY-LICENSES.txt       "$pkgdir/usr/share/licenses/$pkgname/THIRD-PARTY-LICENSES.txt"
 }

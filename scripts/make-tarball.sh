@@ -12,7 +12,7 @@ rm -rf "dist/$name"; mkdir -p "dist/$name/bin"
 cp target/release/penates target/release/penates-desktop "dist/$name/bin/"
 mkdir -p "dist/$name/icons"
 cp src-tauri/icons/{32x32,64x64,128x128,128x128@2x,icon}.png src-tauri/icons/icon.svg "dist/$name/icons/"
-cp packaging/penates.desktop LICENSE README.md CHANGELOG.md "dist/$name/"
+cp packaging/penates.desktop LICENSE THIRD-PARTY-LICENSES.txt README.md CHANGELOG.md "dist/$name/"
 mkdir -p "dist/$name/docs/images"; cp docs/images/*.png "dist/$name/docs/images/"   # README pictures
 cat > "dist/$name/install.sh" <<'INSTALL'
 #!/usr/bin/env sh

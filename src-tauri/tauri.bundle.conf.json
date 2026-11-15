@@ -16,6 +16,24 @@
       "rpm",
       "appimage"
     ],
-    "createUpdaterArtifacts": true
+    "createUpdaterArtifacts": true,
+    "linux": {
+      "deb": {
+        "files": {
+          "/usr/share/doc/penates/THIRD-PARTY-LICENSES.txt": "../THIRD-PARTY-LICENSES.txt"
+        }
+      },
+      "rpm": {
+        "files": {
+          "/usr/share/doc/penates/THIRD-PARTY-LICENSES.txt": "../THIRD-PARTY-LICENSES.txt"
+        }
+      },
+      "appimage": {
+        "files": {
+          "/usr/share/doc/penates/THIRD-PARTY-LICENSES.txt": "../THIRD-PARTY-LICENSES.txt",
+          "/usr/share/doc/penates/SYSTEM-LIBRARIES.txt": "../dist/SYSTEM-LIBRARIES.txt"
+        }
+      }
+    }
   }
 }

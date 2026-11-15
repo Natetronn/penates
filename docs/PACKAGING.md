@@ -21,6 +21,14 @@ Signed builds need the updater key (`~/.tauri/penates.key`, or `TAURI_SIGNING_PR
 - Plain `cargo build --release` (tarball, PKGBUILD) needs `--features penates-desktop/custom-protocol` so the manager's page is embedded.
 - The release profile optimizes for size (`opt-level = "s"`): about 10 MB for `penates-desktop` and 4 MB for `penates`.
 
+## License notices
+`THIRD-PARTY-LICENSES.txt` (every Rust component's copyright notices and license text, generated with
+`scripts/gen-credits.py`) ships in every package: `/usr/share/doc/penates/` in the `.deb`, `.rpm` and AppImage,
+`/usr/share/licenses/<package>/` from the AUR packages, beside `LICENSE` in the tarball, and inside the program
+(About → Credits → Full license texts). The AppImage also bundles system libraries (GTK, WebKitGTK, GLib and
+what they load), so `scripts/build-packages.sh` runs `scripts/system-notices.sh` to add `SYSTEM-LIBRARIES.txt`:
+each bundled library's package, exact version, source package and license file.
+
 ## The tarball's `install.sh`
 Installs both binaries, the manager's launcher (pointing at `$PREFIX/bin/penates-desktop` by full path, so
 it works when that folder is not on the desktop session's `PATH`) and the icons, then refreshes the desktop's

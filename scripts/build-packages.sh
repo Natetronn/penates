@@ -33,9 +33,18 @@ if [[ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]]; then
   echo "error: no signing key (set TAURI_SIGNING_PRIVATE_KEY or create ~/.tauri/penates.key)" >&2; exit 1
 fi
 
+# The AppImage carries the system libraries it bundles, so it also carries their license notices,
+# made from the libraries the program loads (built first, so ldd can look at it).
+bundles="${BUNDLES:-deb,rpm,appimage}"
+if [[ $bundles == *appimage* ]]; then
+  cargo build --release -p penates-desktop --features penates-desktop/custom-protocol ${target_args[@]+"${target_args[@]}"}
+  mkdir -p dist
+  ./scripts/system-notices.sh "target/${TARGET:+$TARGET/}release/penates-desktop" dist/SYSTEM-LIBRARIES.txt
+fi
+
 # linuxdeploy (AppImage) trips over newer binutils without this
 export NO_STRIP="${NO_STRIP:-true}"
-cargo tauri build --config src-tauri/tauri.bundle.conf.json --bundles "${BUNDLES:-deb,rpm,appimage}" ${target_args[@]+"${target_args[@]}"} "$@"
+cargo tauri build --config src-tauri/tauri.bundle.conf.json --bundles "$bundles" ${target_args[@]+"${target_args[@]}"} "$@"
 echo
 echo "Packages:"
 find target -path '*/bundle/*' -type f \( -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' -o -name '*.dmg' -o -name '*-setup.exe' -o -name '*.sig' -o -name '*.app.tar.gz' \) -print
