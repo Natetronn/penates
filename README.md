@@ -1,11 +1,19 @@
+<p align="center"><img src="docs/images/logo-128.png" width="96" alt="Penates logo"></p>
+
 # Penates
 
-Turn any website or PWA into a native desktop app: its own window, icon, taskbar entry and
-isolated login profile. Built with Rust and [Tauri 2](https://v2.tauri.app/), an alternative to
-browser "install as app" shortcuts, with a command line tool and a desktop manager.
+Turn any website or web app into a desktop app with its own window, icon, taskbar entry, tray icon and
+separate login. Named after the Roman household gods: every site gets a home of its own.
+Built with Rust and [Tauri 2](https://v2.tauri.app/), an alternative to browser "install as app" shortcuts,
+with a command line tool and a desktop manager.
 
-> **Status: 0.1.0 development snapshot.** Linux (KDE/Wayland) is built and exercised. Windows and
-> macOS build and pass their unit tests in CI but have never been run. See [docs/STATUS.md](docs/STATUS.md) for exactly what is verified.
+**[Download the latest release](https://github.com/Natetronn/penates-releases/releases/latest)**:
+AppImage, .deb, .rpm, Windows installer, macOS .dmg, or `paru -S penates-bin` on Arch.
+
+<p align="center"><img src="docs/images/manager-apps.png" width="640" alt="The Penates manager listing five apps: Discord, GitHub, Notion, Proton Mail and YouTube Music"></p>
+
+> **Status: 0.1.0.** Verified by hand on Linux (KDE Plasma, Wayland). Windows and macOS are built, launched
+> through their launchers and smoke-tested in CI on every push. See [docs/STATUS.md](docs/STATUS.md) for exactly what is verified.
 
 ## What it does
 - **One command or a few clicks:** `penates create github.com` finds the site's name and icon (PWA manifest, apple-touch, favicon) and adds it to your application menu.
@@ -16,8 +24,14 @@ browser "install as app" shortcuts, with a command line tool and a desktop manag
 - **Housekeeping:** clear cache (keeps you signed in) or clear cookies and data, update checks with versioned presets, icons from a file or URL.
 - **Themeable manager:** light/dark/system, six accents, four looks, all from plain CSS tokens.
 
+## Screenshots
+| Edit an app | Settings |
+|---|---|
+| <img src="docs/images/manager-edit.png" width="400" alt="Editing GitHub: name, URL, icon picker and window options"> | <img src="docs/images/manager-settings.png" width="400" alt="Settings: four looks, light or dark, accent colors and backup"> |
+
 ## Install
-Build from source (Arch/CachyOS shown; see [docs/PACKAGING.md](docs/PACKAGING.md) for `.deb`, `.rpm`, AppImage and tarball):
+Get an installer from the [releases page](https://github.com/Natetronn/penates-releases/releases/latest), or build from source
+(Arch/CachyOS shown; see [docs/PACKAGING.md](docs/PACKAGING.md) for `.deb`, `.rpm`, AppImage and tarball):
 
 ```sh
 sudo pacman -S --needed rustup webkit2gtk-4.1 libayatana-appindicator

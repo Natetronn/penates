@@ -1,15 +1,15 @@
 # Architecture
 
 ```
-            ┌────────────────────┐        ┌──────────────────────────────┐
- penates ───▶│  penates-core (lib) │◀───────│ penates-desktop (Tauri 2)      │
- (CLI)      │  store · icons ·   │        │  manager window  (no args)    │
-            │  site · integration│        │  app runner      (--run <id>) │
-            │  updates · single  │        └──────────────────────────────┘
-            └────────────────────┘                   ▲
-                      ▲                              │ spawns
-                      └── config + icons ────────────┘
-                          ~/.config/penates/
+             ┌─────────────────────┐        ┌───────────────────────────────┐
+ penates ───▶│  penates-core (lib) │◀───────│ penates-desktop (Tauri 2)     │
+ (CLI)       │  store · icons ·    │        │  manager window  (no args)    │
+             │  site · integration │        │  app runner      (--run <id>) │
+             │  updates · single   │        └───────────────────────────────┘
+             └─────────────────────┘                    ▲
+                       ▲                                │ spawns
+                       └── config + icons ──────────────┘
+                           ~/.config/penates/
 ```
 
 ## Crates

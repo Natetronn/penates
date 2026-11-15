@@ -2,6 +2,13 @@
 
 What has actually been run, and where. Last updated 2026-11-14, version 0.1.0.
 
+| Platform | Build + unit tests | App launched | Checked by hand |
+|---|---|---|---|
+| Linux (KDE Plasma, Wayland) | yes | yes | yes |
+| Windows | CI | CI smoke test | no |
+| macOS (Apple Silicon) | CI | CI smoke test | no |
+| macOS (Intel) | release build only | no | no |
+
 ## Verified on Linux (KDE Plasma, Wayland)
 | Area | How it was checked |
 |---|---|
@@ -25,7 +32,7 @@ What has actually been run, and where. Last updated 2026-11-14, version 0.1.0.
 - Import and Export buttons in the real manager window (only the preview and the CLI were exercised).
 - File chooser in the icon picker; the Save and Update buttons end to end in the real window.
 - Site permissions on Windows and macOS (not enforced there yet).
-- **Windows and macOS: compiled and unit-tested in CI only** (GitHub Actions, 2026-11-14: build and `cargo test` pass on `windows-latest` and `macos-latest`). The apps have never been run there: Start Menu shortcut, AppUserModelID, `.app` bundle, profile folders and tray are untested.
+- **Windows and macOS by hand.** CI smoke tests (every push) create an app, check its launcher (Start Menu shortcut with icon on Windows, `.app` bundle on macOS), launch it through that launcher, open the manager, and export/remove/import it. Tray, popups, downloads and site permissions there are untested.
 - Per-app window theme on Windows and macOS.
 
 ## Known limits
