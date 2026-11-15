@@ -23,8 +23,10 @@ until you publish them.
    Windows and macOS (Apple Silicon and Intel) and attaches them to a **draft** release. Nothing is public yet.
 5. When it is green: `scripts/publish-release.py v0.2.0 --dry-run`, then without `--dry-run`. It downloads the
    draft's files (refusing duplicates or files of another version), writes `latest.json`, uploads it to the draft,
-   sets the notes from `CHANGELOG.md`, publishes the release, and updates `packaging/aur/penates-bin/{PKGBUILD,.SRCINFO}`.
-6. AUR: copy those two files into your `penates-bin` AUR clone, commit, push. Then commit the updated files here too.
+   sets the notes from `CHANGELOG.md`, publishes the release, and updates both AUR packages in `packaging/aur/`
+   (`penates-bin` from the release tarball, `penates` from the tag's source).
+6. AUR: for each of `penates-bin` and `penates`, copy `packaging/aur/<name>/{PKGBUILD,.SRCINFO}` into your
+   clone of that AUR package, commit and push (`git push origin HEAD:master`). Then commit the updated files here too.
 
 **Pre-releases** (`v0.2.0-rc.1`): `scripts/publish-release.py v0.2.0-rc.1 --prerelease`. They are published as
 pre-releases, never as "latest", so installed copies do not update to them, and the AUR is left alone.

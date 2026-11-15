@@ -8,7 +8,8 @@
 2. Collects installers and their updater signatures under unique names.
 3. Writes latest.json in Tauri's updater format (what the app checks and installs from).
 4. Uploads latest.json to the draft, sets the notes from CHANGELOG.md and publishes it (skipped with --dry-run).
-5. Updates packaging/aur/penates-bin (PKGBUILD + .SRCINFO) for the AUR; pushing to the AUR is manual.
+5. Updates the AUR packages in packaging/aur/ (PKGBUILD + .SRCINFO): penates-bin (the release tarball) and
+   penates (built from the tag's source). Pushing them to the AUR is manual.
 
 A tag with a suffix (v0.2.0-rc.1) is refused unless --prerelease is given; it is then published as a
 pre-release (never "latest", so installed copies do not update to it) and the AUR files are left alone.
@@ -21,6 +22,31 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 def gh(*args, capture=True):
     return subprocess.run(["gh", *args], check=True, text=True, capture_output=capture).stdout
+
+
+def update_aur(name, ver, sha, work, dry):
+    """Set pkgver, pkgrel and the checksum in packaging/aur/<name>, and regenerate its .SRCINFO.
+    A dry run writes into the work folder instead of the tracked one."""
+    src = ROOT / "packaging" / "aur" / name
+    aur = work / "aur" / name if dry else src
+    aur.mkdir(parents=True, exist_ok=True)
+    if dry:
+        shutil.copy2(src / "PKGBUILD", aur / "PKGBUILD")
+    pkg = (aur / "PKGBUILD").read_text()
+    pkg = re.sub(r"^pkgver=.*$", f"pkgver={ver}", pkg, flags=re.M)
+    pkg = re.sub(r"^pkgrel=.*$", "pkgrel=1", pkg, flags=re.M)
+    pkg = re.sub(r"^sha256sums=.*$", f"sha256sums=('{sha}')", pkg, flags=re.M)
+    (aur / "PKGBUILD").write_text(pkg)
+    srcinfo = subprocess.run(["makepkg", "--printsrcinfo"], cwd=aur, check=True, text=True, capture_output=True).stdout
+    (aur / ".SRCINFO").write_text(srcinfo)
+    print(f"updated {aur}/PKGBUILD and .SRCINFO")
+
+
+def source_sha256(tag):
+    """Checksum of GitHub's source download for the tag (what the `penates` AUR package builds from)."""
+    url = f"https://github.com/{REPO}/archive/refs/tags/{tag}.tar.gz"
+    data = subprocess.run(["curl", "-fsSL", url], check=True, capture_output=True).stdout
+    return hashlib.sha256(data).hexdigest()
 
 
 def main():
@@ -104,22 +130,10 @@ def main():
         print("  ", a.name)
     print("updater targets:", ", ".join(sorted(platforms)))
 
-    # AUR files (pushed by hand: they need your AUR account). A dry run writes them into the work
-    # folder instead of the tracked packaging folder.
+    # AUR files (pushed by hand: they need your AUR account).
     if tarball and not pre:
-        src = ROOT / "packaging" / "aur" / "penates-bin"
-        aur = work / "aur" if dry else src
-        aur.mkdir(parents=True, exist_ok=True)
-        if dry:
-            shutil.copy2(src / "PKGBUILD", aur / "PKGBUILD")
-        pkg = (aur / "PKGBUILD").read_text()
-        pkg = re.sub(r"^pkgver=.*$", f"pkgver={ver}", pkg, flags=re.M)
-        pkg = re.sub(r"^pkgrel=.*$", "pkgrel=1", pkg, flags=re.M)
-        pkg = re.sub(r"^sha256sums=.*$", f"sha256sums=('{hashlib.sha256(tarball.read_bytes()).hexdigest()}')", pkg, flags=re.M)
-        (aur / "PKGBUILD").write_text(pkg)
-        srcinfo = subprocess.run(["makepkg", "--printsrcinfo"], cwd=aur, check=True, text=True, capture_output=True).stdout
-        (aur / ".SRCINFO").write_text(srcinfo)
-        print(f"updated {aur}/PKGBUILD and .SRCINFO")
+        update_aur("penates-bin", ver, hashlib.sha256(tarball.read_bytes()).hexdigest(), work, dry)
+        update_aur("penates", ver, source_sha256(tag), work, dry)
 
     if dry:
         print("dry run: nothing published")
@@ -130,8 +144,9 @@ def main():
        "--draft=false", *(["--prerelease", "--latest=false"] if pre else ["--latest"]), capture=False)
     print(f"published https://github.com/{REPO}/releases/tag/{tag}")
     if not pre:
-        print("AUR: copy packaging/aur/penates-bin/{PKGBUILD,.SRCINFO} into your aur penates-bin clone, commit and push.")
-        print("Then commit the updated packaging/aur/penates-bin files here.")
+        for name in ("penates-bin", "penates"):
+            print(f"AUR: copy packaging/aur/{name}/{{PKGBUILD,.SRCINFO}} into your {name} AUR clone, commit and push.")
+        print("Then commit the updated packaging/aur files here.")
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ separate login. Named after the Roman household gods: every site gets a home of 
 Built with Rust and [Tauri 2](https://v2.tauri.app/), with a command line tool and a desktop manager.
 
 **[Download the latest release](https://github.com/Natetronn/penates/releases/latest)**:
-AppImage, .deb, .rpm, Windows installer, macOS .dmg, or `paru -S penates-bin` on Arch.
+AppImage, .deb, .rpm, Windows installer, macOS .dmg, or on Arch `paru -S penates-bin` (prebuilt) or `paru -S penates` (built from source).
 
 <p align="center"><img src="docs/images/manager-apps.png" width="640" alt="The Penates manager listing five apps: Discord, GitHub, Notion, Proton Mail and YouTube Music"></p>
 

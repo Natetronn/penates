@@ -9,6 +9,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - Updates are in one place: the Updates tab has a Penates section and a Your apps section, each with its own check (and Update all apps under Your apps). Settings → Updates only holds settings. The Apps tab lost its "Update all" button.
 
 ### Added
+- AUR package `penates`, built from the tagged source (beside `penates-bin`, the prebuilt release); x86_64 and aarch64.
 - A second app for the same site gets a numbered name ("GitHub 2") when its name comes from the site, so menus and taskbars tell them apart; a name you type is kept as typed. Edit shows each app's id.
 - Share an app with the app catalog: ⋮ → **Share with the app catalog…** (or `penates submit <id> --notes "…"`) shows the entry for review and opens GitHub with it filled in, as a new file for a new site or an issue suggesting a change for a site already in the catalog. Custom JavaScript is never included, and Penates sends nothing itself.
 - Credits in the About dialog: who made Penates, what it is built on, and every open-source component with its license (`ui/credits.js`, generated from Cargo.lock).
