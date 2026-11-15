@@ -51,6 +51,10 @@ pub struct WebApp {
     pub devtools: bool,
     /// Window theme: "system", "light" or "dark" (honored on Windows and macOS; Linux sites follow the desktop).
     pub theme: String,
+    /// Let the site show desktop notifications (enforced on Linux; see docs for other platforms).
+    pub allow_notifications: bool,
+    /// Let the site use the camera and microphone (enforced on Linux; see docs for other platforms).
+    pub allow_camera_microphone: bool,
     /// Show a system tray icon.
     pub tray: bool,
     /// Draw the tray icon in grayscale.
@@ -86,6 +90,8 @@ impl Default for WebApp {
             external_links_in_browser: true,
             devtools: false,
             theme: "system".into(),
+            allow_notifications: true,
+            allow_camera_microphone: false,
             tray: false,
             tray_grayscale: false,
             close_to_tray: false,

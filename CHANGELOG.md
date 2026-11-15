@@ -17,6 +17,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - Release workflow: Intel macOS is cross-compiled on the Apple Silicon runner (the `macos-13` runner is retired).
 
 ### Added
+- **Site permissions** (Linux): per-app "Allow notifications" (on by default) and "Allow camera and microphone" (off by default). Previously WebKitGTK denied both outright. macOS bundles now carry camera/microphone usage descriptions.
+- **Smoke tests in CI** that launch the real apps on Windows and macOS through their launchers.
 - **Export, import and backup**: `penates export <id>... | --all [--settings] [-o file]` writes a `.penates` file (configs and icons, never cookies or logins); `penates import <file-or-url>` reviews it and recreates the apps. Conflicts: skip, rename (keep both) or overwrite. Custom JavaScript is stripped unless `--allow-js`; settings (including the update source) apply only with `--settings`; ids and URLs from a file are validated. The manager has Import, Export all, per-app Export and a Backup section in Settings.
 
 ## [0.1.0] - 2026-11-14

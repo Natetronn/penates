@@ -173,6 +173,8 @@ mod imp {
 <key>CFBundleExecutable</key><string>launcher</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleVersion</key><string>1</string>
+<key>NSCameraUsageDescription</key><string>The website in this app wants to use your camera.</string>
+<key>NSMicrophoneUsageDescription</key><string>The website in this app wants to use your microphone.</string>
 {icon}</dict></plist>
 "#,
             n = xml(&app.name),

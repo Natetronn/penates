@@ -15,6 +15,7 @@ What has actually been run, and where. Last updated 2026-11-14, version 0.1.0.
 | Same-site popups | a real click on a `target=_blank` link to the app's own site opened a second app window (confirmed on screen) |
 | External links | real clicks sent to the browser (logged by a stand-in `xdg-open`); `steam:` blocked, `mailto:` and `https:` passed, `file:` refused by WebKit |
 | Wrapped-site isolation | a page inside an app window cannot call Tauri commands (all refused) |
+| Site permissions | notifications: real clicks gave "granted" and the notification was shown; camera and microphone: "granted: audio, video". With both settings off, both are denied (automated check). |
 | Cache | clearing frees the cache and keeps cookies and storage |
 | Bad ids | `..`, `../x`, `a/b` rejected by `remove --purge` and `clear --data` |
 | Export and import | CLI round trip in a scratch config: export one and all, import with rename/skip/overwrite, custom JavaScript stripped by default and kept with `--allow-js`, no cookies in the file, path-like id and `javascript:` URL rejected or sanitized |
@@ -23,7 +24,7 @@ What has actually been run, and where. Last updated 2026-11-14, version 0.1.0.
 ## Not verified
 - Import and Export buttons in the real manager window (only the preview and the CLI were exercised).
 - File chooser in the icon picker; the Save and Update buttons end to end in the real window.
-- Notifications from sites, camera and microphone prompts.
+- Site permissions on Windows and macOS (not enforced there yet).
 - **Windows and macOS: compiled and unit-tested in CI only** (GitHub Actions, 2026-11-14: build and `cargo test` pass on `windows-latest` and `macos-latest`). The apps have never been run there: Start Menu shortcut, AppUserModelID, `.app` bundle, profile folders and tray are untested.
 - Per-app window theme on Windows and macOS.
 

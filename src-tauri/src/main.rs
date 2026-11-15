@@ -345,6 +345,36 @@ fn open_external(u: &url::Url) {
     }
 }
 
+/// WebKitGTK denies every permission request the app does not answer, and ships with camera and
+/// WebRTC switched off. Answer notification and camera/microphone requests from the app's settings;
+/// deny everything else (location, pointer lock, etc.).
+#[cfg(target_os = "linux")]
+fn apply_site_permissions(win: &tauri::WebviewWindow, cfg: &WebApp) {
+    let (notify, media) = (cfg.allow_notifications, cfg.allow_camera_microphone);
+    let _ = win.with_webview(move |wv| {
+        use gtk::glib::prelude::*;
+        use webkit2gtk::{NotificationPermissionRequest, PermissionRequestExt, SettingsExt, UserMediaPermissionRequest, WebViewExt};
+        let view = wv.inner();
+        if media {
+            if let Some(s) = WebViewExt::settings(&view) {
+                s.set_enable_media_stream(true);
+                s.set_enable_webrtc(true);
+            }
+        }
+        view.connect_permission_request(move |_, req| {
+            let allow = if req.is::<NotificationPermissionRequest>() {
+                notify
+            } else if req.is::<UserMediaPermissionRequest>() {
+                media
+            } else {
+                false
+            };
+            if allow { req.allow() } else { req.deny() }
+            true
+        });
+    });
+}
+
 fn toggle_main(app: &tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
         if w.is_visible().unwrap_or(true) && !w.is_minimized().unwrap_or(false) {
@@ -487,6 +517,8 @@ fn run_webapp(cfg: WebApp) -> tauri::Result<()> {
                 w = w.user_agent(ua);
             }
             let win = w.build()?;
+            #[cfg(target_os = "linux")]
+            apply_site_permissions(&win, &cfg);
             if (cfg.zoom - 1.0).abs() > f64::EPSILON {
                 let _ = win.set_zoom(cfg.zoom);
             }

@@ -26,9 +26,15 @@ Each app is one TOML file, `~/.config/penates/apps/<id>.toml`. Edit it by hand (
 | `internal_hosts` | `[]` | extra hosts that stay in-app; `*.example.com` wildcards allowed |
 | `inject_css`, `inject_js` | none | injected into every page (JS runs before page scripts) |
 | `theme` | `"system"` | `"system"`, `"light"` or `"dark"` window theme (Windows and macOS; see [THEMING](THEMING.md)) |
+| `allow_notifications` | `true` | let the site show desktop notifications (Linux; see below) |
+| `allow_camera_microphone` | `false` | let the site use the camera and microphone, for video calls (Linux; see below) |
 | `tray` | `false` | show a system tray icon |
 | `tray_grayscale` | `false` | draw the tray icon in black and white |
 | `close_to_tray` | `false` | closing the window hides it; quit from the tray menu |
+
+### Site permissions by platform
+- **Linux (WebKitGTK):** enforced by Penates. Requests are answered from these two settings and everything else (location, etc.) is denied. Camera/microphone also switches on WebKit's media-stream and WebRTC support, which are off by default. As in browsers, a site can only ask for notification permission after a click.
+- **Windows (WebView2)** and **macOS (WKWebView):** these settings are not applied yet. The webview shows its own prompts; desktop notifications from sites are not supported by these webviews. The generated macOS bundles include the camera and microphone usage descriptions macOS requires before a site may ask.
 
 ## Global settings
 `~/.config/penates/settings.toml`:
