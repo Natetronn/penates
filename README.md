@@ -62,6 +62,7 @@ Full reference: [docs/CLI.md](docs/CLI.md).
 | `ui` | manager front end (plain HTML/JS, `tokens.css`, `skins.css`; no build step) |
 | `packaging`, `scripts` | Arch PKGBUILD, desktop file, package and tarball scripts |
 | `docs` | architecture, configuration, theming, updates, packaging, status |
+| `design` | logo sources, lockups, colors and type, and the script that rebuilds the app icons |
 
 ## Docs
 [Architecture](docs/ARCHITECTURE.md) · [CLI](docs/CLI.md) · [Configuration](docs/CONFIGURATION.md) · [Theming](docs/THEMING.md) · [Updates](docs/UPDATES.md) · [Sharing](docs/SHARING.md) · [Packaging](docs/PACKAGING.md) · [Releasing](docs/RELEASING.md) · [Status](docs/STATUS.md) · [Changelog](CHANGELOG.md)
