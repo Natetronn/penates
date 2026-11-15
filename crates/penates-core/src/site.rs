@@ -14,7 +14,7 @@ fn clean(s: &str) -> String {
 /// "Page title · Site" -> pick the shortest segment, which is almost always the site name.
 fn from_title(title: &str) -> Option<String> {
     let t = clean(title);
-    t.split(|c| matches!(c, '|' | '·' | '—' | '–' | '•'))
+    t.split(['|', '·', '—', '–', '•'])
         .flat_map(|seg| seg.split(" - "))
         .map(str::trim)
         .filter(|s| s.chars().count() >= 2)

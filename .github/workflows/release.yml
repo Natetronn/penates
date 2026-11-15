@@ -12,8 +12,8 @@ jobs:
       matrix:
         include:
           - { os: ubuntu-22.04,  bundles: 'deb,rpm,appimage' }
-          - { os: macos-latest,  bundles: 'app,dmg' }   # Apple Silicon
-          - { os: macos-13,      bundles: 'app,dmg' }   # Intel
+          - { os: macos-latest,  bundles: 'app,dmg' }                                  # Apple Silicon
+          - { os: macos-latest,  bundles: 'app,dmg', target: 'x86_64-apple-darwin' }   # Intel, cross-compiled
           - { os: windows-latest, bundles: 'nsis' }
     runs-on: ${{ matrix.os }}
     steps:
@@ -30,13 +30,14 @@ jobs:
         shell: bash
         env:
           BUNDLES: ${{ matrix.bundles }}
+          TARGET: ${{ matrix.target }}
         run: ./scripts/build-packages.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: penates-${{ matrix.os }}
+          name: penates-${{ matrix.os }}${{ matrix.target && format('-{0}', matrix.target) || '' }}
           path: |
-            target/release/bundle/**/*.deb
-            target/release/bundle/**/*.rpm
-            target/release/bundle/**/*.AppImage
-            target/release/bundle/**/*.dmg
-            target/release/bundle/**/*.exe
+            target/**/bundle/**/*.deb
+            target/**/bundle/**/*.rpm
+            target/**/bundle/**/*.AppImage
+            target/**/bundle/**/*.dmg
+            target/**/bundle/**/*-setup.exe

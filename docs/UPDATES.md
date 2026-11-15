@@ -37,7 +37,7 @@ The sample lives at `crates/penates-core/data/sample-manifest.json`. Point `mani
       "name": "GitHub",
       "url": "https://github.com/",
       "internal_hosts": ["*.githubusercontent.com"],
-      "user_agent": null, "inject_css": null, "inject_js": null, "icon_url": null,
+      "user_agent": null, "inject_css": null, "icon_url": null,
       "notes": "Keep avatars and assets in-app"
     }
   ]
@@ -48,7 +48,8 @@ The `penates` block mirrors the shape of Tauri's updater JSON (`version`, `notes
 ## How presets apply
 - An app links to a catalog entry by `catalog_id`, or automatically by matching its URL's host.
 - A preset applies only when its `version` is newer than the app's `catalog_version`.
-- Hosts are added (never removed); `user_agent`, `inject_css`, `inject_js` are replaced when the preset sets them.
+- Hosts are added (never removed); `user_agent` and `inject_css` are replaced when the preset sets them.
+- **Presets never inject JavaScript.** An `inject_js` field in a catalog entry is ignored, so whoever controls the manifest URL cannot run script inside your apps.
 - **A custom icon you chose is never replaced.** `update` re-downloads the site's own icon only for apps with `custom_icon = false`.
 
 ## Signing (future)

@@ -119,6 +119,7 @@ fn normalize(bytes: &[u8]) -> Result<Vec<u8>> {
 
 /// Store normalized icon bytes as `<icons>/<id>.png` and return the path.
 pub fn set_from_bytes(bytes: &[u8], id: &str) -> Result<PathBuf> {
+    anyhow::ensure!(crate::store::valid_id(id), "invalid app id '{id}'");
     let png = normalize(bytes)?;
     std::fs::create_dir_all(crate::store::icon_dir())?;
     let dst = crate::store::icon_dir().join(format!("{id}.png"));

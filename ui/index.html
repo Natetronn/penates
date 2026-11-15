@@ -122,7 +122,6 @@ const put = (parent, ...kids) => parent.replaceChildren(...kids.flat().filter((x
 const fmtBytes = (b) => (b < 1024 ? b + " B" : b < 1048576 ? Math.round(b / 1024) + " KB" : (b / 1048576).toFixed(1) + " MB");
 const closeMenus = () => document.querySelectorAll(".menu").forEach((m) => m.remove());
 
-const iconCache = new Map();
 function iconEl(app) {
   const holder = el("div", { class: "ph" });
   if (app.icon) {
@@ -180,11 +179,17 @@ function appRow(a) {
       closeMenus();
       try { await invoke("clear_data", { id: a.id }); say("Cleared cookies and data for " + a.name + "."); } catch (e) { fail(e); }
     } });
+    const removeAllBtn = el("button", { class: "danger", textContent: "Remove app and data…", onclick: async (ev) => {
+      ev.stopPropagation();
+      if (!removeAllBtn.dataset.sure) { removeAllBtn.dataset.sure = "1"; removeAllBtn.textContent = "Click again: remove & sign out"; return; }
+      closeMenus();
+      try { await invoke("remove_app", { id: a.id, purge: true }); say(a.name + " and its data removed."); renderApps(); } catch (e) { fail(e); }
+    } });
     actions.append(el("div", { class: "menu" },
       item("Export app…", "", async () => { say("Saved to " + (await invoke("export_apps", { ids: [a.id], withSettings: false }))); }),
       cacheBtn, dataBtn,
       item("Remove app", "danger", async () => { await invoke("remove_app", { id: a.id, purge: false }); say(a.name + " removed (data kept)."); renderApps(); }),
-      item("Remove app and data", "danger", async () => { await invoke("remove_app", { id: a.id, purge: true }); say(a.name + " and its data removed."); renderApps(); })));
+      removeAllBtn));
   };
   return el("div", { class: "app" }, iconEl(a),
     el("div", { class: "meta" }, el("b", {}, a.name), el("span", {}, a.url)),

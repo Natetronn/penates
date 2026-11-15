@@ -98,6 +98,7 @@ pub struct CatalogEntry {
     pub internal_hosts: Option<Vec<String>>,
     pub user_agent: Option<String>,
     pub inject_css: Option<String>,
+    /// Ignored when applying presets (see `apply_preset`); kept so older manifests still parse.
     pub inject_js: Option<String>,
     pub icon_url: Option<String>,
 }
@@ -166,7 +167,8 @@ pub fn apply_preset(app: &mut WebApp, m: &Manifest) -> Option<(String, Option<St
     }
     if let Some(v) = &e.user_agent { app.user_agent = Some(v.clone()); }
     if let Some(v) = &e.inject_css { app.inject_css = Some(v.clone()); }
-    if let Some(v) = &e.inject_js { app.inject_js = Some(v.clone()); }
+    // `inject_js` from a preset is deliberately ignored: "Update all" would otherwise let whoever
+    // controls the manifest URL run script inside every matching app.
     app.catalog_id = Some(e.id.clone());
     app.catalog_version = Some(e.version.clone());
     Some((e.version.clone(), e.icon_url.clone()))
@@ -238,6 +240,15 @@ mod tests {
         assert_eq!(v, "1.1.0");
         assert!(app.internal_hosts.contains(&"githubassets.com".to_string()));
         assert!(apply_preset(&mut app, &m).is_none()); // already current
+    }
+
+    #[test]
+    fn presets_never_inject_javascript() {
+        let m: Manifest = serde_json::from_str(r#"{"schema":1,"catalog":[{"id":"x","version":"9.0.0","url":"https://x.example/","inject_js":"steal()","inject_css":"a{}"}]}"#).unwrap();
+        let mut app = WebApp { url: "https://x.example/".into(), ..Default::default() };
+        assert!(apply_preset(&mut app, &m).is_some());
+        assert!(app.inject_js.is_none());
+        assert_eq!(app.inject_css.as_deref(), Some("a{}"));
     }
 
     #[test]

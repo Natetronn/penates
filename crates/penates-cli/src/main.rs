@@ -169,7 +169,7 @@ fn main() -> Result<()> {
                     }
                 },
             };
-            let app = WebApp {
+            let mut app = WebApp {
                 id: id.clone(), name, url, user_agent, width, height, zoom, internal_hosts, devtools,
                 custom_icon: icon_file_given,
                 icon: icon_path.map(|p| store::icon_ref(&p)),
@@ -177,6 +177,7 @@ fn main() -> Result<()> {
                 inject_js: read_opt(inject_js)?,
                 ..Default::default()
             };
+            ops::validate(&mut app)?;
             store::save(&app)?;
             println!("created '{}' ({})", app.name, app.id);
             if !no_install {
@@ -198,7 +199,10 @@ fn main() -> Result<()> {
                 }
             }
         }
-        Cmd::Show { id } => print!("{}", std::fs::read_to_string(store::path_for(&id)).with_context(|| format!("no app '{id}'"))?),
+        Cmd::Show { id } => {
+            store::load(&id)?;
+            print!("{}", std::fs::read_to_string(store::path_for(&id))?);
+        }
         Cmd::Path { id } => println!("{}", store::path_for(&id).display()),
         Cmd::Run { id } => {
             store::load(&id)?;

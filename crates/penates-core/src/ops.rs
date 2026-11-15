@@ -20,10 +20,17 @@ fn blank_to_none(s: &mut Option<String>) {
     }
 }
 
+/// Names end up in launcher files, so drop control characters (newlines could add lines to a
+/// .desktop file), collapse whitespace and cap the length.
+pub fn clean_name(s: &str) -> String {
+    let s: String = s.chars().map(|c| if c.is_control() { ' ' } else { c }).collect();
+    s.split_whitespace().collect::<Vec<_>>().join(" ").chars().take(100).collect()
+}
+
 /// Clean up user-edited values.
 pub fn validate(app: &mut WebApp) -> Result<()> {
     app.url = normalize_url(&app.url)?;
-    app.name = app.name.trim().to_string();
+    app.name = clean_name(&app.name);
     ensure!(!app.name.is_empty(), "name cannot be empty");
     app.width = app.width.clamp(200.0, 10000.0);
     app.height = app.height.clamp(200.0, 10000.0);
@@ -116,4 +123,25 @@ pub fn reset_icon(id: &str) -> Result<WebApp> {
     let app = store::load(id)?;
     let p = icon::fetch_for(&app.url, id).context("no icon found on the site")?;
     set_icon_file(id, p, false)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn names_lose_control_characters() {
+        assert_eq!(clean_name("  Git\r\nExec=evil  Hub "), "Git Exec=evil Hub");
+        assert_eq!(clean_name(&"x".repeat(300)).len(), 100);
+    }
+
+    #[test]
+    fn validate_clamps_and_normalizes() {
+        let mut a = WebApp { id: "a".into(), name: " A ".into(), url: "example.com".into(), zoom: 0.0, width: 1.0, theme: "neon".into(), ..Default::default() };
+        validate(&mut a).unwrap();
+        assert_eq!((a.name.as_str(), a.url.as_str()), ("A", "https://example.com/"));
+        assert_eq!((a.zoom, a.width, a.theme.as_str()), (0.25, 200.0, "system"));
+        a.url = "javascript:alert(1)".into();
+        assert!(validate(&mut a).is_err());
+    }
 }

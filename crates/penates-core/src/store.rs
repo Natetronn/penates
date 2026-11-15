@@ -25,21 +25,34 @@ pub fn icon_ref(path: &std::path::Path) -> String {
     path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
 }
 
+/// Ids become file and folder names, so only `a-z 0-9 - _` (max 64) are accepted. This keeps a bad id
+/// such as `..` from ever reaching a path (where `--purge` would delete the wrong folder).
+pub fn valid_id(id: &str) -> bool {
+    !id.is_empty() && id.len() <= 64 && id.chars().all(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '0'..='9' | '-' | '_'))
+}
+
+fn check_id(id: &str) -> Result<()> {
+    anyhow::ensure!(valid_id(id), "invalid app id '{id}' (use letters, digits, - and _)");
+    Ok(())
+}
+
 pub fn path_for(id: &str) -> PathBuf {
     config_dir().join(format!("{id}.toml"))
 }
 
 pub fn exists(id: &str) -> bool {
-    path_for(id).exists()
+    valid_id(id) && path_for(id).exists()
 }
 
 pub fn save(app: &WebApp) -> Result<()> {
+    check_id(&app.id)?;
     std::fs::create_dir_all(config_dir())?;
     std::fs::write(path_for(&app.id), toml::to_string_pretty(app)?)?;
     Ok(())
 }
 
 pub fn load(id: &str) -> Result<WebApp> {
+    check_id(id)?;
     let p = path_for(id);
     let s = std::fs::read_to_string(&p).with_context(|| format!("no app with id '{id}'"))?;
     let mut app: WebApp = toml::from_str(&s).with_context(|| format!("parsing {}", p.display()))?;
@@ -61,12 +74,13 @@ pub fn list() -> Result<Vec<WebApp>> {
             }
         }
     }
-    out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    out.sort_by_key(|a| a.name.to_lowercase());
     Ok(out)
 }
 
 /// Remove config, icon, launcher; optionally the browsing profile too.
 pub fn remove(id: &str, purge: bool) -> Result<()> {
+    check_id(id)?;
     if let Ok(app) = load(id) {
         let _ = crate::integration::uninstall(&app);
     }
@@ -81,6 +95,9 @@ pub fn remove(id: &str, purge: bool) -> Result<()> {
 
 /// Delete cookies/storage/cache for an app.
 pub fn clear_profile(id: &str) {
+    if !valid_id(id) {
+        return;
+    }
     let _ = std::fs::remove_dir_all(profile_dir(id));
 }
 
@@ -97,6 +114,9 @@ fn dir_size(p: &std::path::Path) -> u64 {
 
 /// Folders inside an app's profile that hold only re-downloadable cache (no logins).
 pub fn cache_dirs(id: &str) -> Vec<PathBuf> {
+    if !valid_id(id) {
+        return vec![];
+    }
     let p = profile_dir(id);
     vec![
         p.join("WebKitCache"),               // Linux (WebKitGTK)
@@ -118,4 +138,19 @@ pub fn clear_cache(id: &str) -> u64 {
         let _ = std::fs::remove_dir_all(d);
     }
     before.saturating_sub(cache_size(id))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ids_that_could_escape_are_rejected() {
+        for bad in ["", "..", "../x", "a/b", "a\\b", ".hidden", "x y", "é"] {
+            assert!(!valid_id(bad), "{bad:?} should be invalid");
+            assert!(load(bad).is_err());
+        }
+        assert!(cache_dirs("..").is_empty());
+        assert!(valid_id("github") && valid_id("my-app_2"));
+    }
 }

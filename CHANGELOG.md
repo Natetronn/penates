@@ -5,6 +5,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
+### Security
+- App ids are validated wherever they become file or folder names; a bad id such as `..` can no longer reach a path (previously `remove --purge` could have deleted the wrong folder).
+- Links a site sends to the OS are limited to `http`, `https`, `mailto` and `tel`; `file:` and custom schemes are dropped instead of handed to `xdg-open`.
+- Update presets no longer apply `inject_js`, so a manifest URL cannot push script into apps.
+- App names lose control characters before reaching launcher files.
+
+### Fixed
+- `penates create` and the manager's Create now validate like Edit (zoom, size and theme are clamped; non-http URLs are rejected).
+- "Remove app and data" now asks for a second click, like "Clear cookies & data".
+- Release workflow: Intel macOS is cross-compiled on the Apple Silicon runner (the `macos-13` runner is retired).
+
 ### Added
 - **Export, import and backup**: `penates export <id>... | --all [--settings] [-o file]` writes a `.penates` file (configs and icons, never cookies or logins); `penates import <file-or-url>` reviews it and recreates the apps. Conflicts: skip, rename (keep both) or overwrite. Custom JavaScript is stripped unless `--allow-js`; settings (including the update source) apply only with `--settings`; ids and URLs from a file are validated. The manager has Import, Export all, per-app Export and a Backup section in Settings.
 

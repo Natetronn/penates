@@ -68,6 +68,7 @@ async fn create_app(
     };
     let icon = icon.map(|p| store::icon_ref(&p));
     let mut app = WebApp { id, name, url, icon, custom_icon, ..Default::default() };
+    ops::validate(&mut app).map_err(err)?;
     // Link to a catalog preset if one matches this site.
     if let Ok(m) = updates::load_manifest() {
         updates::apply_preset(&mut app, &m);
@@ -333,6 +334,17 @@ fn app_context() -> tauri::Context {
     tauri::generate_context!()
 }
 
+/// Hand a link the app won't load itself to the OS, but only for schemes a browser would open
+/// without asking. `file:`, `smb:` and custom app schemes are dropped: a site must not be able to
+/// make the desktop open local files or launch other programs.
+fn open_external(u: &url::Url) {
+    if matches!(u.scheme(), "http" | "https" | "mailto" | "tel") {
+        let _ = open::that_detached(u.as_str());
+    } else {
+        eprintln!("blocked opening {}: link", u.scheme());
+    }
+}
+
 fn toggle_main(app: &tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
         if w.is_visible().unwrap_or(true) && !w.is_minimized().unwrap_or(false) {
@@ -435,7 +447,7 @@ fn run_webapp(cfg: WebApp) -> tauri::Result<()> {
                         if c.is_internal(&u) {
                             tauri::webview::NewWindowResponse::Allow
                         } else {
-                            let _ = open::that_detached(u.as_str());
+                            open_external(&u);
                             tauri::webview::NewWindowResponse::Deny
                         }
                     }
@@ -458,7 +470,7 @@ fn run_webapp(cfg: WebApp) -> tauri::Result<()> {
                     if nav_cfg.is_internal(u) {
                         true
                     } else {
-                        let _ = open::that_detached(u.as_str());
+                        open_external(u);
                         false
                     }
                 });
