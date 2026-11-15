@@ -1,0 +1,15 @@
+[package]
+name = "penates-cli"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "penates"
+path = "src/main.rs"
+
+[dependencies]
+penates-core.workspace = true
+anyhow.workspace = true
+serde_json.workspace = true
+clap = { version = "4", features = ["derive"] }
+open = "5"

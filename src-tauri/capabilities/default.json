@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Manager window only. Wrapped web apps get no IPC access.",
+  "windows": ["manager"],
+  "permissions": ["core:default"]
+}

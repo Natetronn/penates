@@ -1,0 +1,8 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "build all", "type": "shell", "command": "cargo build --workspace", "group": { "kind": "build", "isDefault": true }, "problemMatcher": "$rustc" },
+    { "label": "test", "type": "shell", "command": "cargo test --workspace", "group": "test", "problemMatcher": "$rustc" },
+    { "label": "run desktop manager", "type": "shell", "command": "cargo run -p penates-desktop", "problemMatcher": "$rustc" }
+  ]
+}

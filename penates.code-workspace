@@ -1,0 +1,25 @@
+{
+  "folders": [
+    { "name": "penates", "path": "." },
+    { "name": "core", "path": "crates/penates-core" },
+    { "name": "cli", "path": "crates/penates-cli" },
+    { "name": "desktop (tauri)", "path": "src-tauri" },
+    { "name": "ui", "path": "ui" }
+  ],
+  "settings": {
+    "rust-analyzer.check.command": "clippy",
+    "rust-analyzer.cargo.features": "all",
+    "editor.formatOnSave": true,
+    "[rust]": { "editor.defaultFormatter": "rust-lang.rust-analyzer" },
+    "files.exclude": { "**/target": true },
+    "search.exclude": { "**/target": true }
+  },
+  "extensions": {
+    "recommendations": [
+      "rust-lang.rust-analyzer",
+      "tauri-apps.tauri-vscode",
+      "tamasfe.even-better-toml",
+      "vadimcn.vscode-lldb"
+    ]
+  }
+}

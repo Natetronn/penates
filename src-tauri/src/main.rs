@@ -1,0 +1,466 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+mod single;
+
+use penates_core::{icon, integration, resolve_name, normalize_url, ops, slugify, store, updates, WebApp};
+use std::process::{Command, Stdio};
+use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+
+// ---------- manager commands (IPC only available to the "manager" window) ----------
+// Anything touching the network is `async` so it never blocks the UI thread.
+
+type CmdResult<T> = Result<T, String>;
+fn err<E: std::fmt::Display>(e: E) -> String {
+    format!("{e:#}")
+}
+
+#[derive(serde::Serialize)]
+struct Candidate {
+    src: String,
+    data: String,
+}
+
+#[tauri::command]
+fn list_apps() -> CmdResult<Vec<WebApp>> {
+    store::list().map_err(err)
+}
+
+/// Name suggested for a URL, used to prefill the Create form.
+#[tauri::command]
+async fn suggest_name(url: String) -> CmdResult<String> {
+    let url = normalize_url(&url).map_err(err)?;
+    Ok(resolve_name(&url))
+}
+
+#[tauri::command]
+fn app_version() -> String {
+    updates::CURRENT_VERSION.to_string()
+}
+
+#[tauri::command]
+async fn create_app(
+    url: String,
+    name: Option<String>,
+    open_after: bool,
+    icon_url: Option<String>,
+    icon_bytes: Option<Vec<u8>>,
+) -> CmdResult<WebApp> {
+    let url = normalize_url(&url).map_err(err)?;
+    let name = name.filter(|n| !n.trim().is_empty()).unwrap_or_else(|| resolve_name(&url));
+    let base = slugify(&name);
+    if base.is_empty() {
+        return Err("Name must contain letters or digits".into());
+    }
+    let mut id = base.clone();
+    let mut n = 2;
+    while store::exists(&id) {
+        id = format!("{base}-{n}");
+        n += 1;
+    }
+    // Icon: a chosen file or URL wins (and is never replaced by Update); otherwise the site's own.
+    let (icon, custom_icon) = if let Some(b) = icon_bytes.filter(|b| !b.is_empty()) {
+        if b.len() > 8 * 1024 * 1024 {
+            return Err("image is larger than 8 MB".into());
+        }
+        (Some(icon::set_from_bytes(&b, &id).map_err(err)?), true)
+    } else if let Some(u) = icon_url.map(|u| u.trim().to_string()).filter(|u| !u.is_empty()) {
+        (Some(icon::set_from_src(&u, &id).map_err(|e| format!("icon URL: {e:#}"))?), true)
+    } else {
+        (icon::fetch_for(&url, &id).ok(), false)
+    };
+    let icon = icon.map(|p| store::icon_ref(&p));
+    let mut app = WebApp { id, name, url, icon, custom_icon, ..Default::default() };
+    // Link to a catalog preset if one matches this site.
+    if let Ok(m) = updates::load_manifest() {
+        updates::apply_preset(&mut app, &m);
+    }
+    store::save(&app).map_err(err)?;
+    ops::reinstall(None, &app);
+    if open_after {
+        run_app(app.id.clone())?;
+    }
+    Ok(app)
+}
+
+#[tauri::command]
+fn save_app(app: WebApp) -> CmdResult<WebApp> {
+    ops::save_edit(app).map_err(err)
+}
+
+#[tauri::command]
+async fn update_app(id: String) -> CmdResult<ops::Outcome> {
+    ops::update(&id).map_err(err)
+}
+
+#[tauri::command]
+async fn update_all() -> CmdResult<Vec<ops::Outcome>> {
+    ops::update_all().map_err(err)
+}
+
+#[tauri::command]
+async fn check_updates() -> CmdResult<updates::UpdateReport> {
+    updates::check().map_err(err)
+}
+
+#[tauri::command]
+fn get_update_settings() -> updates::UpdateSettings {
+    updates::load_settings().updates
+}
+
+#[tauri::command]
+fn set_update_settings(settings: updates::UpdateSettings) -> CmdResult<()> {
+    let mut s = updates::load_settings();
+    s.updates = settings;
+    updates::save_settings(&s).map_err(err)
+}
+
+#[tauri::command]
+fn get_appearance() -> updates::Appearance {
+    updates::load_settings().appearance
+}
+
+fn theme_of(name: &str) -> Option<tauri::Theme> {
+    match name {
+        "light" => Some(tauri::Theme::Light),
+        "dark" => Some(tauri::Theme::Dark),
+        _ => None,
+    }
+}
+
+#[tauri::command]
+fn set_appearance(app: tauri::AppHandle, appearance: updates::Appearance) -> CmdResult<()> {
+    if !matches!(appearance.theme.as_str(), "system" | "light" | "dark") {
+        return Err("unknown theme".into());
+    }
+    if !["default", "nord", "solarized", "mono"].contains(&appearance.skin.as_str()) {
+        return Err("unknown skin".into());
+    }
+    if !["blue", "violet", "green", "orange", "rose", "slate"].contains(&appearance.accent.as_str()) {
+        return Err("unknown accent".into());
+    }
+    if let Some(w) = app.get_webview_window("manager") {
+        let _ = w.set_theme(theme_of(&appearance.theme));
+    }
+    let mut s = updates::load_settings();
+    s.appearance = appearance;
+    updates::save_settings(&s).map_err(err)
+}
+
+#[tauri::command]
+fn open_url(url: String) -> CmdResult<()> {
+    let u = url::Url::parse(&url).map_err(err)?;
+    if !matches!(u.scheme(), "http" | "https") {
+        return Err("only http(s) links".into());
+    }
+    open::that_detached(u.as_str()).map_err(err)
+}
+
+#[tauri::command]
+fn remove_app(id: String, purge: bool) -> CmdResult<()> {
+    store::remove(&id, purge).map_err(err)
+}
+
+#[tauri::command]
+fn clear_data(id: String) -> CmdResult<()> {
+    store::load(&id).map_err(err)?;
+    store::clear_profile(&id);
+    Ok(())
+}
+
+#[tauri::command]
+fn run_app(id: String) -> CmdResult<()> {
+    store::load(&id).map_err(err)?;
+    let exe = std::env::current_exe().map_err(err)?;
+    Command::new(exe).args(["--run", &id]).stdin(Stdio::null()).spawn().map_err(err)?;
+    Ok(())
+}
+
+#[tauri::command]
+fn icon_data(path: String) -> CmdResult<String> {
+    // `path` is an icon file name (older configs: an absolute path); only the name is used and
+    // it is always resolved inside our icon folder.
+    let name = std::path::Path::new(&path).file_name().ok_or("bad icon name")?;
+    Ok(png_data_url(&std::fs::read(store::icon_dir().join(name)).map_err(err)?))
+}
+
+#[tauri::command]
+async fn icon_candidates(url: String) -> CmdResult<Vec<Candidate>> {
+    Ok(icon::preview_candidates(&url)
+        .into_iter()
+        .map(|c| Candidate { data: png_data_url(&c.png), src: c.src })
+        .collect())
+}
+
+#[tauri::command]
+async fn set_icon_from_candidate(id: String, src: String) -> CmdResult<WebApp> {
+    let p = icon::set_from_src(&src, &id).map_err(err)?;
+    ops::set_icon_file(&id, p, true).map_err(err)
+}
+
+#[tauri::command]
+async fn set_icon_from_url(id: String, url: String) -> CmdResult<WebApp> {
+    let p = icon::set_from_src(url.trim(), &id).map_err(err)?;
+    ops::set_icon_file(&id, p, true).map_err(err)
+}
+
+#[tauri::command]
+fn set_icon_from_bytes(id: String, bytes: Vec<u8>) -> CmdResult<WebApp> {
+    if bytes.len() > 8 * 1024 * 1024 {
+        return Err("image is larger than 8 MB".into());
+    }
+    let p = icon::set_from_bytes(&bytes, &id).map_err(err)?;
+    ops::set_icon_file(&id, p, true).map_err(err)
+}
+
+#[tauri::command]
+async fn reset_icon(id: String) -> CmdResult<WebApp> {
+    ops::reset_icon(&id).map_err(err)
+}
+
+fn png_data_url(bytes: &[u8]) -> String {
+    format!("data:image/png;base64,{}", b64(bytes))
+}
+
+fn b64(d: &[u8]) -> String {
+    const T: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut o = String::new();
+    for c in d.chunks(3) {
+        let n = (c[0] as u32) << 16 | (*c.get(1).unwrap_or(&0) as u32) << 8 | *c.get(2).unwrap_or(&0) as u32;
+        o.push(T[(n >> 18) as usize & 63] as char);
+        o.push(T[(n >> 12) as usize & 63] as char);
+        o.push(if c.len() > 1 { T[(n >> 6) as usize & 63] as char } else { '=' });
+        o.push(if c.len() > 2 { T[n as usize & 63] as char } else { '=' });
+    }
+    o
+}
+
+#[cfg(target_os = "macos")]
+fn id_bytes(id: &str) -> [u8; 16] {
+    let mut out = [0u8; 16];
+    for (i, chunk) in out.chunks_mut(4).enumerate() {
+        let mut h: u32 = 2166136261 ^ (i as u32 * 0x9e3779b1);
+        for b in id.bytes() {
+            h = (h ^ b as u32).wrapping_mul(16777619);
+        }
+        chunk.copy_from_slice(&h.to_le_bytes());
+    }
+    out
+}
+
+// ---------- runner: one wrapped web app ----------
+
+fn toggle_main(app: &tauri::AppHandle) {
+    if let Some(w) = app.get_webview_window("main") {
+        if w.is_visible().unwrap_or(true) && !w.is_minimized().unwrap_or(false) {
+            let _ = w.hide();
+        } else {
+            let _ = w.unminimize();
+            let _ = w.show();
+            let _ = w.set_focus();
+        }
+    }
+}
+
+fn build_tray(app: &tauri::App, cfg: &WebApp) -> tauri::Result<()> {
+    use tauri::menu::{Menu, MenuItem};
+    use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+
+    let toggle = MenuItem::with_id(app, "toggle", "Show / Hide", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&toggle, &quit])?;
+
+    let icon = cfg
+        .icon_path()
+        .and_then(|p| icon::rgba_for_tray(&p, cfg.tray_grayscale, 64).ok())
+        .map(|(px, w, h)| tauri::image::Image::new_owned(px, w, h))
+        .or_else(|| app.default_window_icon().cloned());
+
+    let mut b = TrayIconBuilder::with_id(format!("penates-{}", cfg.id))
+        .tooltip(&cfg.name)
+        .menu(&menu)
+        .show_menu_on_left_click(false)
+        .on_menu_event(|app, e| match e.id.as_ref() {
+            "toggle" => toggle_main(app),
+            "quit" => app.exit(0),
+            _ => {}
+        })
+        .on_tray_icon_event(|tray, e| {
+            if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = e {
+                toggle_main(tray.app_handle());
+            }
+        });
+    if let Some(i) = icon {
+        b = b.icon(i);
+    }
+    b.build(app)?;
+    Ok(())
+}
+
+fn run_webapp(cfg: WebApp) -> tauri::Result<()> {
+    // Taskbar identity: own WM class / app_id (Linux) and own AppUserModelID (Windows), so each
+    // app gets its own taskbar entry matching its launcher and icon.
+    #[cfg(target_os = "linux")]
+    gtk::glib::set_prgname(Some(&integration::wm_class(&cfg.id)));
+    #[cfg(windows)]
+    set_aumid(&cfg.id);
+    // Running straight from the CLI/dev: make sure a launcher (and icon) exists.
+    if !integration::is_installed(&cfg) {
+        ops::reinstall(None, &cfg);
+    }
+
+    // One window per app: a second launch focuses the first and exits.
+    let mut listener = None;
+    if cfg.single_instance {
+        match single::claim(&cfg.id) {
+            single::Claim::Secondary => return Ok(()),
+            single::Claim::Primary(l) => listener = Some(l),
+            single::Claim::Unavailable => {}
+        }
+    }
+
+    tauri::Builder::default()
+        .setup(move |app| {
+            let url = cfg.url.parse::<url::Url>().expect("validated url");
+            let nav_cfg = cfg.clone();
+            let mut js = String::new();
+            if let Some(css) = &cfg.inject_css {
+                let lit = serde_json::to_string(css).unwrap();
+                js.push_str(&format!(
+                    "document.addEventListener('DOMContentLoaded',()=>{{const s=document.createElement('style');s.textContent={lit};document.head.appendChild(s);}});\n"
+                ));
+            }
+            if let Some(extra) = &cfg.inject_js {
+                js.push_str(extra);
+            }
+
+            let mut w = WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url))
+                .title(&cfg.name)
+                .theme(theme_of(&cfg.theme))
+                .inner_size(cfg.width, cfg.height)
+                .maximized(cfg.start_maximized)
+                .fullscreen(cfg.start_fullscreen)
+                .resizable(cfg.resizable)
+                .always_on_top(cfg.always_on_top)
+                .decorations(cfg.decorations)
+                .devtools(cfg.devtools)
+                .initialization_script(&js)
+                .on_navigation(move |u| {
+                    if nav_cfg.is_internal(u) {
+                        true
+                    } else {
+                        let _ = open::that_detached(u.as_str());
+                        false
+                    }
+                });
+            // Isolated profile per app. macOS WKWebView uses a data-store id instead of a directory.
+            #[cfg(target_os = "macos")]
+            {
+                w = w.data_store_identifier(id_bytes(&cfg.id));
+            }
+            #[cfg(not(target_os = "macos"))]
+            {
+                w = w.data_directory(store::profile_dir(&cfg.id));
+            }
+            if let Some(ua) = &cfg.user_agent {
+                w = w.user_agent(ua);
+            }
+            let win = w.build()?;
+            if (cfg.zoom - 1.0).abs() > f64::EPSILON {
+                let _ = win.set_zoom(cfg.zoom);
+            }
+            if cfg.hide_menu_bar {
+                let _ = win.remove_menu();
+            }
+            if let Some(icon) = cfg.icon_path() {
+                if let Ok(img) = tauri::image::Image::from_path(icon) {
+                    let _ = win.set_icon(img);
+                }
+            }
+            if cfg.tray {
+                if let Err(e) = build_tray(app, &cfg) {
+                    eprintln!("tray: {e}");
+                }
+                if cfg.close_to_tray {
+                    let w2 = win.clone();
+                    win.on_window_event(move |ev| {
+                        if let tauri::WindowEvent::CloseRequested { api, .. } = ev {
+                            api.prevent_close();
+                            let _ = w2.hide();
+                        }
+                    });
+                }
+            }
+            if let Some(l) = listener.take() {
+                let handle = app.handle().clone();
+                single::serve(l, cfg.id.clone(), move || {
+                    if let Some(w) = handle.get_webview_window("main") {
+                        let _ = w.unminimize();
+                        let _ = w.show();
+                        let _ = w.set_focus();
+                    }
+                });
+            }
+            Ok(())
+        })
+        .run(tauri::generate_context!())
+}
+
+// ---------- manager ----------
+
+#[cfg(windows)]
+fn set_aumid(id: &str) {
+    use windows_sys::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID;
+    let w: Vec<u16> = format!("dev.penates.app.{id}").encode_utf16().chain(Some(0)).collect();
+    unsafe {
+        SetCurrentProcessExplicitAppUserModelID(w.as_ptr());
+    }
+}
+
+fn run_manager() -> tauri::Result<()> {
+    #[cfg(target_os = "linux")]
+    {
+        gtk::glib::set_prgname(Some("penates"));
+        if let Ok(exe) = std::env::current_exe() {
+            let _ = integration::install_manager(&exe, include_bytes!("../icons/icon.png"));
+        }
+    }
+    tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![
+            list_apps, app_version, suggest_name, create_app, save_app, update_app, update_all, check_updates,
+            get_update_settings, set_update_settings, get_appearance, set_appearance, open_url, remove_app, clear_data, run_app,
+            icon_data, icon_candidates, set_icon_from_candidate, set_icon_from_url, set_icon_from_bytes, reset_icon
+        ])
+        .setup(|app| {
+            WebviewWindowBuilder::new(app, "manager", WebviewUrl::App("index.html".into()))
+                .title("Penates")
+                .theme(theme_of(&updates::load_settings().appearance.theme))
+                .inner_size(860.0, 720.0)
+                .build()?;
+            Ok(())
+        })
+        .run(tauri::generate_context!())
+}
+
+fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    let result = match args.iter().position(|a| a == "--run") {
+        Some(i) => {
+            let Some(id) = args.get(i + 1) else {
+                eprintln!("usage: penates-desktop --run <id>");
+                std::process::exit(2);
+            };
+            match store::load(id) {
+                Ok(cfg) => run_webapp(cfg),
+                Err(e) => {
+                    eprintln!("error: {e}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        None => run_manager(),
+    };
+    if let Err(e) = result {
+        eprintln!("error: {e}");
+        std::process::exit(1);
+    }
+}

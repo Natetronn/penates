@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Penates</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="skins.css">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 var(--font)}
+header{display:flex;align-items:center;gap:16px;padding:10px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
+header h1{font-size:15px;margin:0}
+nav{display:flex;gap:4px}
+nav button{background:none;border:0;padding:6px 12px;border-radius:var(--radius);color:var(--muted);cursor:pointer;font:inherit}
+nav button[aria-selected=true]{background:var(--chip);color:var(--fg);font-weight:600}
+.badge{background:var(--accent);color:var(--accent-fg);border-radius:999px;font-size:11px;padding:0 6px;margin-left:4px}
+main{padding:18px;max-width:820px;margin:0 auto}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:var(--radius);padding:6px 11px;cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-fg);border-color:transparent}
+button.danger{color:var(--danger)}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+input[type=text],input[type=number],textarea,select{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:7px 9px;width:100%;min-width:0}
+textarea{font-family:var(--mono);font-size:12px;min-height:80px;resize:vertical}
+.mono{font-family:var(--mono);font-size:12px}
+.msg{margin-bottom:10px;font-size:13px}.msg:empty{display:none}.msg.err{color:var(--danger)}.msg.ok{color:var(--ok)}
+.banner{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--chip);border:1px solid var(--line);border-radius:var(--radius-lg);padding:9px 12px;margin-bottom:14px}
+.banner span{flex:1 1 200px}
+.toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap}
+.app{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);padding:10px 12px;margin-bottom:8px;flex-wrap:wrap}
+.app img,.ph{width:40px;height:40px;border-radius:9px;object-fit:contain;background:var(--chip);flex:none}
+.meta{flex:1 1 180px;min-width:0}.meta b{display:block}
+.meta span{display:block;color:var(--muted);font:12px var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.actions{display:flex;gap:6px;align-items:center;position:relative}
+.menu{position:absolute;right:0;top:100%;margin-top:4px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);box-shadow:var(--shadow-pop);min-width:190px;z-index:10;padding:4px}
+.menu button{display:block;width:100%;text-align:left;border:0;background:none;padding:7px 10px}
+.menu button:hover{background:var(--chip)}
+.chip{font-size:11px;background:var(--chip);color:var(--muted);padding:2px 7px;border-radius:999px}
+fieldset{border:1px solid var(--line);border-radius:var(--radius-lg);margin:0 0 14px;padding:12px 14px;background:var(--card)}
+legend{font-weight:600;padding:0 6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+label.f{display:grid;gap:4px;font-size:12px;color:var(--muted)}
+label.chk{display:flex;gap:8px;align-items:flex-start;padding:4px 0}
+label.chk small{display:block;color:var(--muted)}
+.icons{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.icons button{padding:4px;border-radius:10px}.icons button[aria-pressed=true]{outline:2px solid var(--accent)}
+.icons img{width:48px;height:48px;display:block}
+.cur{display:flex;align-items:center;gap:12px}.cur img{width:64px;height:64px;border-radius:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.formbar{position:sticky;bottom:0;background:var(--bg);padding:10px 0;display:flex;gap:8px;border-top:1px solid var(--line)}
+h2{font-size:15px;margin:18px 0 8px}
+.hint{color:var(--muted);font-size:12px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.seg button{border:0;border-radius:0;background:var(--card)}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-fg)}
+.skins{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.skin{display:grid;gap:6px;text-align:left;padding:10px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:var(--radius-lg)}
+.skin[aria-pressed=true]{outline:2px solid var(--accent);outline-offset:1px}
+.skin .dots{display:flex;gap:4px}.skin .dots i{width:16px;height:16px;border-radius:50%;border:1px solid var(--line)}
+.swatches{display:flex;gap:10px;flex-wrap:wrap}
+.swatch{width:30px;height:30px;border-radius:50%;padding:0;background:var(--swatch);border:2px solid var(--card)}
+.swatch[aria-pressed=true]{outline:2px solid var(--fg);outline-offset:1px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Penates <span class="chip" id="ver"></span></h1>
+  <nav role="tablist">
+    <button role="tab" data-tab="apps">Apps</button>
+    <button role="tab" data-tab="create">Create</button>
+    <button role="tab" data-tab="updates">Updates<span class="badge" id="ubadge" hidden></span></button>
+    <button role="tab" data-tab="settings">Settings</button>
+  </nav>
+</header>
+<main>
+  <div id="banner"></div>
+  <div id="msg" class="msg" role="status"></div>
+  <section id="tab-apps"></section>
+  <section id="tab-create" hidden></section>
+  <section id="tab-updates" hidden></section>
+  <section id="tab-settings" hidden></section>
+</main>
+<script>
+const { invoke } = window.__TAURI__.core;
+const $ = (id) => document.getElementById(id);
+function el(tag, props = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (k.startsWith("aria-") || k.startsWith("data-")) e.setAttribute(k, v);
+    else if (v !== false && v != null) e[k] = v;
+  }
+  e.append(...kids.flat().filter((x) => x != null && x !== false));
+  return e;
+}
+let msgTimer;
+function say(text, kind = "ok") {
+  const m = $("msg"); m.textContent = text || ""; m.className = "msg " + (text ? kind : "");
+  clearTimeout(msgTimer); if (text && kind === "ok") msgTimer = setTimeout(() => say(""), 5000);
+}
+const fail = (e) => say(String(e), "err");
+
+// ---- tabs ----
+let tab = "apps", editing = null, report = null;
+function show(t) {
+  tab = t; if (t !== "apps") editing = null;
+  document.querySelectorAll("nav button").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === t));
+  for (const n of ["apps", "create", "updates", "settings"]) $("tab-" + n).hidden = n !== t;
+  $("banner").hidden = t === "updates"; // the Updates tab shows the same notice inline
+  say(""); render();
+}
+document.querySelectorAll("nav button").forEach((b) => (b.onclick = () => show(b.dataset.tab)));
+document.addEventListener("click", (e) => { if (!e.target.closest(".actions")) closeMenus(); });
+// replaceChildren that accepts nested arrays (lists of rows)
+const put = (parent, ...kids) => parent.replaceChildren(...kids.flat().filter((x) => x != null && x !== false));
+const closeMenus = () => document.querySelectorAll(".menu").forEach((m) => m.remove());
+
+const iconCache = new Map();
+function iconEl(app) {
+  const holder = el("div", { class: "ph" });
+  if (app.icon) {
+    invoke("icon_data", { path: app.icon })
+      .then((d) => { const i = el("img", { src: d, alt: "" }); holder.replaceWith(i); })
+      .catch(() => {});
+  }
+  return holder;
+}
+
+// ---- apps list ----
+async function renderApps() {
+  const root = $("tab-apps");
+  if (editing) return renderEdit(root);
+  const apps = await invoke("list_apps");
+  put(root, 
+    el("div", { class: "toolbar" },
+      el("span", { class: "hint" }, apps.length + (apps.length === 1 ? " app installed" : " apps installed")),
+      el("button", { textContent: "Update all", onclick: async (ev) => {
+        ev.target.disabled = true; say("Syncing all apps…");
+        try { const r = await invoke("update_all"); say(`Synced ${r.length} app${r.length === 1 ? "" : "s"}.`); await refreshReport(); }
+        catch (e) { fail(e); } renderApps();
+      } })),
+    apps.length ? apps.map(appRow) : el("p", { class: "hint" }, "No apps yet. Use the Create tab to add one."));
+}
+function appRow(a) {
+  const menuBtn = el("button", { textContent: "⋮", title: "More", "aria-label": "More actions for " + a.name });
+  const actions = el("div", { class: "actions" },
+    el("button", { textContent: "Edit", onclick: () => { editing = JSON.parse(JSON.stringify(a)); renderApps(); } }),
+    el("button", { class: "primary", textContent: "Open", onclick: () => invoke("run_app", { id: a.id }).catch(fail) }),
+    el("button", { textContent: "Update", onclick: async (ev) => {
+      ev.target.disabled = true; ev.target.textContent = "Updating…";
+      try {
+        const o = await invoke("update_app", { id: a.id });
+        say(`${a.name}: icon ${o.icon_refreshed ? "refreshed" : "unchanged"}` + (o.preset ? `, preset ${o.preset} applied` : "") + ".");
+        refreshReport();
+      } catch (e) { fail(e); }
+      renderApps();
+    } }),
+    menuBtn);
+  menuBtn.onclick = (ev) => {
+    ev.stopPropagation();
+    const had = actions.querySelector(".menu"); closeMenus(); if (had) return;
+    const item = (label, cls, fn) => el("button", { class: cls, textContent: label, onclick: async () => { closeMenus(); try { await fn(); } catch (e) { fail(e); } } });
+    actions.append(el("div", { class: "menu" },
+      item("Clear cookies & data", "", async () => { await invoke("clear_data", { id: a.id }); say("Cleared data for " + a.name + ". Restart the app to apply."); }),
+      item("Remove app", "danger", async () => { await invoke("remove_app", { id: a.id, purge: false }); say(a.name + " removed (data kept)."); renderApps(); }),
+      item("Remove app and data", "danger", async () => { await invoke("remove_app", { id: a.id, purge: true }); say(a.name + " and its data removed."); renderApps(); })));
+  };
+  return el("div", { class: "app" }, iconEl(a),
+    el("div", { class: "meta" }, el("b", {}, a.name), el("span", {}, a.url)),
+    a.catalog_version ? el("span", { class: "chip", title: "Catalog preset version" }, "preset " + a.catalog_version) : null,
+    actions);
+}
+
+// ---- edit ----
+const FIELDS = {
+  General: [["name", "Name", "text"], ["url", "URL", "text"]],
+  Window: [["theme", "Window theme", "select", { options: [["system", "Follow system"], ["light", "Light"], ["dark", "Dark"]], help: "Windows and macOS. On Linux, sites follow your desktop's light/dark setting." }], ["width", "Width (px)", "number"], ["height", "Height (px)", "number"], ["zoom", "Zoom", "number", { step: 0.05 }],
+    ["start_maximized", "Start maximized", "bool", "Open full-frame; width and height apply when restored"],
+    ["start_fullscreen", "Start fullscreen", "bool"], ["resizable", "Resizable", "bool"],
+    ["always_on_top", "Always on top", "bool"], ["decorations", "Show title bar and borders", "bool", "Turn off for a frameless window"]],
+  Behavior: [["single_instance", "Single window", "bool", "Launching again focuses the open window"],
+    ["tray", "Show system tray icon", "bool"],
+    ["tray_grayscale", "Grayscale tray icon", "bool", "Draw the tray icon in black and white"],
+    ["close_to_tray", "Closing the window keeps it in the tray", "bool", "Needs the tray icon; use the tray menu to quit"],
+    ["hide_menu_bar", "Hide menu bar", "bool"], ["devtools", "Enable developer tools", "bool"],
+    ["external_links_in_browser", "Open other sites in my browser", "bool", "Links outside this site and the hosts below leave the app"],
+    ["user_agent", "User agent (blank = default)", "text"],
+    ["internal_hosts", "Extra in-app hosts, one per line (*.example.com allowed)", "lines"]],
+  Advanced: [["inject_css", "Custom CSS", "area"], ["inject_js", "Custom JavaScript (runs before page scripts)", "area"]],
+};
+async function renderEdit(root) {
+  const a = editing, inputs = {};
+  const sections = Object.entries(FIELDS).map(([title, fields]) => {
+    const grid = el("div", { class: "grid" });
+    const checks = el("div");
+    for (const [k, label, type, extra] of fields) {
+      let input;
+      if (type === "select") {
+        input = el("select", { id: "f-" + k }, ...extra.options.map(([v, t]) => el("option", { value: v, textContent: t, selected: (a[k] || "system") === v })));
+        const l = el("label", { class: "f" }, label, input, extra.help ? el("small", { class: "hint" }, extra.help) : null);
+        grid.append(l);
+      } else if (type === "bool") {
+        input = el("input", { type: "checkbox", checked: !!a[k], id: "f-" + k });
+        checks.append(el("label", { class: "chk" }, input, el("span", {}, label, extra ? el("small", {}, extra) : null)));
+      } else {
+        const val = type === "lines" ? (a[k] || []).join("\n") : a[k] ?? "";
+        input = type === "lines" || type === "area"
+          ? el("textarea", { value: val, id: "f-" + k })
+          : el("input", { type, value: val, id: "f-" + k, ...(type === "number" ? { step: extra?.step ?? 1 } : {}) });
+        const l = el("label", { class: "f" }, label, input);
+        if (type === "area" || type === "lines") l.style.gridColumn = "1/-1";
+        grid.append(l);
+      }
+      inputs[k] = [input, type];
+    }
+    // Behavior leads with its switches; other sections lead with their fields.
+    return el("fieldset", {}, el("legend", {}, title), ...(title === "Behavior" ? [checks, grid] : [grid, checks]));
+  });
+  const candBox = el("div", { class: "icons" });
+  const urlIn = el("input", { type: "text", id: "icon-url", placeholder: "https://example.com/logo.png", "aria-label": "Icon image URL" });
+  urlIn.style.flex = "1 1 260px";
+  const iconBox = el("fieldset", {}, el("legend", {}, "Icon"),
+    el("div", { class: "cur" }, iconEl(a), el("div", {},
+      el("div", {}, a.custom_icon ? "Custom icon" : "Site default icon"),
+      el("div", { class: "hint" }, "Changes apply as soon as you pick one."))),
+    candBox,
+    el("div", { class: "row" },
+      el("button", { textContent: "Find icons on site", onclick: async (ev) => {
+        ev.target.disabled = true; candBox.textContent = "Searching…";
+        try {
+          const cs = await invoke("icon_candidates", { url: inputs.url[0].value });
+          candBox.replaceChildren(...(cs.length ? cs.map((c) => el("button", { title: c.src, onclick: async () => {
+            try { editing = await invoke("set_icon_from_candidate", { id: a.id, src: c.src }); say("Icon updated."); renderApps(); } catch (e) { fail(e); } } },
+            el("img", { src: c.data, alt: "Icon candidate" }))) : [el("span", { class: "hint" }, "No usable icons found on the site.")]));
+        } catch (e) { candBox.textContent = ""; fail(e); }
+        ev.target.disabled = false;
+      } }),
+      el("button", { textContent: "Upload image…", onclick: () => file.click() }),
+      el("button", { textContent: "Use site default", onclick: async () => {
+        try { editing = await invoke("reset_icon", { id: a.id }); say("Reset to the site's icon."); renderApps(); } catch (e) { fail(e); } } })),
+    el("div", { class: "row" }, urlIn, el("button", { textContent: "Use URL", onclick: async (ev) => {
+      if (!urlIn.value.trim()) return say("Paste an image address first.", "err");
+      ev.target.disabled = true;
+      try { editing = await invoke("set_icon_from_url", { id: a.id, url: urlIn.value }); say("Icon updated."); renderApps(); } catch (e) { fail(e); }
+      ev.target.disabled = false;
+    } })));
+  const file = el("input", { type: "file", accept: "image/png,image/jpeg,image/webp,image/gif,image/x-icon,.ico", hidden: true,
+    onchange: async () => {
+      const f = file.files[0]; if (!f) return;
+      try { editing = await invoke("set_icon_from_bytes", { id: a.id, bytes: Array.from(new Uint8Array(await f.arrayBuffer())) }); say("Icon updated."); renderApps(); }
+      catch (e) { fail(e); }
+    } });
+  const collect = () => {
+    const out = { ...a };
+    for (const [k, [inp, type]] of Object.entries(inputs)) {
+      out[k] = type === "bool" ? inp.checked : type === "number" ? parseFloat(inp.value) || 0
+        : type === "lines" ? inp.value.split("\n") : inp.value;
+    }
+    return out;
+  };
+  put(root, 
+    el("div", { class: "toolbar" }, el("h2", { style: "margin:0" }, "Edit " + a.name),
+      a.catalog_version ? el("span", { class: "chip" }, "preset " + a.catalog_version) : null),
+    sections[0], iconBox, file, sections[1], sections[2], sections[3],
+    el("div", { class: "formbar" },
+      el("button", { class: "primary", textContent: "Save", onclick: async () => {
+        try { await invoke("save_app", { app: collect() }); editing = null; say("Saved. Restart the app to apply changes."); renderApps(); } catch (e) { fail(e); } } }),
+      el("button", { textContent: "Cancel", onclick: () => { editing = null; renderApps(); } })));
+}
+
+// ---- create ----
+function renderCreate() {
+  const url = el("input", { type: "text", id: "c-url", placeholder: "https://example.com", autofocus: true });
+  const name = el("input", { type: "text", id: "c-name", placeholder: "Name (filled in from the site)" });
+  let nameTouched = false;
+  name.addEventListener("input", () => (nameTouched = name.value !== ""));
+  url.addEventListener("change", async () => {
+    if (nameTouched || !url.value.trim()) return;
+    try { const n = await invoke("suggest_name", { url: url.value }); if (!nameTouched) name.value = n; } catch {}
+  });
+  const open = el("input", { type: "checkbox", id: "c-open", checked: true });
+  const iconUrl = el("input", { type: "text", id: "c-icon-url", placeholder: "https://example.com/logo.png" });
+  const iconFile = el("input", { type: "file", id: "c-icon-file", accept: "image/png,image/jpeg,image/webp,image/gif,image/x-icon,.ico" });
+  put($("tab-create"), 
+    el("h2", {}, "Create an app"),
+    el("p", { class: "hint" }, "Paste a site address. The name and icon are read from the site automatically. You can edit either one here or later under Edit."),
+    el("form", { onsubmit: async (e) => {
+      e.preventDefault(); const btn = e.target.querySelector("button"); btn.disabled = true; say("Creating…");
+      try {
+        const f = iconFile.files[0];
+        const iconBytes = f ? Array.from(new Uint8Array(await f.arrayBuffer())) : null;
+        const a = await invoke("create_app", { url: url.value, name: name.value || null, openAfter: open.checked, iconUrl: iconUrl.value.trim() || null, iconBytes });
+        say(`Created ${a.name}.`); url.value = ""; name.value = ""; iconUrl.value = ""; iconFile.value = ""; refreshReport(); show("apps");
+      } catch (err) { fail(err); }
+      btn.disabled = false;
+    } },
+      el("div", { class: "grid" }, el("label", { class: "f" }, "Website address", url), el("label", { class: "f" }, "Name", name)),
+      el("fieldset", {}, el("legend", {}, "Icon (optional)"),
+        el("p", { class: "hint" }, "Leave both empty to use the site's own icon."),
+        el("div", { class: "grid" }, el("label", { class: "f" }, "Image address", iconUrl), el("label", { class: "f" }, "Or choose a file", iconFile))),
+      el("label", { class: "chk" }, open, el("span", {}, "Open after creating")),
+      el("div", { class: "row" }, el("button", { class: "primary", textContent: "Create app" }))));
+}
+
+// ---- updates ----
+async function refreshReport() {
+  try { report = await invoke("check_updates"); } catch (e) { report = { error: String(e) }; }
+  const n = report.error ? 0 : (report.penates ? 1 : 0) + report.apps.length;
+  $("ubadge").hidden = !n; $("ubadge").textContent = n;
+  const b = $("banner");
+  if (report.penates) {
+    b.replaceChildren(el("div", { class: "banner" },
+      el("span", {}, `Penates ${report.penates.latest} is available (you have ${report.penates.current}). ${report.penates.notes}`),
+      report.penates.download_url ? el("button", { class: "primary", textContent: "Download", onclick: () => invoke("open_url", { url: report.penates.download_url }).catch(fail) }) : null));
+  } else b.replaceChildren();
+  if (tab === "updates") renderUpdates();
+}
+async function renderUpdates() {
+  const s = await invoke("get_update_settings");
+  const url = el("input", { type: "text", id: "u-url", value: s.manifest_url, placeholder: "Empty = bundled sample manifest (fake)" });
+  const chk = el("input", { type: "checkbox", id: "u-chk", checked: s.check_on_start });
+  const r = report;
+  const penatesBlock = !r ? el("p", { class: "hint" }, "Checking…") : r.error ? el("p", { class: "msg err" }, r.error)
+    : r.penates ? el("div", { class: "banner" }, el("span", {}, `Penates ${r.penates.latest} available. ${r.penates.notes}`),
+        r.penates.download_url ? el("button", { class: "primary", textContent: "Download", onclick: () => invoke("open_url", { url: r.penates.download_url }).catch(fail) }) : null)
+    : el("p", {}, "Penates " + r.current + " is up to date.");
+  const appsBlock = !r || r.error ? null : r.apps.length
+    ? r.apps.map((u) => el("div", { class: "app" }, el("div", { class: "meta" }, el("b", {}, u.name), el("span", {}, `preset ${u.from ?? "none"} → ${u.to}  ${u.notes}`)),
+        el("button", { textContent: "Update", onclick: async () => { try { await invoke("update_app", { id: u.id }); say(u.name + " updated."); refreshReport(); } catch (e) { fail(e); } } })))
+    : el("p", {}, "All apps are up to date.");
+  put($("tab-updates"), 
+    el("div", { class: "toolbar" }, el("h2", { style: "margin:0" }, "Updates"),
+      el("div", { class: "row", style: "margin:0" },
+        el("button", { textContent: "Check now", onclick: async () => { say("Checking…"); await refreshReport(); say(""); } }),
+        el("button", { class: "primary", textContent: "Update all apps", onclick: async () => { try { await invoke("update_all"); say("Apps synced."); await refreshReport(); } catch (e) { fail(e); } } }))),
+    el("h2", {}, "Penates"), penatesBlock,
+    el("h2", {}, "Apps"), el("p", { class: "hint" }, "Presets add fixes such as sign-in hosts for known sites. Your icon choice is never overwritten."), appsBlock,
+    el("h2", {}, "Update source"),
+    el("fieldset", {}, el("legend", {}, "Manifest"),
+      el("label", { class: "f" }, "Manifest URL (https:// or file://)", url),
+      el("label", { class: "chk" }, chk, el("span", {}, "Check for updates when Penates starts")),
+      el("p", { class: "hint" }, r && !r.error ? "Using: " + r.source : ""),
+      el("div", { class: "row" }, el("button", { textContent: "Save source", onclick: async () => {
+        try { await invoke("set_update_settings", { settings: { manifest_url: url.value.trim(), check_on_start: chk.checked } }); say("Saved."); await refreshReport(); } catch (e) { fail(e); } } }))));
+}
+
+// ---- appearance (tokens live in tokens.css; this only sets two attributes) ----
+const ACCENTS = ["blue", "violet", "green", "orange", "rose", "slate"];
+const SKINS = [["default", "Penates"], ["nord", "Nord"], ["solarized", "Solarized"], ["mono", "High contrast"]];
+let appearance = { theme: "system", skin: "default", accent: "blue" };
+function applyAppearance(a) {
+  const root = document.documentElement;
+  if (a.theme === "system") root.removeAttribute("data-theme"); else root.dataset.theme = a.theme;
+  root.dataset.accent = a.accent;
+  if (a.skin === "default") root.removeAttribute("data-skin"); else root.dataset.skin = a.skin;
+}
+async function setAppearance(patch) {
+  appearance = { ...appearance, ...patch };
+  applyAppearance(appearance);
+  try { await invoke("set_appearance", { appearance }); } catch (e) { fail(e); }
+  renderSettings();
+}
+function renderSettings() {
+  put($("tab-settings"),
+    el("h2", {}, "Appearance"),
+    el("fieldset", {}, el("legend", {}, "Look"),
+      el("div", { class: "skins", role: "group", "aria-label": "Look" },
+        SKINS.map(([v, t]) => {
+          const b = el("button", { type: "button", class: "skin", "aria-pressed": String(appearance.skin === v), onclick: () => setAppearance({ skin: v }) },
+            el("span", { class: "dots" }, el("i", { style: "background:var(--card)" }), el("i", { style: "background:var(--chip)" }), el("i", { style: "background:var(--fg)" })),
+            el("b", {}, t));
+          b.dataset.skin = v; // preview card carries its own skin tokens
+          return b;
+        }))),
+    el("fieldset", {}, el("legend", {}, "Light or dark"),
+      el("div", { class: "seg", role: "group", "aria-label": "Theme" },
+        [["system", "System"], ["light", "Light"], ["dark", "Dark"]].map(([v, t]) =>
+          el("button", { type: "button", textContent: t, "aria-pressed": String(appearance.theme === v), onclick: () => setAppearance({ theme: v }) })))),
+    el("fieldset", {}, el("legend", {}, "Accent color"),
+      el("div", { class: "swatches", role: "group", "aria-label": "Accent color" },
+        ACCENTS.map((n) => { const b = el("button", { type: "button", class: "swatch", title: n, "aria-label": n, "aria-pressed": String(appearance.accent === n), onclick: () => setAppearance({ accent: n }) }); b.dataset.accent = n; return b; }))),
+    el("p", { class: "hint" }, "Colors, radii and shadows come from tokens.css; looks come from skins.css. Each app's own window theme is under Edit → Window."));
+}
+
+function render() {
+  if (tab === "apps") renderApps().catch(fail);
+  else if (tab === "create") renderCreate();
+  else if (tab === "settings") renderSettings();
+  else renderUpdates().catch(fail);
+}
+(async () => {
+  try { appearance = await invoke("get_appearance"); applyAppearance(appearance); } catch {}
+  $("ver").textContent = "v" + (await invoke("app_version"));
+  show("apps");
+  const s = await invoke("get_update_settings");
+  if (s.check_on_start) refreshReport();
+})();
+</script>
+</body>
+</html>

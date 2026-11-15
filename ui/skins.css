@@ -1,0 +1,44 @@
+/* Penates skins: named token sets layered over tokens.css (load after it).
+   Each skin overrides surface/text tokens for light and dark. Accent stays independent.
+   Selectors work on any element, so the Settings preview cards can show a skin too. */
+
+/* Penates (the default). Explicit values so a preview card can show it while another skin is active;
+   the app itself just removes data-skin to use tokens.css. */
+[data-skin="default"] { --bg: #fafbfc; --card: #ffffff; --line: #dfe2e8; --chip: #eef1f6; --fg: #1b1e26; --muted: #667085; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"])[data-skin="default"],
+  :root:not([data-theme="light"]) [data-skin="default"] { --bg: #171a21; --card: #1e222b; --line: #2b303b; --chip: #262b36; --fg: #e8eaf0; --muted: #8b93a3; }
+}
+:root[data-theme="dark"][data-skin="default"],
+:root[data-theme="dark"] [data-skin="default"] { --bg: #171a21; --card: #1e222b; --line: #2b303b; --chip: #262b36; --fg: #e8eaf0; --muted: #8b93a3; }
+
+/* Nord */
+[data-skin="nord"] { --bg: #eceff4; --card: #f8f9fb; --line: #d8dee9; --chip: #e5e9f0; --fg: #2e3440; --muted: #4c566a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"])[data-skin="nord"],
+  :root:not([data-theme="light"]) [data-skin="nord"] { --bg: #2e3440; --card: #3b4252; --line: #4c566a; --chip: #434c5e; --fg: #eceff4; --muted: #aab3c5; }
+}
+:root[data-theme="dark"][data-skin="nord"],
+:root[data-theme="dark"] [data-skin="nord"] { --bg: #2e3440; --card: #3b4252; --line: #4c566a; --chip: #434c5e; --fg: #eceff4; --muted: #aab3c5; }
+
+/* Solarized */
+[data-skin="solarized"] { --bg: #fdf6e3; --card: #fffbee; --line: #e6dfc8; --chip: #eee8d5; --fg: #073642; --muted: #657b83;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"])[data-skin="solarized"],
+  :root:not([data-theme="light"]) [data-skin="solarized"] { --bg: #002b36; --card: #073642; --line: #14505f; --chip: #0b3a47; --fg: #eee8d5; --muted: #93a1a1; }
+}
+:root[data-theme="dark"][data-skin="solarized"],
+:root[data-theme="dark"] [data-skin="solarized"] { --bg: #002b36; --card: #073642; --line: #14505f; --chip: #0b3a47; --fg: #eee8d5; --muted: #93a1a1; }
+
+/* High contrast */
+[data-skin="mono"] { --bg: #ffffff; --card: #ffffff; --line: #111111; --chip: #f0f0f0; --fg: #000000; --muted: #3d3d3d;
+  --radius: 2px; --radius-lg: 2px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"])[data-skin="mono"],
+  :root:not([data-theme="light"]) [data-skin="mono"] { --bg: #000000; --card: #0a0a0a; --line: #e6e6e6; --chip: #1c1c1c; --fg: #ffffff; --muted: #c4c4c4; }
+}
+:root[data-theme="dark"][data-skin="mono"],
+:root[data-theme="dark"] [data-skin="mono"] { --bg: #000000; --card: #0a0a0a; --line: #e6e6e6; --chip: #1c1c1c; --fg: #ffffff; --muted: #c4c4c4; }

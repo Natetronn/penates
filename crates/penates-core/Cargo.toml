@@ -1,0 +1,19 @@
+[package]
+name = "penates-core"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+serde.workspace = true
+anyhow.workspace = true
+serde_json.workspace = true
+semver = { version = "1", features = ["serde"] }
+toml = "0.8"
+dirs = "5"
+url = { version = "2", features = ["serde"] }
+ureq = "2"
+scraper = "0.20"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "ico", "gif", "webp"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+icns = "0.3"
