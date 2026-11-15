@@ -10,3 +10,4 @@ __pycache__/
 release-files/
 smoke-out/
 *.tmp
+.claude/settings.local.json
