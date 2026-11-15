@@ -6,6 +6,9 @@ members = ["crates/penates-core", "crates/penates-cli", "src-tauri"]
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+repository = "https://github.com/Natetronn/penates"
+rust-version = "1.80"
+publish = false
 
 [workspace.dependencies]
 penates-core = { path = "crates/penates-core" }
@@ -17,3 +20,7 @@ anyhow = "1"
 lto = true
 strip = true
 codegen-units = 1
+# Optimize for size: the desktop binary drops from 13.2 to 10.3 MB and the CLI from 5.3 to 4.3 MB.
+# The cost is CPU-bound work only (importing a 2048 px icon: 150 -> 212 ms). Panics stay "unwind"
+# so a failing worker thread (e.g. one app in Update all) cannot take the whole manager down.
+opt-level = "s"

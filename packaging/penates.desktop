@@ -6,6 +6,6 @@ Comment=Turn websites into native desktop apps
 Exec=penates-desktop
 Icon=penates
 Terminal=false
-Categories=Network;Utility;
+Categories=Utility;
 StartupWMClass=penates
 StartupNotify=true

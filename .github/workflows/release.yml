@@ -1,16 +1,21 @@
 # Builds signed installers for every platform when a version tag is pushed (v0.1.0, ...) and attaches
 # them to a DRAFT release. Drafts are only visible to the repo's owners; nothing is public until you run
 # scripts/publish-release.py <tag>, which adds latest.json and publishes the draft.
+#
+# Run it by hand (Actions > Release > Run workflow) for a rehearsal: everything is built and signed,
+# nothing is uploaded.
 name: Release
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   draft:
+    if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,6 +35,8 @@ jobs:
 
   package:
     needs: draft
+    # Also runs for a rehearsal, when the draft job is skipped.
+    if: ${{ !cancelled() && (needs.draft.result == 'success' || needs.draft.result == 'skipped') }}
     strategy:
       fail-fast: false
       matrix:
@@ -42,7 +49,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      # No build cache here: a restored target/ could carry installers from an older build into the release.
       - name: Linux dependencies
         if: startsWith(matrix.os, 'ubuntu')
         run: |
@@ -61,11 +68,14 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         shell: bash
         run: ./scripts/make-tarball.sh
+      - name: Collect the release files
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+        run: ./scripts/collect-release-files.sh
       - name: Attach to the draft release
+        if: github.ref_type == 'tag'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          TARGET: ${{ matrix.target }}
-        run: |
-          ./scripts/collect-release-files.sh
-          gh release upload "$GITHUB_REF_NAME" release-files/* --clobber -R "$GITHUB_REPOSITORY"
+        run: gh release upload "$GITHUB_REF_NAME" release-files/* --clobber -R "$GITHUB_REPOSITORY"

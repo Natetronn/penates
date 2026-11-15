@@ -2,12 +2,16 @@
 """Publish the draft release that the Release workflow built.
 
     scripts/publish-release.py v0.1.0 [--dry-run]
+    scripts/publish-release.py v0.2.0-rc.1 --prerelease [--dry-run]
 
 1. Downloads the files the Release workflow attached to the draft release for the tag.
 2. Collects installers and their updater signatures under unique names.
 3. Writes latest.json in Tauri's updater format (what the app checks and installs from).
 4. Uploads latest.json to the draft, sets the notes from CHANGELOG.md and publishes it (skipped with --dry-run).
 5. Updates packaging/aur/penates-bin (PKGBUILD + .SRCINFO) for the AUR; pushing to the AUR is manual.
+
+A tag with a suffix (v0.2.0-rc.1) is refused unless --prerelease is given; it is then published as a
+pre-release (never "latest", so installed copies do not update to it) and the AUR files are left alone.
 """
 import datetime, hashlib, json, pathlib, re, shutil, subprocess, sys
 
@@ -22,8 +26,10 @@ def gh(*args, capture=True):
 def main():
     if len(sys.argv) < 2 or not re.fullmatch(r"v\d+\.\d+\.\d+([-+].*)?", sys.argv[1]):
         sys.exit(__doc__)
-    tag, dry = sys.argv[1], "--dry-run" in sys.argv
+    tag, dry, pre = sys.argv[1], "--dry-run" in sys.argv, "--prerelease" in sys.argv
     ver = tag[1:]
+    if re.search(r"[-+]", ver) and not pre:
+        sys.exit(f"{tag} looks like a pre-release; pass --prerelease to publish it as one (it will not reach installed copies)")
 
     work = ROOT / "dist" / f"release-{tag}"
     shutil.rmtree(work, ignore_errors=True)
@@ -54,7 +60,13 @@ def main():
         return asset
 
     def one(suffix):
+        """The one file ending in `suffix`. More than one, or one from another version, is an error:
+        guessing could publish an old installer."""
         hits = [p for p in files if p.name.endswith(suffix)]
+        if len(hits) > 1:
+            sys.exit(f"more than one *{suffix} in the draft: {', '.join(h.name for h in hits)}; remove the extra ones")
+        if hits and ver not in hits[0].name:
+            sys.exit(f"{hits[0].name} is not version {ver}; rebuild the draft")
         return hits[0] if hits else None
 
     if p := one(".AppImage"): updater(["linux-x86_64-appimage", "linux-x86_64"], p)
@@ -94,7 +106,7 @@ def main():
 
     # AUR files (pushed by hand: they need your AUR account). A dry run writes them into the work
     # folder instead of the tracked packaging folder.
-    if tarball:
+    if tarball and not pre:
         src = ROOT / "packaging" / "aur" / "penates-bin"
         aur = work / "aur" if dry else src
         aur.mkdir(parents=True, exist_ok=True)
@@ -115,9 +127,11 @@ def main():
     # The installers are already on the draft under these names; add the updater file and publish.
     gh("release", "upload", tag, "-R", REPO, "--clobber", str(up / "latest.json"), capture=False)
     gh("release", "edit", tag, "-R", REPO, "--title", f"Penates {ver}", "--notes-file", str(work / "notes.md"),
-       "--draft=false", "--latest", capture=False)
+       "--draft=false", *(["--prerelease", "--latest=false"] if pre else ["--latest"]), capture=False)
     print(f"published https://github.com/{REPO}/releases/tag/{tag}")
-    print("AUR: copy packaging/aur/penates-bin/{PKGBUILD,.SRCINFO} into your aur penates-bin clone, commit and push.")
+    if not pre:
+        print("AUR: copy packaging/aur/penates-bin/{PKGBUILD,.SRCINFO} into your aur penates-bin clone, commit and push.")
+        print("Then commit the updated packaging/aur/penates-bin files here.")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-# Maintainer: you
+# Maintainer: Natetronn
 # Local development PKGBUILD: builds from the checkout it lives in. (The AUR package is
 # packaging/aur/penates-bin, built from the public release tarball.)
 #   cd packaging/arch && makepkg -si
@@ -11,6 +11,7 @@ arch=('x86_64' 'aarch64')
 url="https://github.com/Natetronn/penates"
 license=('MIT')
 depends=('webkit2gtk-4.1' 'gtk3' 'libayatana-appindicator')
+optdepends=('xdg-utils: open links and downloads in your browser')
 makedepends=('cargo')
 options=('!lto')
 

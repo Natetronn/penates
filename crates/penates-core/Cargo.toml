@@ -3,6 +3,10 @@ name = "penates-core"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+description = "Shared library for Penates: app configs, icons, launchers, updates and sharing"
 
 [dependencies]
 serde.workspace = true
