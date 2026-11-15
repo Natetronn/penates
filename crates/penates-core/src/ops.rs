@@ -188,6 +188,16 @@ pub fn unique_id(base: &str) -> String {
     (2..).map(|n| format!("{base}-{n}")).find(|c| !store::exists(c)).expect("unbounded range")
 }
 
+/// `name`, or `name 2`, `name 3`, ... whichever no existing app uses yet (ignoring case), so two apps for
+/// the same site are told apart in menus and the taskbar.
+pub fn unique_name(name: &str) -> String {
+    let taken: Vec<String> = store::list().into_iter().map(|a| a.name.to_lowercase()).collect();
+    if !taken.contains(&name.to_lowercase()) {
+        return name.to_string();
+    }
+    (2..).map(|n| format!("{name} {n}")).find(|c| !taken.contains(&c.to_lowercase())).expect("unbounded range")
+}
+
 /// The host a site redirected to, when it is another site (e.g. a bare domain that sends you to
 /// `mail.example.com`). Pages there should stay in the app.
 fn redirect_host(app: &WebApp, page: &Page) -> Option<String> {
@@ -203,12 +213,11 @@ pub fn create(n: NewApp) -> Result<Created> {
         ensure!(n.replace || !store::exists(id), "'{id}' already exists (use --force or another --id)");
     }
     let page = Page::fetch(&url).ok(); // None when offline: create the app anyway
-    let name = n
-        .name
-        .map(|s| clean_name(&s))
-        .filter(|s| !s.is_empty())
-        .or_else(|| page.as_ref().and_then(Page::name))
-        .unwrap_or_else(|| crate::name_from_url(&url));
+    // A name you typed is kept as typed; one read from the site gets a number if another app has it.
+    let name = match n.name.map(|s| clean_name(&s)).filter(|s| !s.is_empty()) {
+        Some(typed) => typed,
+        None => unique_name(&page.as_ref().and_then(Page::name).unwrap_or_else(|| crate::name_from_url(&url))),
+    };
     let id = n.id.unwrap_or_else(|| unique_id(&crate::id_for(&name, &url)));
     let old = if n.replace { store::load(&id).ok() } else { None };
     let mut app = WebApp {

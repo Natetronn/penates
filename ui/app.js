@@ -301,7 +301,7 @@ function renderImport(root) {
 
 // ---- edit ----
 const FIELDS = {
-  General: [["name", "Name", "text"], ["url", "URL", "text"]],
+  General: [["name", "Name", "text"], ["url", "URL", "text"], ["id", "Id", "readonly", { help: "Fixed when the app is made. Used for its files and by penates commands, e.g. penates run " }]],
   Window: [["width", "Width (px)", "number"], ["height", "Height (px)", "number"], ["zoom", "Zoom", "number", { step: 0.05 }],
     ["theme", "Window theme", "select", { options: [["system", "Follow system"], ["light", "Light"], ["dark", "Dark"]], help: "Windows and macOS. On Linux, sites follow your desktop's light/dark setting." }],
     ["start_as", "When it starts", "select", { options: [["window", "Open the window"], ["minimized", "Minimized"], ["tray", "Only in the tray"]], help: "\"Only in the tray\" needs the tray icon (under Behavior); without it the app starts minimized. Launching it again shows the window." }],
@@ -331,6 +331,10 @@ function fieldInput(a, k, label, type, extra) {
   if (type === "bool") {
     const input = el("input", { type: "checkbox", checked: !!a[k], id: "f-" + k });
     return { input, node: el("label", { class: "chk" }, input, el("span", {}, label, extra ? el("small", {}, extra) : null)), check: true };
+  }
+  if (type === "readonly") {
+    const input = el("input", { type: "text", value: a[k], id: "f-" + k, readOnly: true });
+    return { input, node: el("label", { class: "f" }, label, input, el("small", { class: "hint" }, extra.help + a[k])), check: false };
   }
   const val = type === "lines" ? (a[k] || []).join("\n") : a[k] ?? "";
   const input = type === "lines" || type === "area"
@@ -389,6 +393,7 @@ async function renderEdit(root) {
   const collect = () => {
     const out = { ...a };
     for (const [k, [inp, type]] of Object.entries(inputs)) {
+      if (type === "readonly") continue;
       out[k] = type === "bool" ? inp.checked : type === "number" ? parseFloat(inp.value) || 0 : type === "lines" ? inp.value.split("\n") : inp.value;
     }
     return out;

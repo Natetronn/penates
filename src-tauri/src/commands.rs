@@ -50,7 +50,8 @@ pub fn app_version() -> String {
 pub async fn suggest_name(url: String) -> CmdResult<String> {
     blocking(move || {
         let url = normalize_url(&url)?;
-        Ok(Page::fetch(&url).ok().and_then(|p| p.name()).unwrap_or_else(|| penates_core::name_from_url(&url)))
+        let name = Page::fetch(&url).ok().and_then(|p| p.name()).unwrap_or_else(|| penates_core::name_from_url(&url));
+        Ok(ops::unique_name(&name)) // "GitHub 2" when you already have a GitHub app
     })
     .await
 }
