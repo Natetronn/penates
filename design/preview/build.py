@@ -15,6 +15,7 @@ tokens = (UI / "tokens.css").read_text() + "\n" + (UI / "skins.css").read_text()
 style = re.search(r"<style>(.*?)</style>", src, re.S).group(1)
 body = re.search(r'<body>(.*?)<script src="app.js"></script>', src, re.S).group(1)
 boot = (UI / "boot.js").read_text()
+credits = (UI / "credits.js").read_text()
 app = (UI / "app.js").read_text()
 catalog = json.loads((ROOT / "crates/penates-core/data/presets.json").read_text())
 catalog.pop("_comment", None)
@@ -45,7 +46,7 @@ out = (
     "<script>\n" + init + boot + "</script>\n</head>\n<body>\n"
     '<p class="pnote">Preview of the Penates manager with sample data and the real app catalog. '
     "Every tab and button works here; nothing is saved or launched.</p>\n"
-    '<div class="frame">' + body + "</div>\n<script>\n" + mock + "\n" + app + "\n</script>\n</body>\n</html>\n"
+    '<div class="frame">' + body + "</div>\n<script>\n" + credits + "\n" + mock + "\n" + app + "\n</script>\n</body>\n</html>\n"
 )
 (HERE / "penates-manager.html").write_text(out)
 print(f"wrote {HERE / 'penates-manager.html'} ({len(out) // 1024} KB, {len(catalog['catalog'])} catalog apps)")

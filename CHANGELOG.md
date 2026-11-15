@@ -9,6 +9,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - Updates are in one place: the Updates tab has a Penates section and a Your apps section, each with its own check (and Update all apps under Your apps). Settings → Updates only holds settings. The Apps tab lost its "Update all" button.
 
 ### Added
+- Credits in the About dialog: who made Penates, what it is built on, and every open-source component with its license (`ui/credits.js`, generated from Cargo.lock).
 - App list: Open comes first; an Update button (and an "update available" chip) appears only when that app has a newer preset, otherwise Update is in the ⋮ menu; double-click an app's icon or name to open it.
 - "When it starts" per app (Edit → Window): open the window, start minimized, or start only in the tray. Without a tray icon, "only in the tray" starts minimized so the app is never unreachable.
 - App windows have browser-style navigation: Alt+Left/Right (Cmd+[ and ] on macOS) and the mouse's back and forward buttons go back and forward; F5 and Ctrl+R reload. A page that uses one of these keys itself keeps it.

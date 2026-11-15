@@ -14,6 +14,7 @@ until you publish them.
 1. Bump `version` in the root `Cargo.toml` (workspace) and `pkgver` in `packaging/arch/PKGBUILD`, then run
    `cargo check` so `Cargo.lock` picks up the new version (every `--locked` build fails otherwise).
    Move the `[Unreleased]` notes in `CHANGELOG.md` under the new version and add its compare link at the bottom.
+   If dependencies changed, regenerate the Credits list: `python3 scripts/gen-credits.py` (CI checks it).
    Refresh the built-in preset copy: `curl -fsSL https://raw.githubusercontent.com/Natetronn/penates-apps/main/catalog.json`
    into `crates/penates-core/data/presets.json` (keep its `_comment`), or copy it from a `penates-apps` checkout.
 2. Optional rehearsal: **Actions → Release → Run workflow** builds and signs every installer without uploading anything.

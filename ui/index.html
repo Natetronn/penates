@@ -9,6 +9,7 @@
 <script src="boot.js"></script>
 <style>
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 var(--font)}
 header{display:flex;align-items:center;gap:16px;padding:10px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
 header::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--brand-gradient);opacity:.85}
@@ -61,7 +62,12 @@ dialog#about::backdrop{background:rgba(5,4,9,.6)}
 .about-ver{font-weight:600}
 .about-facts{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:4px 0 0;font-size:13px}
 .about-facts dt{color:var(--muted)}.about-facts dd{margin:0}
-.about-close{justify-content:flex-end;margin-top:4px}
+.about-close{justify-content:space-between;margin-top:4px}
+.about-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.about-head h2{margin:0}
+#about-credits h3{font-size:14px;margin:6px 0 0}
+.credits-list{max-height:min(320px,40vh);overflow:auto;border:1px solid var(--line);border-radius:var(--radius);padding:6px 10px;font-size:12px;line-height:1.7}
+.credits-list a{color:var(--accent)}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 fieldset{border:1px solid var(--line);border-radius:var(--radius-lg);margin:0 0 14px;padding:12px 14px;background:var(--card)}
 legend{font-weight:600;padding:0 6px}
@@ -114,6 +120,7 @@ h2{font-size:15px;margin:18px 0 8px}
   </nav>
 </header>
 <dialog id="about" aria-labelledby="about-title">
+  <div id="about-main">
   <img class="about-hero" src="lockup.png" alt="Penates">
   <div class="about-body">
     <h2 id="about-title" class="sr-only">About Penates</h2>
@@ -124,10 +131,11 @@ h2{font-size:15px;margin:18px 0 8px}
       <dt>Releases</dt><dd><a href="#" id="about-releases">github.com/Natetronn/penates</a></dd>
       <dt>License</dt><dd>MIT</dd>
       <dt>Built with</dt><dd>Rust, Tauri 2 and the system web view (WebKitGTK, WebView2, WKWebView)</dd>
-      <dt>Logo</dt><dd>Natetronn</dd>
     </dl>
-    <div class="row about-close"><button type="button" class="primary" id="about-close" autofocus>Close</button></div>
+    <div class="row about-close"><button type="button" id="about-credits-open">Credits</button><button type="button" class="primary" id="about-close" autofocus>Close</button></div>
   </div>
+  </div>
+  <div id="about-credits" class="about-body" hidden></div>
 </dialog>
 <main>
   <div id="banner"></div>
