@@ -334,11 +334,12 @@ fn b64(d: &[u8]) -> String {
     o
 }
 
-#[cfg(target_os = "macos")]
+/// Stable 16-byte data-store id per app (macOS WKWebView profiles). Built everywhere so it is tested.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 fn id_bytes(id: &str) -> [u8; 16] {
     let mut out = [0u8; 16];
     for (i, chunk) in out.chunks_mut(4).enumerate() {
-        let mut h: u32 = 2166136261 ^ (i as u32 * 0x9e3779b1);
+        let mut h: u32 = 2166136261 ^ (i as u32).wrapping_mul(0x9e37_79b1);
         for b in id.bytes() {
             h = (h ^ b as u32).wrapping_mul(16777619);
         }
@@ -661,5 +662,25 @@ fn main() {
     if let Err(e) = result {
         eprintln!("error: {e}");
         std::process::exit(1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn data_store_ids_are_stable_and_distinct() {
+        // Regression: this overflowed (panicked) in debug builds on macOS.
+        assert_eq!(id_bytes("github"), id_bytes("github"));
+        assert_ne!(id_bytes("github"), id_bytes("notion"));
+        assert_ne!(id_bytes(""), [0u8; 16]);
+    }
+
+    #[test]
+    fn download_names_never_overwrite() {
+        let p = unique_download_path(std::path::Path::new("/somewhere/../../etc/passwd"));
+        assert_eq!(p.file_name().unwrap(), "passwd");
+        assert!(!p.starts_with("/etc"));
     }
 }
