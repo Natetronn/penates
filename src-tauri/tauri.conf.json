@@ -3,16 +3,43 @@
   "productName": "Penates",
   "version": "0.1.0",
   "identifier": "dev.penates.desktop",
-  "build": { "frontendDist": "../ui" },
+  "build": {
+    "frontendDist": "../ui"
+  },
   "app": {
     "withGlobalTauri": true,
     "windows": [],
-    "security": { "csp": null }
+    "security": {
+      "csp": null
+    }
   },
   "bundle": {
     "active": true,
-    "targets": ["deb", "appimage", "rpm"],
-    "icon": ["icons/icon.png"],
-    "category": "Network"
+    "category": "Network",
+    "publisher": "Penates",
+    "license": "MIT",
+    "licenseFile": "../LICENSE",
+    "shortDescription": "Turn websites into native desktop apps",
+    "longDescription": "Penates turns websites and PWAs into native desktop apps with their own window, icon, taskbar entry and isolated profile. Built with Rust and Tauri.",
+    "linux": {
+      "deb": {
+        "depends": [
+          "libwebkit2gtk-4.1-0",
+          "libgtk-3-0",
+          "libayatana-appindicator3-1"
+        ]
+      },
+      "rpm": {
+        "depends": [
+          "webkit2gtk4.1",
+          "gtk3",
+          "libayatana-appindicator-gtk3"
+        ]
+      }
+    },
+    "icon": [
+      "icons/icon.png"
+    ],
+    "targets": "all"
   }
 }

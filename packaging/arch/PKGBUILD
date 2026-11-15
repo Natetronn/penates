@@ -1,0 +1,31 @@
+# Maintainer: you
+# Local development PKGBUILD: builds from the checkout it lives in.
+#   cd packaging/arch && makepkg -si
+# Before publishing (AUR), replace the build/package source with a release tarball or a git URL.
+pkgname=penates
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Turn websites into native desktop apps"
+arch=('x86_64' 'aarch64')
+url="https://example.com/penates"
+license=('MIT')
+depends=('webkit2gtk-4.1' 'gtk3' 'libayatana-appindicator')
+makedepends=('cargo')
+options=('!lto')
+
+_root() { cd "$startdir/../.." && pwd; }
+
+build() {
+  cd "$(_root)"
+  export CARGO_TARGET_DIR="$srcdir/target"
+  cargo build --release --locked --workspace
+}
+
+package() {
+  local root; root="$(_root)"
+  install -Dm755 "$srcdir/target/release/penates"         "$pkgdir/usr/bin/penates"
+  install -Dm755 "$srcdir/target/release/penates-desktop" "$pkgdir/usr/bin/penates-desktop"
+  install -Dm644 "$root/packaging/penates.desktop"        "$pkgdir/usr/share/applications/penates.desktop"
+  install -Dm644 "$root/src-tauri/icons/icon.png"        "$pkgdir/usr/share/icons/hicolor/512x512/apps/penates.png"
+  install -Dm644 "$root/LICENSE"                         "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
