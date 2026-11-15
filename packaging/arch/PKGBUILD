@@ -27,6 +27,9 @@ package() {
   install -Dm755 "$srcdir/target/release/penates"         "$pkgdir/usr/bin/penates"
   install -Dm755 "$srcdir/target/release/penates-desktop" "$pkgdir/usr/bin/penates-desktop"
   install -Dm644 "$root/packaging/penates.desktop"        "$pkgdir/usr/share/applications/penates.desktop"
-  install -Dm644 "$root/src-tauri/icons/icon.png"        "$pkgdir/usr/share/icons/hicolor/512x512/apps/penates.png"
+  for s in 32 64 128; do install -Dm644 "$root/src-tauri/icons/${s}x${s}.png" "$pkgdir/usr/share/icons/hicolor/${s}x${s}/apps/penates.png"; done
+  install -Dm644 "$root/src-tauri/icons/128x128@2x.png" "$pkgdir/usr/share/icons/hicolor/256x256/apps/penates.png"
+  install -Dm644 "$root/src-tauri/icons/icon.png"       "$pkgdir/usr/share/icons/hicolor/512x512/apps/penates.png"
+  install -Dm644 "$root/src-tauri/icons/icon.svg"       "$pkgdir/usr/share/icons/hicolor/scalable/apps/penates.svg"
   install -Dm644 "$root/LICENSE"                         "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }

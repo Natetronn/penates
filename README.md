@@ -1,6 +1,4 @@
-<p align="center"><img src="docs/images/logo-128.png" width="96" alt="Penates logo"></p>
-
-# Penates
+<p align="center"><img src="docs/images/lockup.png" width="600" alt="Penates"></p>
 
 Turn any website or web app into a desktop app with its own window, icon, taskbar entry, tray icon and
 separate login. Named after the Roman household gods: every site gets a home of its own.

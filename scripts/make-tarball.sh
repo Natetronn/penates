@@ -10,7 +10,9 @@ name="penates-${ver}-${triple}"
 cargo build --release --workspace --locked --features penates-desktop/custom-protocol
 rm -rf "dist/$name"; mkdir -p "dist/$name/bin"
 cp target/release/penates target/release/penates-desktop "dist/$name/bin/"
-cp packaging/penates.desktop src-tauri/icons/icon.png LICENSE README.md "dist/$name/"
+mkdir -p "dist/$name/icons"
+cp src-tauri/icons/{32x32,64x64,128x128,128x128@2x,icon}.png src-tauri/icons/icon.svg "dist/$name/icons/"
+cp packaging/penates.desktop LICENSE README.md "dist/$name/"
 cat > "dist/$name/install.sh" <<'INSTALL'
 #!/usr/bin/env sh
 # Install into $PREFIX (default /usr/local). Use PREFIX=$HOME/.local for a per-user install.
@@ -20,7 +22,10 @@ here="$(cd "$(dirname "$0")" && pwd)"
 install -Dm755 "$here/bin/penates"         "$PREFIX/bin/penates"
 install -Dm755 "$here/bin/penates-desktop" "$PREFIX/bin/penates-desktop"
 install -Dm644 "$here/penates.desktop"     "$PREFIX/share/applications/penates.desktop"
-install -Dm644 "$here/icon.png"           "$PREFIX/share/icons/hicolor/512x512/apps/penates.png"
+  for s in 32 64 128; do install -Dm644 "$here/icons/${s}x${s}.png" "$PREFIX/share/icons/hicolor/${s}x${s}/apps/penates.png"; done
+  install -Dm644 "$here/icons/128x128@2x.png" "$PREFIX/share/icons/hicolor/256x256/apps/penates.png"
+  install -Dm644 "$here/icons/icon.png"       "$PREFIX/share/icons/hicolor/512x512/apps/penates.png"
+  install -Dm644 "$here/icons/icon.svg"       "$PREFIX/share/icons/hicolor/scalable/apps/penates.svg"
 echo "Installed to $PREFIX. Run: penates --help   or   penates gui"
 INSTALL
 chmod +x "dist/$name/install.sh"

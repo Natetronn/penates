@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="72 72 368 368">
+<path transform="matrix(1.2 0 0 1.2 -51.2 -51.2)" d="M136 388V228L256 124L376 228V388" fill="none" stroke="#F4F2FF" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+<path transform="matrix(1.2 0 0 1.2 -51.2 -51.2)" d="M270 192C274 232 332 262 332 322C332 360 300 390 256 390C212 390 180 360 180 322C180 292 194 270 210 250C212 274 222 288 236 288C256 288 262 232 270 192Z" fill="#F4F2FF"/>
+</svg>
