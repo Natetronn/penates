@@ -320,7 +320,8 @@ fn build_tray(app: &tauri::App, cfg: &WebApp) -> tauri::Result<()> {
     let mut b = TrayIconBuilder::with_id(format!("penates-{}", cfg.id))
         .tooltip(&cfg.name)
         .menu(&menu)
-        .show_menu_on_left_click(false)
+        // Linux trays emit no click events (Tauri docs), so the menu must open on click there.
+        .show_menu_on_left_click(cfg!(target_os = "linux"))
         .on_menu_event(|app, e| match e.id.as_ref() {
             "toggle" => toggle_main(app),
             "quit" => app.exit(0),
@@ -484,9 +485,10 @@ fn set_aumid(id: &str) {
 }
 
 fn run_manager(start: Option<String>) -> tauri::Result<()> {
-    #[cfg(target_os = "linux")]
+    // Packaged builds ship their own launcher (StartupWMClass=penates-desktop, the default
+    // window class), so only dev runs write one.
+    #[cfg(all(target_os = "linux", debug_assertions))]
     {
-        gtk::glib::set_prgname(Some("penates"));
         if let Ok(exe) = std::env::current_exe() {
             let _ = integration::install_manager(&exe, include_bytes!("../icons/icon.png"));
         }

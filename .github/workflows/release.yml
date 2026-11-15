@@ -1,0 +1,42 @@
+# Builds installers for every platform when a version tag is pushed (v0.1.0, ...).
+# Windows and macOS installers cannot be built on Linux, so they are built here.
+name: Release
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-22.04,  bundles: 'deb,rpm,appimage' }
+          - { os: macos-latest,  bundles: 'app,dmg' }   # Apple Silicon
+          - { os: macos-13,      bundles: 'app,dmg' }   # Intel
+          - { os: windows-latest, bundles: 'nsis' }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Linux dependencies
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf rpm
+      - run: cargo install tauri-cli --version "^2" --locked
+      - name: Build packages
+        shell: bash
+        env:
+          BUNDLES: ${{ matrix.bundles }}
+        run: ./scripts/build-packages.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: penates-${{ matrix.os }}
+          path: |
+            target/release/bundle/**/*.deb
+            target/release/bundle/**/*.rpm
+            target/release/bundle/**/*.AppImage
+            target/release/bundle/**/*.dmg
+            target/release/bundle/**/*.exe

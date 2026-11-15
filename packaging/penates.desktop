@@ -7,5 +7,5 @@ Exec=penates-desktop
 Icon=penates
 Terminal=false
 Categories=Network;Utility;
-StartupWMClass=penates
+StartupWMClass=penates-desktop
 StartupNotify=true

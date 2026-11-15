@@ -18,6 +18,10 @@ pub fn find_desktop_bin() -> Option<PathBuf> {
     if let Some(p) = std::env::var_os("PENATES_DESKTOP") {
         return Some(p.into());
     }
+    // Inside an AppImage the running exe lives in a temporary mount; launchers must use the file.
+    if let Some(p) = std::env::var_os("APPIMAGE") {
+        return Some(p.into());
+    }
     if let Some(dir) = std::env::current_exe().ok().and_then(|e| e.parent().map(|p| p.to_path_buf())) {
         let p = dir.join(desktop_exe_name());
         if p.exists() {
@@ -110,7 +114,7 @@ mod imp {
         let icon = crate::store::icon_dir().join("penates.png");
         std::fs::write(&icon, icon_png)?;
         let content = format!(
-            "[Desktop Entry]\nType=Application\nVersion=1.0\nName=Penates\nComment=Turn websites into desktop apps\nExec={} \nIcon={}\nTerminal=false\nCategories=Network;Utility;\nStartupWMClass=penates\nStartupNotify=true\n",
+            "[Desktop Entry]\nType=Application\nVersion=1.0\nName=Penates\nComment=Turn websites into desktop apps\nExec={} \nIcon={}\nTerminal=false\nCategories=Network;Utility;\nStartupWMClass=penates-desktop\nStartupNotify=true\n",
             quote(&bin.to_string_lossy()),
             icon.display()
         );

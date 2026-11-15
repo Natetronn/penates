@@ -15,7 +15,7 @@
   },
   "bundle": {
     "active": true,
-    "category": "Network",
+    "category": "Utility",
     "publisher": "Penates",
     "license": "MIT",
     "licenseFile": "../LICENSE",

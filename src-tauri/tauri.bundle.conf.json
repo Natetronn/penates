@@ -13,7 +13,8 @@
     ],
     "targets": [
       "deb",
-      "rpm"
+      "rpm",
+      "appimage"
     ]
   }
 }
