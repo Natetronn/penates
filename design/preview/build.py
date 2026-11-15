@@ -13,10 +13,13 @@ UI = ROOT / "ui"
 src = (UI / "index.html").read_text()
 tokens = (UI / "tokens.css").read_text() + "\n" + (UI / "skins.css").read_text()
 style = re.search(r"<style>(.*?)</style>", src, re.S).group(1)
-body = re.search(r"<body>(.*?)<script>", src, re.S).group(1)
-script = re.search(r"<script>(.*?)</script>", src, re.S).group(1)
+body = re.search(r'<body>(.*?)<script src="app.js"></script>', src, re.S).group(1)
+boot = (UI / "boot.js").read_text()
+app = (UI / "app.js").read_text()
 catalog = json.loads((ROOT / "crates/penates-core/data/presets.json").read_text())
 catalog.pop("_comment", None)
+# What the manager passes in before the page loads (see manager_init_script in src-tauri/src/main.rs).
+init = 'window.__PENATES_START = location.hash.slice(1);\nwindow.__PENATES_APPEARANCE = {"theme":"system","skin":"default","accent":"violet"};\n'
 mock = "const CATALOG = " + json.dumps(catalog) + ";\n" + (HERE / "mock.js").read_text()
 
 
@@ -31,16 +34,18 @@ body{padding-block:24px;padding-left:max(16px,env(safe-area-inset-left,0px));pad
 .frame{max-width:880px;margin:0 auto;border:1px solid var(--line);border-radius:10px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.14)}
 .pnote{max-width:880px;margin:0 auto 10px;color:var(--muted);font-size:12px}
 header{position:static}
+.toast{position:fixed}
 main{min-height:520px}
 """
 out = (
     '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
     '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
     '<meta name="claude:viewport-fit-sides" content="cover">\n<title>Penates Manager</title>\n'
-    "<style>\n/* tokens.css + skins.css */\n" + tokens + "\nbody{background:var(--bg)}\n" + style + frame_css + "</style>\n</head>\n<body>\n"
+    "<style>\n/* tokens.css + skins.css */\n" + tokens + "\nbody{background:var(--bg)}\n" + style + frame_css + "</style>\n"
+    "<script>\n" + init + boot + "</script>\n</head>\n<body>\n"
     '<p class="pnote">Preview of the Penates manager with sample data and the real app catalog. '
     "Every tab and button works here; nothing is saved or launched.</p>\n"
-    '<div class="frame">' + body + "</div>\n<script>\n" + mock + script + "\n</script>\n</body>\n</html>\n"
+    '<div class="frame">' + body + "</div>\n<script>\n" + mock + "\n" + app + "\n</script>\n</body>\n</html>\n"
 )
 (HERE / "penates-manager.html").write_text(out)
 print(f"wrote {HERE / 'penates-manager.html'} ({len(out) // 1024} KB, {len(catalog['catalog'])} catalog apps)")

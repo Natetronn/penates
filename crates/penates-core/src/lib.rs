@@ -2,9 +2,11 @@
 //! Both the CLI and the Tauri desktop app depend on this crate.
 
 pub mod export;
+pub mod http;
 pub mod icon;
 pub mod integration;
 pub mod ops;
+pub mod settings;
 pub mod single;
 pub mod site;
 pub mod store;
@@ -39,7 +41,6 @@ pub struct WebApp {
     pub internal_hosts: Vec<String>,
     /// Keep a single window; relaunching focuses the existing one.
     pub single_instance: bool,
-    pub hide_menu_bar: bool,
     pub start_maximized: bool,
     pub start_fullscreen: bool,
     pub resizable: bool,
@@ -61,6 +62,8 @@ pub struct WebApp {
     pub tray_grayscale: bool,
     /// Closing the window hides it to the tray instead of quitting.
     pub close_to_tray: bool,
+    /// Keep a launcher in the application menu (off for apps created with `--no-install`).
+    pub launcher: bool,
 }
 
 impl Default for WebApp {
@@ -81,7 +84,6 @@ impl Default for WebApp {
             inject_js: None,
             internal_hosts: vec![],
             single_instance: true,
-            hide_menu_bar: true,
             start_maximized: true,
             start_fullscreen: false,
             resizable: true,
@@ -95,6 +97,7 @@ impl Default for WebApp {
             tray: false,
             tray_grayscale: false,
             close_to_tray: false,
+            launcher: true,
         }
     }
 }
@@ -108,7 +111,13 @@ impl WebApp {
         p.exists().then_some(p)
     }
 
-    /// Should navigation to `url` stay inside the app window?
+    /// The app's own host, without a leading `www.`.
+    pub fn own_host(&self) -> Option<String> {
+        url::Url::parse(&self.url).ok()?.host_str().map(|h| bare_host(h).to_string())
+    }
+
+    /// Should navigation to `url` stay inside the app window? Mirrored in JavaScript by the runner's
+    /// link guard; keep the two in step (see `host_matches`).
     pub fn is_internal(&self, target: &url::Url) -> bool {
         if !matches!(target.scheme(), "http" | "https" | "about" | "blob" | "data") {
             return false;
@@ -119,19 +128,43 @@ impl WebApp {
         let Some(host) = target.host_str() else {
             return true; // about:blank etc.
         };
-        let own = url::Url::parse(&self.url).ok().and_then(|u| u.host_str().map(str::to_owned));
-        if own.as_deref() == Some(host) {
-            return true;
-        }
-        self.internal_hosts.iter().any(|pat| host_matches(pat, host))
+        self.own_host().is_some_and(|own| bare_host(host) == own) || self.internal_hosts.iter().any(|pat| host_matches(pat, host))
     }
 }
 
-fn host_matches(pattern: &str, host: &str) -> bool {
+/// `www.example.com` and `example.com` are the same site.
+pub fn bare_host(host: &str) -> &str {
+    host.strip_prefix("www.").unwrap_or(host)
+}
+
+/// Does `host` match an internal-host pattern (`example.com`, or `*.example.com` for it and every
+/// subdomain)? Patterns are stored lowercase (see `normalize_host_pattern`).
+pub fn host_matches(pattern: &str, host: &str) -> bool {
+    let host = host.to_ascii_lowercase();
     match pattern.strip_prefix("*.") {
         Some(suffix) => host == suffix || host.ends_with(&format!(".{suffix}")),
         None => pattern == host,
     }
+}
+
+/// Clean one internal-host entry as typed by a person: lowercase, no scheme, path, port or trailing
+/// dot. Returns None for entries that are not a host, and for wildcards over a whole top-level
+/// domain such as `*.com`.
+pub fn normalize_host_pattern(input: &str) -> Option<String> {
+    let s = input.trim().to_ascii_lowercase();
+    let s = s.split_once("://").map_or(s.as_str(), |(_, rest)| rest);
+    let s = s.split(['/', '?', '#']).next().unwrap_or("");
+    let s = s.rsplit_once('@').map_or(s, |(_, h)| h);
+    let s = s.split(':').next().unwrap_or("").trim_end_matches('.');
+    let (wild, host) = match s.strip_prefix("*.") {
+        Some(h) => (true, h),
+        None => (false, s),
+    };
+    let labels: Vec<&str> = host.split('.').collect();
+    let ok = !host.is_empty()
+        && labels.iter().all(|l| !l.is_empty() && l.len() <= 63 && l.chars().all(|c| c.is_ascii_alphanumeric() || c == '-'))
+        && (!wild || labels.len() >= 2);
+    ok.then(|| if wild { format!("*.{host}") } else { host.to_string() })
 }
 
 /// Turn an arbitrary name into a filesystem-safe id.
@@ -152,28 +185,52 @@ pub fn slugify(s: &str) -> String {
 /// Normalise user input like `example.com` into a full URL.
 pub fn normalize_url(input: &str) -> anyhow::Result<String> {
     let input = input.trim();
-    let with_scheme = if input.contains("://") { input.to_string() } else { format!("https://{input}") };
+    // Only a scheme at the very start counts ("example.com/?next=http://x" has none).
+    let has_scheme = input.split_once("://").is_some_and(|(s, _)| {
+        !s.is_empty() && s.chars().all(|c| c.is_ascii_alphanumeric() || "+-.".contains(c))
+    });
+    let with_scheme = if has_scheme { input.to_string() } else { format!("https://{input}") };
     let u = url::Url::parse(&with_scheme)?;
     anyhow::ensure!(matches!(u.scheme(), "http" | "https"), "only http(s) URLs are supported");
     anyhow::ensure!(u.host_str().is_some(), "URL has no host");
     Ok(u.to_string())
 }
 
-/// Best name for a URL: the site's own meta tags, else a guess from the host.
-pub fn resolve_name(url: &str) -> String {
-    site::name(url).unwrap_or_else(|| name_from_url(url))
+/// The label that names a site in its host: "mail.google.com" -> "google", "example.co.uk" ->
+/// "example". IP addresses and single-label hosts come back whole.
+pub fn site_label(host: &str) -> String {
+    let host = bare_host(host.trim_end_matches('.'));
+    if host.parse::<std::net::IpAddr>().is_ok() || host.starts_with('[') {
+        return host.to_string();
+    }
+    let parts: Vec<&str> = host.split('.').collect();
+    // Second-level labels used under country domains (co.uk, com.au, ...).
+    const SLD: [&str; 8] = ["co", "com", "org", "net", "gov", "ac", "edu", "ne"];
+    let n = parts.len();
+    let i = match n {
+        0 | 1 => 0,
+        _ if n >= 3 && parts[n - 1].len() == 2 && SLD.contains(&parts[n - 2]) => n - 3,
+        _ => n - 2,
+    };
+    parts.get(i).copied().unwrap_or("app").to_ascii_lowercase()
 }
 
 /// Guess a display name from a URL host ("mail.google.com" -> "Google").
 pub fn name_from_url(url: &str) -> String {
     let host = url::Url::parse(url).ok().and_then(|u| u.host_str().map(str::to_owned)).unwrap_or_default();
-    let parts: Vec<&str> = host.trim_start_matches("www.").split('.').collect();
-    let base = if parts.len() >= 2 { parts[parts.len() - 2] } else { parts.first().copied().unwrap_or("app") };
-    let mut c = base.chars();
+    let label = site_label(&host);
+    let mut c = label.chars();
     match c.next() {
-        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+        Some(f) if host.parse::<std::net::IpAddr>().is_err() => f.to_uppercase().collect::<String>() + c.as_str(),
+        Some(_) => label,
         None => "App".into(),
     }
+}
+
+/// An id for a new app: from its name, else (names in other alphabets have no ASCII letters)
+/// from its address, else "app".
+pub fn id_for(name: &str, url: &str) -> String {
+    [slugify(name), slugify(&name_from_url(url))].into_iter().find(|s| !s.is_empty()).unwrap_or_else(|| "app".into())
 }
 
 #[cfg(test)]
@@ -200,7 +257,27 @@ mod tests {
     fn urls() {
         assert_eq!(normalize_url("example.com").unwrap(), "https://example.com/");
         assert!(normalize_url("ftp://x.com").is_err());
+        assert_eq!(normalize_url("example.com/?next=http://x.y").unwrap(), "https://example.com/?next=http://x.y");
+        assert_eq!(normalize_url("HTTP://Example.com").unwrap(), "http://example.com/");
+    }
+
+    #[test]
+    fn names_and_ids_from_addresses() {
         assert_eq!(name_from_url("https://mail.google.com/"), "Google");
+        assert_eq!(name_from_url("https://www.example.co.uk/"), "Example");
+        assert_eq!(name_from_url("http://192.168.1.20:8123/"), "192.168.1.20");
+        assert_eq!(id_for("日本語", "https://example.jp/"), "example");
+        assert_eq!(id_for("Яндекс", "http://10.0.0.1/"), "10-0-0-1");
+        assert_eq!(id_for("GitHub", "https://github.com/"), "github");
+    }
+
+    #[test]
+    fn host_patterns_are_cleaned() {
+        assert_eq!(normalize_host_pattern(" Accounts.Google.COM. ").as_deref(), Some("accounts.google.com"));
+        assert_eq!(normalize_host_pattern("https://accounts.google.com/signin?x=1").as_deref(), Some("accounts.google.com"));
+        assert_eq!(normalize_host_pattern("*.Example.com").as_deref(), Some("*.example.com"));
+        assert_eq!(normalize_host_pattern("*.com"), None);
+        assert_eq!(normalize_host_pattern("not a host"), None);
     }
 
     #[test]
@@ -212,6 +289,8 @@ mod tests {
         };
         let u = |s: &str| url::Url::parse(s).unwrap();
         assert!(app.is_internal(&u("https://app.example.com/x")));
+        assert!(app.is_internal(&u("https://www.app.example.com/x"))); // www is the same site
+        assert!(app.is_internal(&u("https://SSO.Login.com/")));
         assert!(app.is_internal(&u("https://sso.login.com/")));
         assert!(!app.is_internal(&u("https://other.com/")));
         assert!(!app.is_internal(&u("mailto:a@b.c")));

@@ -1,11 +1,11 @@
 use anyhow::{bail, Context, Result};
-use penates_core::{export, icon, integration, resolve_name, normalize_url, ops, slugify, store, updates, WebApp};
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
+use penates_core::{export, icon, integration, normalize_url, ops, store, updates};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
 #[derive(Parser)]
-#[command(name = "penates", version, about = "Turn websites into native desktop apps")]
+#[command(name = "penates", version, about = "Turn websites into desktop apps")]
 struct Cli {
     #[command(subcommand)]
     cmd: Cmd,
@@ -18,7 +18,7 @@ enum Cmd {
         url: String,
         #[arg(short, long)]
         name: Option<String>,
-        /// Custom id (defaults to slug of name)
+        /// Custom id (default: from the name)
         #[arg(long)]
         id: Option<String>,
         /// Icon: a local image file or an http(s) URL (otherwise fetched from the site)
@@ -43,10 +43,10 @@ enum Cmd {
         inject_js: Option<PathBuf>,
         #[arg(long)]
         devtools: bool,
-        /// Don't create a launcher in the application menu
+        /// Don't add a launcher to the application menu (`penates install` adds one later)
         #[arg(long)]
         no_install: bool,
-        /// Overwrite if the id already exists
+        /// Replace an existing app with the same id
         #[arg(long)]
         force: bool,
     },
@@ -80,6 +80,7 @@ enum Cmd {
     /// Export apps to a .penates file (share one app, or back up all). Never includes logins.
     Export {
         /// App ids; or use --all
+        #[arg(required_unless_present = "all", conflicts_with = "all")]
         ids: Vec<String>,
         #[arg(long)]
         all: bool,
@@ -93,9 +94,9 @@ enum Cmd {
     /// Import apps from a .penates file or URL
     Import {
         source: String,
-        /// When an id already exists: skip, rename (keep both) or overwrite
-        #[arg(long, default_value = "rename")]
-        on_conflict: String,
+        /// When an app with the same id already exists
+        #[arg(long, value_enum, default_value_t = OnConflict::Rename)]
+        on_conflict: OnConflict,
         /// Keep custom JavaScript (dropped by default; it runs inside the site)
         #[arg(long)]
         allow_js: bool,
@@ -117,6 +118,7 @@ enum Cmd {
     Check,
     /// Update one app (preset sync + icon refresh), or all with --all
     Update {
+        #[arg(required_unless_present = "all", conflicts_with = "all")]
         id: Option<String>,
         #[arg(long)]
         all: bool,
@@ -125,6 +127,30 @@ enum Cmd {
     Edit { id: String },
     /// Open the desktop manager
     Gui,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum OnConflict {
+    /// Skip apps that already exist
+    Skip,
+    /// Keep both (the new one gets a new id)
+    Rename,
+    /// Replace the existing app
+    Overwrite,
+}
+
+impl From<OnConflict> for export::Conflict {
+    fn from(c: OnConflict) -> Self {
+        match c {
+            OnConflict::Skip => export::Conflict::Skip,
+            OnConflict::Rename => export::Conflict::Rename,
+            OnConflict::Overwrite => export::Conflict::Overwrite,
+        }
+    }
+}
+
+fn plural(n: usize) -> &'static str {
+    if n == 1 { "" } else { "s" }
 }
 
 fn fmt_bytes(b: u64) -> String {
@@ -143,243 +169,338 @@ fn read_opt(p: Option<PathBuf>) -> Result<Option<String>> {
     p.map(|p| std::fs::read_to_string(&p).with_context(|| format!("reading {}", p.display()))).transpose()
 }
 
-fn main() -> Result<()> {
-    match Cli::parse().cmd {
-        Cmd::Create {
-            url, name, id, icon: icon_file, user_agent, width, height, zoom, internal_hosts,
-            inject_css, inject_js, devtools, no_install, force,
-        } => {
-            let url = normalize_url(&url)?;
-            let name = name.unwrap_or_else(|| resolve_name(&url));
-            let id = id.unwrap_or_else(|| slugify(&name));
-            if id.is_empty() || !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
-                bail!("invalid id '{id}' (use letters, digits, - and _)");
-            }
-            if store::exists(&id) && !force {
-                bail!("'{id}' already exists (use --force or --id)");
-            }
-            let icon_file_given = icon_file.is_some();
-            let icon_path = match icon_file {
-                Some(f) => Some(icon::import_source(&f, &id)?),
-                None => match icon::fetch_for(&url, &id) {
-                    Ok(p) => Some(p),
-                    Err(e) => {
-                        eprintln!("warning: {e}");
-                        None
-                    }
-                },
-            };
-            let mut app = WebApp {
-                id: id.clone(), name, url, user_agent, width, height, zoom, internal_hosts, devtools,
-                custom_icon: icon_file_given,
-                icon: icon_path.map(|p| store::icon_ref(&p)),
-                inject_css: read_opt(inject_css)?,
-                inject_js: read_opt(inject_js)?,
-                ..Default::default()
-            };
-            ops::validate(&mut app)?;
-            let preset = ops::link_preset(&mut app);
-            store::save(&app)?;
-            println!("created '{}' ({})", app.name, app.id);
-            if let Some(v) = preset {
-                println!("preset: {} {v} from the app catalog", app.catalog_id.as_deref().unwrap_or(&app.id));
-            }
-            if !no_install {
-                match desktop_bin().and_then(|b| integration::install(&app, &b)) {
-                    Ok(p) => println!("launcher: {}", p.display()),
-                    Err(e) => eprintln!("warning: launcher not installed: {e}"),
-                }
-            }
-        }
-        Cmd::List { json } => {
-            for (id, why) in store::broken() {
-                eprintln!("warning: '{id}' has a broken config and is skipped: {why}");
-            }
-            let apps = store::list()?;
-            if json {
-                println!("{}", serde_json::to_string_pretty(&apps)?);
-            } else if apps.is_empty() {
-                println!("no apps yet — try `penates create https://example.com`");
-            } else {
-                for a in apps {
-                    println!("{:<20} {:<24} {}", a.id, a.name, a.url);
-                }
-            }
-        }
-        Cmd::Show { id } => {
-            store::load(&id)?;
-            print!("{}", std::fs::read_to_string(store::path_for(&id))?);
-        }
-        Cmd::Path { id } => println!("{}", store::path_for(&id).display()),
-        Cmd::Run { id } => {
-            store::load(&id)?;
-            Command::new(desktop_bin()?)
-                .args(["--run", &id])
-                .stdin(Stdio::null())
-                .spawn()
-                .context("failed to launch penates-desktop")?;
-        }
-        Cmd::Install { id } => {
-            let p = integration::install(&store::load(&id)?, &desktop_bin()?)?;
-            println!("launcher: {}", p.display());
-        }
-        Cmd::Icon { id, source } => {
-            let app = store::load(&id)?;
-            let (p, custom) = match source {
-                Some(f) => (icon::import_source(&f, &id)?, true),
-                None => (icon::fetch_for(&app.url, &id)?, false),
-            };
-            ops::set_icon_file(&id, p.clone(), custom)?;
-            println!("icon: {}", p.display());
-        }
-        Cmd::Icons { url } => {
-            for (i, c) in icon::candidates(&normalize_url(&url)?).into_iter().enumerate() {
-                println!("{:>2}. {c}", i + 1);
-            }
-        }
-        Cmd::Clear { id, data } => {
-            store::load(&id)?;
-            if penates_core::single::is_running(&id) {
-                bail!("'{id}' is running; close it first");
-            }
-            if !store::CAN_CLEAR_DATA {
-                bail!("clearing data is not supported on macOS yet");
-            }
-            if data {
-                store::clear_profile(&id);
-                println!("cleared cookies and data for '{id}'");
-            } else {
-                println!("cleared {} of cache for '{id}'", fmt_bytes(store::clear_cache(&id)));
-            }
-        }
-        Cmd::Export { ids, all, settings, output } => {
-            if ids.is_empty() && !all {
-                bail!("name the apps to export, or use --all");
-            }
-            let f = export::build(if all { &[] } else { &ids }, settings)?;
-            let text = serde_json::to_string_pretty(&f)?;
-            let out = output.unwrap_or_else(|| match f.apps.as_slice() {
-                [one] => format!("{}.penates", one.config.id),
-                _ => "penates-backup.penates".into(),
-            });
-            if out == "-" {
-                println!("{text}");
-            } else {
-                std::fs::write(&out, text)?;
-                println!("exported {} app{} to {out}", f.apps.len(), if f.apps.len() == 1 { "" } else { "s" });
-                println!("(contains configs and icons only; no cookies or logins)");
-            }
-        }
-        Cmd::Import { source, on_conflict, allow_js, settings, yes } => {
-            let f = export::parse(&export::read_source(&source)?)?;
-            println!("{} app{} in {source}:", f.apps.len(), if f.apps.len() == 1 { "" } else { "s" });
-            let mut any_js = false;
-            for s in export::inspect(&f) {
-                any_js |= s.custom_js;
-                let mut flags = vec![];
-                if s.exists { flags.push("already exists"); }
-                if s.custom_js { flags.push("CUSTOM JAVASCRIPT"); }
-                if s.custom_css { flags.push("custom css"); }
-                if s.user_agent { flags.push("custom user agent"); }
-                if s.all_links_in_app { flags.push("keeps ALL links in the app"); }
-                else if s.extra_hosts > 0 { flags.push("keeps extra sites in the app"); }
-                println!("  {:<18} {}  {}", s.id, s.url, if flags.is_empty() { String::new() } else { format!("[{}]", flags.join(", ")) });
-            }
-            if f.settings.is_some() {
-                println!("  (file also has settings{})", if settings { ", which WILL be applied, including the update source" } else { "; ignored unless --settings" });
-            }
-            if any_js && !allow_js {
-                println!("custom JavaScript will be removed (it runs inside the site). Use --allow-js to keep it, only if you trust the source.");
-            }
-            if !yes {
-                use std::io::{IsTerminal, Write};
-                if !std::io::stdin().is_terminal() {
-                    bail!("not a terminal; pass --yes to import without asking");
-                }
-                print!("import? [y/N] ");
-                std::io::stdout().flush()?;
-                let mut line = String::new();
-                std::io::stdin().read_line(&mut line)?;
-                if !matches!(line.trim().to_ascii_lowercase().as_str(), "y" | "yes") {
-                    bail!("cancelled");
-                }
-            }
-            let opts = export::ImportOptions { on_conflict: on_conflict.parse()?, allow_js, settings };
-            let r = export::apply(&f, &opts);
-            for id in &r.imported { println!("imported {id}"); }
-            for (a, b) in &r.renamed { println!("  ({a} already existed; saved as {b})"); }
-            for id in &r.skipped { println!("skipped {id} (already exists)"); }
-            for id in &r.js_removed { println!("removed custom JavaScript from {id}"); }
-            if r.settings_applied { println!("applied settings"); }
-            for e in &r.errors { eprintln!("error: {e}"); }
-            if !r.errors.is_empty() { std::process::exit(1); }
-        }
-        Cmd::Remove { id, purge } => {
-            store::load(&id)?;
-            store::remove(&id, purge)?;
-            println!("removed '{id}'{}", if purge && store::CAN_CLEAR_DATA { " and its data" } else { "" });
-            if purge && !store::CAN_CLEAR_DATA {
-                eprintln!("note: on macOS its browsing data is kept (clearing is not supported there yet)");
-            }
-        }
-        Cmd::Check => {
-            let r = updates::check()?;
-            println!("penates {} (source: {})", r.current, r.source);
-            match r.penates {
-                Some(u) => {
-                    println!("  new version {} available — {}", u.latest, u.notes);
-                    if let Some(d) = u.download_url {
-                        println!("  download: {d}");
-                    }
-                }
-                None => match &r.penates_error {
-                    Some(e) => println!("  could not check for a new Penates: {e}"),
-                    None => println!("  penates is up to date"),
-                },
-            }
-            for a in &r.apps {
-                println!("  {:<18} preset {} -> {}  {}", a.id, a.from.as_deref().unwrap_or("none"), a.to, a.notes);
-            }
-            if r.apps.is_empty() {
-                println!("  all apps are up to date");
-            } else {
-                println!("run `penates update --all` to apply");
-            }
-        }
-        Cmd::Update { id, all } => {
-            let outs = match (id, all) {
-                (Some(id), _) => vec![ops::update(&id)?],
-                (None, true) => ops::update_all()?,
-                (None, false) => bail!("give an app id or --all"),
-            };
-            for o in outs {
-                println!(
-                    "{:<18} icon {}{}",
-                    o.app.id,
-                    if o.icon_refreshed { "refreshed" } else { "unchanged" },
-                    o.preset.map(|v| format!(", preset {v} applied")).unwrap_or_default()
-                );
-            }
-        }
-        Cmd::Edit { id } => {
-            store::load(&id)?;
-            let path = store::path_for(&id);
-            match std::env::var("VISUAL").or_else(|_| std::env::var("EDITOR")) {
-                Ok(ed) => {
-                    Command::new(ed).arg(&path).status()?;
-                    // The edit must still parse and validate; then save the cleaned values and refresh the launcher.
-                    let mut app = store::load(&id).context("the edited config no longer parses; fix it and run `penates edit` again")?;
-                    ops::validate(&mut app).context("the edited config is not valid; fix it and run `penates edit` again")?;
-                    store::save(&app)?;
-                    ops::reinstall(Some(&app), &app);
-                    println!("saved '{id}'");
-                }
-                Err(_) => open::that(&path)?,
-            }
-        }
-        Cmd::Gui => {
-            Command::new(desktop_bin()?).stdin(Stdio::null()).spawn().context("failed to launch penates-desktop")?;
+fn warn(w: impl std::fmt::Display) {
+    eprintln!("warning: {w}");
+}
+
+fn spawn_desktop(args: &[&str]) -> Result<()> {
+    Command::new(desktop_bin()?).args(args).stdin(Stdio::null()).spawn().context("failed to launch penates-desktop")?;
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn cmd_create(
+    url: String, name: Option<String>, id: Option<String>, icon: Option<String>, user_agent: Option<String>,
+    width: f64, height: f64, zoom: f64, internal_hosts: Vec<String>, inject_css: Option<PathBuf>,
+    inject_js: Option<PathBuf>, devtools: bool, no_install: bool, force: bool,
+) -> Result<()> {
+    let c = ops::create(ops::NewApp {
+        url,
+        name,
+        id,
+        icon: icon.map(ops::IconChoice::Source).unwrap_or_default(),
+        user_agent,
+        width,
+        height,
+        zoom,
+        internal_hosts,
+        inject_css: read_opt(inject_css)?,
+        inject_js: read_opt(inject_js)?,
+        devtools,
+        launcher: !no_install,
+        replace: force,
+    })?;
+    println!("created '{}' ({})", c.app.name, c.app.id);
+    if let Some(v) = &c.preset {
+        println!("preset: {} {v} from the app catalog", c.app.catalog_id.as_deref().unwrap_or(&c.app.id));
+    }
+    if let Some(p) = &c.launcher {
+        println!("launcher: {}", p.display());
+    }
+    c.warnings.iter().for_each(warn);
+    Ok(())
+}
+
+fn cmd_list(json: bool) -> Result<()> {
+    let (apps, broken) = store::scan();
+    for b in &broken {
+        warn(format!("'{}' has a broken config and is skipped: {} (fix it with `penates edit {0}` or remove it)", b.id, b.error));
+    }
+    if json {
+        println!("{}", serde_json::to_string_pretty(&apps)?);
+    } else if apps.is_empty() {
+        println!("no apps yet; try `penates create https://example.com`");
+    } else {
+        for a in apps {
+            println!("{:<20} {:<24} {}", a.id, a.name, a.url);
         }
     }
     Ok(())
+}
+
+fn cmd_icon(id: &str, source: Option<String>) -> Result<()> {
+    let app = store::load(id)?;
+    let (p, custom) = match source {
+        Some(f) => (icon::import_source(&f, id)?, true),
+        None => (icon::fetch_for(&app.url, id)?, false),
+    };
+    let saved = ops::set_icon_file(id, p.clone(), custom)?;
+    println!("icon: {}", p.display());
+    saved.warning.into_iter().for_each(warn);
+    Ok(())
+}
+
+fn cmd_clear(id: &str, data: bool) -> Result<()> {
+    ops::ensure_closed(id)?;
+    if data {
+        store::clear_profile(id)?;
+        println!("cleared cookies and data for '{id}'");
+    } else {
+        println!("cleared {} of cache for '{id}'", fmt_bytes(store::clear_cache(id)));
+    }
+    Ok(())
+}
+
+fn cmd_export(ids: Vec<String>, settings: bool, output: Option<String>) -> Result<()> {
+    let f = export::build(&ids, settings)?;
+    let text = serde_json::to_string_pretty(&f)?;
+    let out = output.unwrap_or_else(|| match f.apps.as_slice() {
+        [one] => format!("{}.penates", one.config.id),
+        _ => "penates-backup.penates".into(),
+    });
+    if out == "-" {
+        println!("{text}");
+    } else {
+        std::fs::write(&out, text)?;
+        println!("exported {} app{} to {out}", f.apps.len(), plural(f.apps.len()));
+        println!("(contains configs and icons only; no cookies or logins)");
+    }
+    Ok(())
+}
+
+/// What a person should know about one app in an import before saying yes.
+fn import_flags(s: &export::Summary) -> Vec<String> {
+    let mut flags = vec![];
+    if s.exists {
+        flags.push("already exists".into());
+    }
+    if s.custom_js {
+        flags.push("CUSTOM JAVASCRIPT".into());
+    }
+    if s.custom_css {
+        flags.push("custom css".into());
+    }
+    if s.user_agent {
+        flags.push("custom user agent".into());
+    }
+    if s.all_links_in_app {
+        flags.push("keeps ALL links in the app".into());
+    } else if !s.extra_hosts.is_empty() {
+        flags.push(format!("keeps these sites in the app: {}", s.extra_hosts.join(", ")));
+    }
+    if s.camera_microphone || s.devtools {
+        flags.push("asks for camera/microphone or developer tools (switched off on import)".into());
+    }
+    flags
+}
+
+fn confirm(question: &str) -> Result<()> {
+    use std::io::{IsTerminal, Write};
+    if !std::io::stdin().is_terminal() {
+        bail!("not a terminal; pass --yes to import without asking");
+    }
+    print!("{question} [y/N] ");
+    std::io::stdout().flush()?;
+    let mut line = String::new();
+    std::io::stdin().read_line(&mut line)?;
+    if !matches!(line.trim().to_ascii_lowercase().as_str(), "y" | "yes") {
+        bail!("cancelled");
+    }
+    Ok(())
+}
+
+fn cmd_import(source: &str, on_conflict: OnConflict, allow_js: bool, settings: bool, yes: bool) -> Result<()> {
+    let f = export::parse(&export::read_source(source)?)?;
+    println!("{} app{} in {source}:", f.apps.len(), plural(f.apps.len()));
+    let summary = export::inspect(&f);
+    for s in &summary {
+        let flags = import_flags(s);
+        println!("  {:<18} {}  {}", s.id, s.url, if flags.is_empty() { String::new() } else { format!("[{}]", flags.join("; ")) });
+    }
+    if f.settings.is_some() {
+        println!("  (file also has settings{})", if settings { ", which WILL be applied, including the update source" } else { "; ignored unless --settings" });
+    }
+    if summary.iter().any(|s| s.custom_js) && !allow_js {
+        println!("custom JavaScript will be removed (it runs inside the site). Use --allow-js to keep it, only if you trust the source.");
+    }
+    if !yes {
+        confirm("import?")?;
+    }
+    let r = export::apply(&f, &export::ImportOptions { on_conflict: on_conflict.into(), allow_js, settings });
+    r.imported.iter().for_each(|id| println!("imported {id}"));
+    r.renamed.iter().for_each(|(a, b)| println!("  ({a} already existed; saved as {b})"));
+    r.skipped.iter().for_each(|id| println!("skipped {id} (already exists)"));
+    r.js_removed.iter().for_each(|id| println!("removed custom JavaScript from {id}"));
+    r.permissions_reset.iter().for_each(|id| println!("switched off camera/microphone and developer tools for {id}"));
+    if r.settings_applied {
+        println!("applied settings");
+    }
+    r.errors.iter().for_each(|e| eprintln!("error: {e}"));
+    if !r.errors.is_empty() {
+        std::process::exit(1);
+    }
+    Ok(())
+}
+
+fn cmd_remove(id: &str, purge: bool) -> Result<()> {
+    ops::remove(id, purge)?;
+    println!("removed '{id}'{}", if purge && store::CAN_CLEAR_DATA { " and its data" } else { "" });
+    if purge && !store::CAN_CLEAR_DATA {
+        eprintln!("note: on macOS its browsing data is kept (clearing is not supported there yet)");
+    }
+    Ok(())
+}
+
+fn cmd_check() -> Result<()> {
+    println!("penates {}", updates::CURRENT_VERSION);
+    match updates::check_penates() {
+        Ok(Some(u)) => {
+            println!("  new version {} available: {}", u.latest, u.notes.lines().next().unwrap_or(""));
+            println!("  download: {}", updates::RELEASES_PAGE);
+        }
+        Ok(None) => println!("  penates is up to date"),
+        Err(e) => println!("  could not check for a new Penates: {e:#}"),
+    }
+    let r = updates::check_apps().context("could not check your apps")?;
+    println!("apps (catalog: {})", r.source);
+    for a in &r.apps {
+        println!("  {:<18} preset {} -> {}  {}", a.id, a.from.as_deref().unwrap_or("none"), a.to, a.notes);
+    }
+    if r.apps.is_empty() {
+        println!("  all apps are up to date");
+    } else {
+        println!("run `penates update --all` to apply");
+    }
+    Ok(())
+}
+
+fn print_outcome(o: &ops::Outcome) {
+    println!(
+        "{:<18} icon {}{}",
+        o.app.id,
+        if o.icon_refreshed { "refreshed" } else { "unchanged" },
+        o.preset.as_ref().map(|v| format!(", preset {v} applied")).unwrap_or_default()
+    );
+    o.warning.iter().for_each(warn);
+}
+
+fn cmd_update(id: Option<String>) -> Result<()> {
+    match id {
+        Some(id) => print_outcome(&ops::update(&id)?),
+        None => {
+            let r = ops::update_all();
+            r.updated.iter().for_each(print_outcome);
+            for f in &r.failed {
+                eprintln!("error: {}: {}", f.id, f.error);
+            }
+            if !r.failed.is_empty() {
+                std::process::exit(1);
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Run `$VISUAL`/`$EDITOR` (which may carry arguments, e.g. `code --wait`) on `path`.
+fn run_editor(editor: &str, path: &std::path::Path) -> Result<()> {
+    let mut parts = editor.split_whitespace();
+    let program = parts.next().context("$EDITOR is empty")?;
+    let status = Command::new(program).args(parts).arg(path).status().with_context(|| format!("running {program}"))?;
+    anyhow::ensure!(status.success(), "{program} exited with {status}");
+    Ok(())
+}
+
+fn cmd_edit(id: &str) -> Result<()> {
+    store::check_id(id)?;
+    let path = store::path_for(id);
+    anyhow::ensure!(path.exists(), "no app with id '{id}'");
+    let Ok(editor) = std::env::var("VISUAL").or_else(|_| std::env::var("EDITOR")) else {
+        open::that(&path)?;
+        println!("opened {} (save it, then run `penates install {id}` to refresh the launcher)", path.display());
+        return Ok(());
+    };
+    run_editor(&editor, &path)?;
+    // The edit must still parse and validate; then save the cleaned values and refresh the launcher.
+    let mut app = store::load(id).context("the edited config no longer parses; fix it and run `penates edit` again")?;
+    ops::validate(&mut app).context("the edited config is not valid; fix it and run `penates edit` again")?;
+    store::save(&app)?;
+    if let Err(e) = ops::reinstall(None, &app) {
+        warn(format!("launcher not updated: {e:#}"));
+    }
+    println!("saved '{id}'");
+    Ok(())
+}
+
+fn main() -> Result<()> {
+    match Cli::parse().cmd {
+        Cmd::Create {
+            url, name, id, icon, user_agent, width, height, zoom, internal_hosts, inject_css, inject_js, devtools,
+            no_install, force,
+        } => cmd_create(url, name, id, icon, user_agent, width, height, zoom, internal_hosts, inject_css, inject_js, devtools, no_install, force),
+        Cmd::List { json } => cmd_list(json),
+        Cmd::Show { id } => {
+            store::load(&id)?;
+            print!("{}", std::fs::read_to_string(store::path_for(&id))?);
+            Ok(())
+        }
+        Cmd::Path { id } => {
+            store::check_id(&id)?;
+            println!("{}", store::path_for(&id).display());
+            Ok(())
+        }
+        Cmd::Run { id } => {
+            store::load(&id)?;
+            spawn_desktop(&["--run", &id])
+        }
+        Cmd::Install { id } => {
+            let mut app = store::load(&id)?;
+            app.launcher = true;
+            store::save(&app)?;
+            let p = integration::install(&app, &desktop_bin()?)?;
+            println!("launcher: {}", p.display());
+            Ok(())
+        }
+        Cmd::Icon { id, source } => cmd_icon(&id, source),
+        Cmd::Icons { url } => {
+            let page = penates_core::site::Page::fetch(&normalize_url(&url)?)?;
+            for (i, c) in page.icon_candidates().into_iter().enumerate() {
+                println!("{:>2}. {c}", i + 1);
+            }
+            Ok(())
+        }
+        Cmd::Clear { id, data } => cmd_clear(&id, data),
+        Cmd::Export { ids, all: _, settings, output } => cmd_export(ids, settings, output),
+        Cmd::Import { source, on_conflict, allow_js, settings, yes } => cmd_import(&source, on_conflict, allow_js, settings, yes),
+        Cmd::Remove { id, purge } => cmd_remove(&id, purge),
+        Cmd::Check => cmd_check(),
+        Cmd::Update { id, all: _ } => cmd_update(id),
+        Cmd::Edit { id } => cmd_edit(&id),
+        Cmd::Gui => spawn_desktop(&[]),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap::CommandFactory;
+
+    #[test]
+    fn cli_definition_is_valid() {
+        Cli::command().debug_assert();
+    }
+
+    #[test]
+    fn update_takes_an_id_or_all_not_both() {
+        assert!(Cli::try_parse_from(["penates", "update", "gh", "--all"]).is_err());
+        assert!(Cli::try_parse_from(["penates", "update"]).is_err());
+        assert!(Cli::try_parse_from(["penates", "update", "--all"]).is_ok());
+        assert!(Cli::try_parse_from(["penates", "import", "x.penates", "--on-conflict", "nope"]).is_err());
+    }
+
+    #[test]
+    fn editor_with_arguments() {
+        let p = std::env::temp_dir();
+        assert!(run_editor("true --wait", &p).is_ok());
+        assert!(run_editor("false", &p).is_err());
+    }
 }

@@ -1,17 +1,26 @@
 //! Per-app presence on a loopback port derived from the app id.
 //! A running app owns the port. A second launch asks it to focus (single-window mode), and the
-//! manager/CLI can ask whether an app is running (before clearing its data).
+//! manager/CLI can ask whether an app is running (before clearing its data). The manager uses the
+//! same mechanism under its own key (`MANAGER`), so starting Penates twice focuses the open window.
+//!
+//! Ports are 20000-31999: below the range systems hand out for outgoing connections (32768+ on
+//! Linux, 49152+ on Windows and macOS), so a busy port is almost always one of ours. Two ids that
+//! hash to the same port lose single-window mode (each message names its id, so they never act on
+//! the other's request).
 
 use std::io::{Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, TcpListener, TcpStream};
 use std::time::Duration;
+
+/// Key for the manager window. Not a valid app id (ids never contain ':'), so it cannot clash.
+pub const MANAGER: &str = "penates:manager";
 
 fn addr(id: &str) -> SocketAddr {
     let mut h: u32 = 2166136261;
     for b in id.bytes() {
         h = (h ^ b as u32).wrapping_mul(16777619);
     }
-    SocketAddr::from((Ipv4Addr::LOCALHOST, 49152 + (h % 16000) as u16))
+    SocketAddr::from((Ipv4Addr::LOCALHOST, 20000 + (h % 12000) as u16))
 }
 
 /// Become the owner of this app's port. None if another process already holds it.

@@ -1,26 +1,20 @@
+//! App icons: found on the site, chosen from a file or URL, stored as our own 256 px PNG.
+
+use crate::{http, site::Page, store};
 use anyhow::{bail, Context, Result};
 use image::{imageops, RgbaImage};
 use std::path::{Path, PathBuf};
 use url::Url;
 
-pub(crate) fn agent() -> ureq::Agent {
-    ureq::AgentBuilder::new()
-        .timeout(std::time::Duration::from_secs(10))
-        .user_agent("Mozilla/5.0 (X11; Linux x86_64) penates")
-        .build()
-}
-
-fn get_bytes(url: &str) -> Result<Vec<u8>> {
-    use std::io::Read;
-    let resp = agent().get(url).call()?;
-    let mut buf = vec![];
-    resp.into_reader().take(10 * 1024 * 1024).read_to_end(&mut buf)?;
-    Ok(buf)
-}
-
 /// Biggest dimension in a `sizes` string like "192x192 512x512"; 0 if absent or "any".
-fn max_size(sizes: &str) -> i64 {
-    sizes.split_whitespace().filter_map(|t| t.split(['x', 'X']).next()?.parse::<i64>().ok()).max().unwrap_or(0)
+/// Clamped, so a hostile value cannot overflow the scores built from it.
+pub(crate) fn max_size(sizes: &str) -> i64 {
+    sizes
+        .split_whitespace()
+        .filter_map(|t| t.split(['x', 'X']).next()?.parse::<i64>().ok())
+        .max()
+        .unwrap_or(0)
+        .clamp(0, 10_000)
 }
 
 /// Icons listed in a PWA web manifest, scored (bigger is better; maskable-only icons carry
@@ -50,64 +44,26 @@ pub fn parse_manifest_name(json: &str) -> Option<String> {
         .find(|s| !s.is_empty() && s.chars().count() <= 40)
 }
 
-/// Fetch the page's web manifest (if it links one): (manifest URL, JSON text).
-pub(crate) fn fetch_manifest(html: &str, base: &Url) -> Option<(Url, String)> {
-    let doc = scraper::Html::parse_document(html);
-    let sel = scraper::Selector::parse("link[rel]").ok()?;
-    let href = doc
-        .select(&sel)
-        .find(|e| e.value().attr("rel").is_some_and(|r| r.split_whitespace().any(|t| t.eq_ignore_ascii_case("manifest"))))?
-        .value()
-        .attr("href")?;
-    let url = base.join(href).ok()?;
-    if !matches!(url.scheme(), "http" | "https") {
-        return None;
-    }
-    let body = agent().get(url.as_str()).call().ok()?.into_string().ok()?;
-    Some((url, body))
+/// Largest icon file Penates accepts.
+pub const MAX_ICON_BYTES: usize = 8 * 1024 * 1024;
+
+fn download(src: &str) -> Result<Vec<u8>> {
+    let u = Url::parse(src)?;
+    anyhow::ensure!(matches!(u.scheme(), "http" | "https"), "only http(s) icons");
+    Ok(http::get(src, MAX_ICON_BYTES as u64)?.body)
 }
 
-/// Icon URLs for a page, best first: PWA manifest icons, apple-touch icons, `<link rel=icon>`
-/// by size, then `/favicon.ico` as a last resort.
-pub fn candidates(page_url: &str) -> Vec<String> {
-    let Ok(base) = Url::parse(page_url) else { return vec![] };
-    let mut found: Vec<(i64, String)> = vec![];
-    if let Some(html) = agent().get(page_url).call().ok().and_then(|r| r.into_string().ok()) {
-        let doc = scraper::Html::parse_document(&html);
-        let sel = scraper::Selector::parse("link[rel]").unwrap();
-        for el in doc.select(&sel) {
-            let rel = el.value().attr("rel").unwrap_or("").to_lowercase();
-            if !rel.contains("icon") {
-                continue;
-            }
-            let Some(href) = el.value().attr("href").and_then(|h| base.join(h).ok()) else { continue };
-            let size = max_size(el.value().attr("sizes").unwrap_or(""));
-            let bonus = if rel.contains("apple-touch") { 1000 } else { 0 };
-            found.push((size + bonus, href.to_string()));
-        }
-        if let Some((murl, body)) = fetch_manifest(&html, &base) {
-            found.extend(parse_manifest_icons(&murl, &body));
-        }
-    }
-    found.sort_by_key(|f| std::cmp::Reverse(f.0));
-    let mut urls: Vec<String> = vec![];
-    for (_, u) in found {
-        if !urls.contains(&u) {
-            urls.push(u);
-        }
-    }
-    if let Ok(f) = base.join("/favicon.ico") {
-        let f = f.to_string();
-        if !urls.contains(&f) {
-            urls.push(f);
-        }
-    }
-    urls
-}
-
-/// Decode any supported image into a 256x256 transparent-padded square PNG.
-fn normalize(bytes: &[u8]) -> Result<Vec<u8>> {
-    let img = image::load_from_memory(bytes).context("unsupported image (use PNG, JPG, ICO, GIF or WebP)")?;
+/// Decode any supported image into a 256x256 transparent-padded square PNG. Decoding is capped
+/// (4096 px a side, 64 MB), so a hostile file cannot exhaust memory.
+pub fn normalize(bytes: &[u8]) -> Result<Vec<u8>> {
+    anyhow::ensure!(bytes.len() <= MAX_ICON_BYTES, "image is larger than 8 MB");
+    let mut reader = image::ImageReader::new(std::io::Cursor::new(bytes)).with_guessed_format()?;
+    let mut limits = image::Limits::default();
+    limits.max_image_width = Some(4096);
+    limits.max_image_height = Some(4096);
+    limits.max_alloc = Some(64 * 1024 * 1024);
+    reader.limits(limits);
+    let img = reader.decode().context("unsupported or oversized image (use PNG, JPG, ICO, GIF or WebP up to 4096 px)")?;
     anyhow::ensure!(img.width().min(img.height()) >= 16, "icon too small");
     let img = img.resize(256, 256, imageops::FilterType::Lanczos3).to_rgba8();
     let mut canvas = RgbaImage::new(256, 256);
@@ -117,33 +73,35 @@ fn normalize(bytes: &[u8]) -> Result<Vec<u8>> {
     Ok(out)
 }
 
-/// Store normalized icon bytes as `<icons>/<id>.png` and return the path.
+/// Where an app's icon is stored.
+pub fn path_for(id: &str) -> PathBuf {
+    store::icon_dir().join(format!("{id}.png"))
+}
+
+/// Store a normalized PNG as `<icons>/<id>.png`. Returns the path and whether the file changed.
+pub fn save_png(id: &str, png: &[u8]) -> Result<(PathBuf, bool)> {
+    store::check_id(id)?;
+    let dst = path_for(id);
+    if std::fs::read(&dst).is_ok_and(|old| old == png) {
+        return Ok((dst, false));
+    }
+    store::write_atomic(&dst, png)?;
+    Ok((dst, true))
+}
+
+/// Download an icon URL and normalize it (not stored).
+pub fn fetch_png(src: &str) -> Result<Vec<u8>> {
+    normalize(&download(src)?)
+}
+
+/// Normalize and store icon bytes from any source.
 pub fn set_from_bytes(bytes: &[u8], id: &str) -> Result<PathBuf> {
-    anyhow::ensure!(crate::store::valid_id(id), "invalid app id '{id}'");
-    let png = normalize(bytes)?;
-    std::fs::create_dir_all(crate::store::icon_dir())?;
-    let dst = crate::store::icon_dir().join(format!("{id}.png"));
-    std::fs::write(&dst, png)?;
-    Ok(dst)
+    Ok(save_png(id, &normalize(bytes)?)?.0)
 }
 
 /// Download one icon URL (http/https only) and store it.
 pub fn set_from_src(src: &str, id: &str) -> Result<PathBuf> {
-    let u = Url::parse(src)?;
-    anyhow::ensure!(matches!(u.scheme(), "http" | "https"), "only http(s) icons");
-    set_from_bytes(&get_bytes(src)?, id)
-}
-
-/// Fetch the site's best icon (the default). Direct from the site only.
-pub fn fetch_for(page_url: &str, id: &str) -> Result<PathBuf> {
-    for c in candidates(page_url) {
-        if let Ok(bytes) = get_bytes(&c) {
-            if let Ok(p) = set_from_bytes(&bytes, id) {
-                return Ok(p);
-            }
-        }
-    }
-    bail!("could not find a usable icon for {page_url}")
+    set_from_bytes(&download(src)?, id)
 }
 
 /// Icon from either an http(s) URL or a local file path.
@@ -151,12 +109,24 @@ pub fn import_source(src: &str, id: &str) -> Result<PathBuf> {
     if src.starts_with("http://") || src.starts_with("https://") {
         set_from_src(src, id)
     } else {
-        import_file(Path::new(src), id)
+        let bytes = std::fs::read(Path::new(src)).with_context(|| format!("reading {src}"))?;
+        set_from_bytes(&bytes, id)
     }
 }
 
-pub fn import_file(src: &Path, id: &str) -> Result<PathBuf> {
-    set_from_bytes(&std::fs::read(src).with_context(|| format!("reading {}", src.display()))?, id)
+/// The best usable icon on a page, normalized (not stored).
+pub fn best_from(page: &Page) -> Result<Vec<u8>> {
+    for c in page.icon_candidates() {
+        if let Ok(png) = download(&c).and_then(|b| normalize(&b)) {
+            return Ok(png);
+        }
+    }
+    bail!("could not find a usable icon for {}", page.final_url)
+}
+
+/// Fetch the site's best icon and store it (the default icon).
+pub fn fetch_for(page_url: &str, id: &str) -> Result<PathBuf> {
+    Ok(save_png(id, &best_from(&Page::fetch(page_url)?)?)?.0)
 }
 
 pub struct Candidate {
@@ -164,16 +134,18 @@ pub struct Candidate {
     pub png: Vec<u8>,
 }
 
-/// Up to 8 usable icons from the site, normalized for preview.
+/// Up to 8 usable icons from the site, normalized for preview. Downloads run in parallel.
 pub fn preview_candidates(page_url: &str) -> Vec<Candidate> {
-    candidates(page_url)
-        .into_iter()
-        .filter_map(|src| {
-            let png = normalize(&get_bytes(&src).ok()?).ok()?;
-            Some(Candidate { src, png })
-        })
-        .take(8)
-        .collect()
+    let Ok(page) = Page::fetch(page_url) else { return vec![] };
+    let srcs: Vec<String> = page.icon_candidates().into_iter().take(12).collect();
+    let got: Vec<Option<Candidate>> = std::thread::scope(|s| {
+        let jobs: Vec<_> = srcs
+            .into_iter()
+            .map(|src| s.spawn(move || download(&src).and_then(|b| normalize(&b)).ok().map(|png| Candidate { src, png })))
+            .collect();
+        jobs.into_iter().map(|j| j.join().ok().flatten()).collect()
+    });
+    got.into_iter().flatten().take(8).collect()
 }
 
 /// Load a stored icon as raw RGBA scaled to `size` px, optionally converted to grayscale
@@ -212,6 +184,28 @@ mod tests {
         assert_eq!(parse_manifest_name(json).as_deref(), Some("MyApp"));
         assert_eq!(max_size("48x48 96x96"), 96);
         assert_eq!(max_size("any"), 0);
+        assert_eq!(max_size(&format!("{}x1", i64::MAX)), 10_000); // no overflow
+    }
+
+    #[test]
+    fn oversized_images_are_refused() {
+        // A PNG header claiming 100000 x 100000 pixels.
+        let mut png = vec![];
+        image::DynamicImage::ImageRgba8(RgbaImage::new(32, 32)).write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
+        assert!(normalize(&png).is_ok());
+        png[16..20].copy_from_slice(&100_000u32.to_be_bytes());
+        png[20..24].copy_from_slice(&100_000u32.to_be_bytes());
+        // Keep the header's checksum valid, so the size limit (not a CRC error) is what refuses it.
+        let crc = png[12..29].iter().fold(!0u32, |mut c, &b| {
+            c ^= b as u32;
+            for _ in 0..8 {
+                c = if c & 1 != 0 { (c >> 1) ^ 0xEDB8_8320 } else { c >> 1 };
+            }
+            c
+        });
+        png[29..33].copy_from_slice(&(!crc).to_be_bytes());
+        let err = format!("{:#}", normalize(&png).unwrap_err());
+        assert!(err.contains("oversized") || err.contains("limit"), "{err}");
     }
 
     #[test]

@@ -31,9 +31,9 @@ pub fn find_desktop_bin() -> Option<PathBuf> {
     std::env::split_paths(&std::env::var_os("PATH")?).map(|d| d.join(desktop_exe_name())).find(|p| p.exists())
 }
 
-#[allow(dead_code)]
 /// File name for the app's launcher on macOS and Windows. Two apps can share a display name (e.g.
 /// both "Google"), so the id is added whenever the name alone would not identify the app.
+#[cfg(any(target_os = "macos", windows, test))]
 fn safe_name(app: &WebApp) -> String {
     let n: String = app.name.chars().map(|c| if c.is_alphanumeric() || c == ' ' || c == '-' || c == '_' { c } else { '_' }).collect();
     let n = n.trim().to_string();
@@ -46,14 +46,27 @@ fn safe_name(app: &WebApp) -> String {
     }
 }
 
-#[allow(dead_code)]
-fn icon_png(app: &WebApp) -> Option<PathBuf> {
-    app.icon_path()
-}
-
-pub use imp::{install, is_installed, uninstall};
+pub use imp::{install_quiet, is_installed, refresh_caches, uninstall_id};
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
 pub use imp::install_manager;
+
+/// Write (or rewrite) the app's launcher and let the desktop pick it up.
+pub fn install(app: &WebApp, bin: &Path) -> Result<PathBuf> {
+    let p = install_quiet(app, bin)?;
+    refresh_caches();
+    Ok(p)
+}
+
+/// Remove the app's launcher (best effort).
+pub fn uninstall(app: &WebApp) {
+    imp::remove(app);
+    refresh_caches();
+}
+
+/// Remove the app's launcher without refreshing the desktop's caches (callers refresh once).
+pub fn uninstall_quiet(app: &WebApp) {
+    imp::remove(app);
+}
 
 // ---------------------------------------------------------------- Linux / other unix
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
@@ -70,26 +83,34 @@ mod imp {
         format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\"").replace('$', "\\$").replace('`', "\\`"))
     }
 
-    pub fn install(app: &WebApp, bin: &Path) -> Result<PathBuf> {
+    /// Exec= value for a program path: quoted, with `%` doubled (the spec reserves `%` for field codes).
+    fn exec(bin: &Path) -> String {
+        quote(&bin.to_string_lossy()).replace('%', "%%")
+    }
+
+    pub fn install_quiet(app: &WebApp, bin: &Path) -> Result<PathBuf> {
         std::fs::create_dir_all(dir())?;
-        let icon = icon_png(app).map(|p| p.to_string_lossy().into_owned()).unwrap_or_else(|| "applications-internet".into());
+        let icon = app.icon_path().map(|p| p.to_string_lossy().into_owned()).unwrap_or_else(|| "applications-internet".into());
         let content = format!(
             "[Desktop Entry]\nType=Application\nVersion=1.0\nName={name}\nComment=Web app: {url}\nExec={exec} --run {id}\nIcon={icon}\nTerminal=false\nCategories=Network;\nStartupWMClass={class}\nStartupNotify=true\nX-Penates-Id={id}\n",
             name = app.name.replace('\n', " "),
             url = app.url,
-            exec = quote(&bin.to_string_lossy()),
+            exec = exec(bin),
             id = app.id,
             class = wm_class(&app.id),
         );
         let p = file(&app.id);
-        std::fs::write(&p, content)?;
-        refresh_caches();
+        crate::store::write_atomic(&p, content.as_bytes())?;
         Ok(p)
     }
 
-    pub fn uninstall(app: &WebApp) -> Result<()> {
+    pub fn remove(app: &WebApp) {
         let _ = std::fs::remove_file(file(&app.id));
-        Ok(())
+    }
+
+    pub fn uninstall_id(id: &str) {
+        let _ = std::fs::remove_file(file(id));
+        refresh_caches();
     }
 
     pub fn is_installed(app: &WebApp) -> bool {
@@ -98,7 +119,7 @@ mod imp {
 
     /// Make the desktop pick up new/changed launchers right away. KDE otherwise keeps a stale
     /// app database and shows a generic fallback icon for windows opened before it refreshes.
-    fn refresh_caches() {
+    pub fn refresh_caches() {
         use std::process::{Command, Stdio};
         let quiet = |mut c: Command| {
             let _ = c.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).status();
@@ -121,8 +142,8 @@ mod imp {
         let icon = crate::store::icon_dir().join("penates.png");
         std::fs::write(&icon, icon_png)?;
         let content = format!(
-            "[Desktop Entry]\nType=Application\nVersion=1.0\nName=Penates\nComment=Turn websites into desktop apps\nExec={} \nIcon={}\nTerminal=false\nCategories=Network;Utility;\nStartupWMClass=penates\nStartupNotify=true\n",
-            quote(&bin.to_string_lossy()),
+            "[Desktop Entry]\nType=Application\nVersion=1.0\nName=Penates\nComment=Turn websites into desktop apps\nExec={}\nIcon={}\nTerminal=false\nCategories=Network;Utility;\nStartupWMClass=penates\nStartupNotify=true\n",
+            exec(bin),
             icon.display()
         );
         std::fs::write(dir().join("penates.desktop"), content)?;
@@ -147,7 +168,7 @@ mod imp {
         s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
     }
 
-    pub fn install(app: &WebApp, bin: &Path) -> Result<PathBuf> {
+    pub fn install_quiet(app: &WebApp, bin: &Path) -> Result<PathBuf> {
         let b = bundle(app);
         let _ = std::fs::remove_dir_all(&b);
         std::fs::create_dir_all(b.join("Contents/MacOS"))?;
@@ -162,7 +183,7 @@ mod imp {
         std::fs::write(&launcher, format!("#!/bin/sh\nexec \"$(dirname \"$0\")/penates-desktop\" --run {}\n", app.id))?;
         std::fs::set_permissions(&launcher, std::fs::Permissions::from_mode(0o755))?;
         let mut has_icon = false;
-        if let Some(png) = icon_png(app) {
+        if let Some(png) = app.icon_path() {
             let img = image::open(&png)?.to_rgba8();
             let im = icns::Image::from_data(icns::PixelFormat::RGBA, img.width(), img.height(), img.into_raw())?;
             let mut fam = icns::IconFamily::new();
@@ -192,14 +213,25 @@ mod imp {
         Ok(b)
     }
 
-    pub fn uninstall(app: &WebApp) -> Result<()> {
+    pub fn remove(app: &WebApp) {
         let _ = std::fs::remove_dir_all(bundle(app));
-        Ok(())
+    }
+
+    /// Find the bundle by the bundle id written into its Info.plist (the name may be unknown).
+    pub fn uninstall_id(id: &str) {
+        let needle = format!("<string>dev.penates.app.{id}</string>");
+        for b in std::fs::read_dir(root()).into_iter().flatten().flatten().map(|e| e.path()) {
+            if std::fs::read_to_string(b.join("Contents/Info.plist")).is_ok_and(|p| p.contains(&needle)) {
+                let _ = std::fs::remove_dir_all(b);
+            }
+        }
     }
 
     pub fn is_installed(app: &WebApp) -> bool {
         bundle(app).exists()
     }
+
+    pub fn refresh_caches() {}
 }
 
 // ---------------------------------------------------------------- Windows
@@ -215,10 +247,10 @@ mod imp {
         dir().join(format!("{}.lnk", safe_name(app)))
     }
 
-    pub fn install(app: &WebApp, bin: &Path) -> Result<PathBuf> {
+    pub fn install_quiet(app: &WebApp, bin: &Path) -> Result<PathBuf> {
         std::fs::create_dir_all(dir())?;
         let mut icon = String::new();
-        if let Some(png) = icon_png(app) {
+        if let Some(png) = app.icon_path() {
             let ico = crate::store::icon_dir().join(format!("{}.ico", app.id));
             image::open(&png)?.save_with_format(&ico, image::ImageFormat::Ico)?;
             icon = ico.to_string_lossy().into_owned();
@@ -239,14 +271,28 @@ mod imp {
         Ok(l)
     }
 
-    pub fn uninstall(app: &WebApp) -> Result<()> {
+    pub fn remove(app: &WebApp) {
         let _ = std::fs::remove_file(lnk(app));
-        Ok(())
+    }
+
+    /// Find the shortcut by its arguments (the name may be unknown). A .lnk stores them as UTF-16
+    /// preceded by their length, so matching the length too keeps `github` from matching `github-2`.
+    pub fn uninstall_id(id: &str) {
+        let args: Vec<u16> = format!("--run {id}").encode_utf16().collect();
+        let mut needle = (args.len() as u16).to_le_bytes().to_vec();
+        needle.extend(args.iter().flat_map(|u| u.to_le_bytes()));
+        for l in std::fs::read_dir(dir()).into_iter().flatten().flatten().map(|e| e.path()) {
+            if std::fs::read(&l).is_ok_and(|b| b.windows(needle.len()).any(|w| w == needle)) {
+                let _ = std::fs::remove_file(l);
+            }
+        }
     }
 
     pub fn is_installed(app: &WebApp) -> bool {
         lnk(app).exists()
     }
+
+    pub fn refresh_caches() {}
 }
 
 #[cfg(test)]

@@ -6,10 +6,10 @@
     "frontendDist": "../ui"
   },
   "app": {
-    "withGlobalTauri": true,
+    "withGlobalTauri": false,
     "windows": [],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src ipc: http://ipc.localhost"
     }
   },
   "bundle": {
@@ -18,7 +18,7 @@
     "publisher": "Penates",
     "license": "MIT",
     "licenseFile": "../LICENSE",
-    "shortDescription": "Turn websites into native desktop apps",
+    "shortDescription": "Turn websites into desktop apps",
     "longDescription": "Penates turns websites and PWAs into native desktop apps with their own window, icon, taskbar entry and isolated profile. Built with Rust and Tauri.",
     "linux": {
       "deb": {
