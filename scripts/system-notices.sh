@@ -20,6 +20,18 @@ files() {
   done | sort -u | while IFS= read -r f; do readlink -f "$f"; done | sort -u
 }
 
+# The package that owns each file. Ubuntu records many libraries under /lib, which resolve to /usr/lib;
+# files no package owns are left out.
+owners() {
+  while IFS= read -r f; do
+    if command -v dpkg-query >/dev/null; then
+      { dpkg -S "$f" 2>/dev/null || dpkg -S "${f#/usr}" 2>/dev/null || true; } | cut -d: -f1
+    else
+      pacman -Qoq "$f" 2>/dev/null || true
+    fi
+  done | sort -u
+}
+
 {
   echo "System libraries bundled in the Penates AppImage"
   echo "================================================"
@@ -30,7 +42,7 @@ files() {
     echo "(mostly LGPL; see each package below). Their source code is available from the distribution:"
     echo "  apt-get source <source package>=<version>   or   https://launchpad.net/ubuntu/+source/<source package>"
     echo
-    pkgs=$(files | xargs -r dpkg -S 2>/dev/null | cut -d: -f1 | sort -u)
+    pkgs=$(files | owners)
     printf '%-40s %-40s %s\n' "Package" "Version" "Source package"
     for p in $pkgs; do
       printf '%-40s %-40s %s\n' "$p" "$(dpkg-query -W -f='${Version}' "$p")" "$(dpkg-query -W -f='${source:Package} ${source:Version}' "$p")"
@@ -43,7 +55,7 @@ files() {
     echo "These libraries come from Arch Linux packages and are distributed under their own licenses (see each"
     echo "package below). Their source code is available from https://gitlab.archlinux.org/archlinux/packaging/packages"
     echo
-    pkgs=$(files | xargs -r pacman -Qoq 2>/dev/null | sort -u)
+    pkgs=$(files | owners)
     printf '%-40s %s\n' "Package" "Version"
     for p in $pkgs; do printf '%-40s %s\n' "$p" "$(pacman -Q "$p" | cut -d' ' -f2)"; done
     for p in $pkgs; do
