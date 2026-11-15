@@ -46,6 +46,15 @@ First release. Verified on Linux (KDE Plasma, Wayland); Windows and macOS pass C
 - **Docs**: README and `docs/`.
 
 ### Fixed during development
+- Frames embedded from other sites (videos, checkouts, captchas) were blocked and opened as browser tabs on page load; they now load, and only real clicks on links to other sites go to the browser.
+- Same-site popups opened without the app's link, download and popup rules; they now get the same rules as the main window.
+- A link-opening page could flood the desktop with browser tabs; hand-offs to the OS are limited to one per second.
+- Choosing an icon in Edit discarded unsaved changes to the other fields.
+- `penates edit` did not validate the edited config, and a bad URL crashed the app at launch; broken configs are now reported.
+- Long names produced an invalid id; macOS and Windows launchers of two apps with the same name overwrote each other.
+- After a Penates update, macOS app bundles kept the old binary; launchers are now rewritten after every update.
+- A second launch during a slow start could open a second window.
+- Releases now refuse to build when the tag does not match the version in Cargo.toml.
 - macOS build failed with a duplicate `_EMBED_INFO_PLIST` symbol because `generate_context!` was expanded twice (found by CI on the first push).
 - App list and Updates tab printed `[object HTMLDivElement]` (rows passed as an array).
 - Yellow fallback icon in the taskbar and title bar: launcher file name now matches the window's app ID, and the launcher cache is refreshed when launchers are written.
@@ -57,7 +66,10 @@ First release. Verified on Linux (KDE Plasma, Wayland); Windows and macOS pass C
 
 ### Known limitations
 - Per-app window theme cannot force light or dark for sites on Linux (WebKitGTK follows the desktop). It should work on Windows and macOS.
-- Desktop notifications from sites, camera/microphone prompts and `window.open` popups with real clicks are not fully verified.
-- macOS "clear data" does not clear anything (WKWebView has no profile folder to delete).
-- Windows and macOS compile and pass their unit tests in CI, but the apps have never been run there (launchers, taskbar identity, profiles are untested).
+- Site permissions (notifications, camera and microphone) are enforced on Linux only; Windows and macOS use their web view's own prompts.
+- macOS: clearing cookies, data or cache is not supported yet (it says so instead of pretending); Penates needs macOS 14 or later.
+- Windows: the Start Menu shortcut does not carry the app's AppUserModelID yet, so pinning a running app to the taskbar pins the manager. A passive update closes running apps.
+- Windows and macOS are smoke-tested in CI (launcher, launch, manager, export/import) but have not been checked by hand.
+- A page's own script can still navigate the window to another site (only link clicks are sent to the browser).
+- Two apps whose ids hash to the same loopback port lose single-window mode and the "is it running" check (rare).
 

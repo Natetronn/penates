@@ -93,9 +93,14 @@ def main():
         print("  ", a.name)
     print("updater targets:", ", ".join(sorted(platforms)))
 
-    # AUR files (pushed by hand: they need your AUR account)
+    # AUR files (pushed by hand: they need your AUR account). A dry run writes them into the work
+    # folder instead of the tracked packaging folder.
     if tarball:
-        aur = ROOT / "packaging" / "aur" / "penates-bin"
+        src = ROOT / "packaging" / "aur" / "penates-bin"
+        aur = work / "aur" if dry else src
+        aur.mkdir(parents=True, exist_ok=True)
+        if dry:
+            shutil.copy2(src / "PKGBUILD", aur / "PKGBUILD")
         pkg = (aur / "PKGBUILD").read_text()
         pkg = re.sub(r"^pkgver=.*$", f"pkgver={ver}", pkg, flags=re.M)
         pkg = re.sub(r"^pkgrel=.*$", "pkgrel=1", pkg, flags=re.M)

@@ -22,7 +22,7 @@
 ## The runner
 - **Isolated profile**: each app's cookies/storage live in `~/.local/share/penates/profiles/<id>` (Linux, Windows). macOS uses a per-app WKWebView data-store id instead of a folder.
 - **Identity**: the window's app ID / class is `penates-<id>`, which equals the launcher file name `penates-<id>.desktop`, so the desktop shows the right icon and groups windows. Windows sets a per-app AppUserModelID.
-- **Navigation**: `on_navigation` keeps the app's own host plus `internal_hosts` in the window and sends everything else to the system browser. `on_new_window` lets same-site popups open (keeping `window.opener` for sign-in flows) and sends other sites to the browser. `on_download` saves to the Downloads folder without overwriting.
+- **Navigation**: web pages load in the window, including frames embedded from other sites. Clicking a link to another site sends it to the system browser (a small injected script turns those clicks into `window.open`, which `on_new_window` hands to the browser), so only real clicks can open browser tabs. Same-site popups (sign-in flows) open as app windows with the same rules and keep `window.opener`. Other schemes such as `mailto:` go to the OS, at most one per second; `file:` and custom app schemes are dropped. `on_download` saves to the Downloads folder without overwriting.
 - **Single window**: each running app owns a loopback port derived from its id. A second launch asks the first to focus and exits. The manager and CLI use the same port to tell whether an app is running (cache clearing refuses when it is).
 - **Isolation of the host**: only the `manager` window has a capability. A wrapped site sees a `window.__TAURI__` object but every call is refused, and the manager's commands are not registered in the runner process.
 - **Tray**: optional icon built from the app's stored icon, converted to grayscale on request.
@@ -32,7 +32,7 @@
 |---|---|---|
 | Linux | `~/.local/share/applications/penates-<id>.desktop`, then the KDE app cache is refreshed | file name = window app ID |
 | macOS | `~/Applications/Penates/<Name>.app` containing a copy of the runner so the Dock shows the app's name and icon | bundle |
-| Windows | Start Menu shortcut created through PowerShell, `.ico` generated from the icon | AppUserModelID |
+| Windows | Start Menu shortcut created through PowerShell, `.ico` generated from the icon | AppUserModelID on the running app (the shortcut itself does not carry it yet, see Status) |
 
 The manager's own launcher is `penates.desktop` (app ID `penates`); packages ship it, dev runs write it.
 

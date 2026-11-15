@@ -6,9 +6,9 @@
 pkgname=penates
 pkgver=0.1.0
 pkgrel=1
-pkgdesc="Turn websites into native desktop apps"
+pkgdesc="Turn websites into desktop apps with their own window, icon and login"
 arch=('x86_64' 'aarch64')
-url="https://example.com/penates"
+url="https://github.com/Natetronn/penates-releases"
 license=('MIT')
 depends=('webkit2gtk-4.1' 'gtk3' 'libayatana-appindicator')
 makedepends=('cargo')

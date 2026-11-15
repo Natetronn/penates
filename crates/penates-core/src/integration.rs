@@ -32,10 +32,18 @@ pub fn find_desktop_bin() -> Option<PathBuf> {
 }
 
 #[allow(dead_code)]
+/// File name for the app's launcher on macOS and Windows. Two apps can share a display name (e.g.
+/// both "Google"), so the id is added whenever the name alone would not identify the app.
 fn safe_name(app: &WebApp) -> String {
     let n: String = app.name.chars().map(|c| if c.is_alphanumeric() || c == ' ' || c == '-' || c == '_' { c } else { '_' }).collect();
     let n = n.trim().to_string();
-    if n.is_empty() { app.id.clone() } else { n }
+    if n.is_empty() {
+        app.id.clone()
+    } else if crate::slugify(&n) == app.id {
+        n
+    } else {
+        format!("{n} ({})", app.id)
+    }
 }
 
 #[allow(dead_code)]
@@ -100,7 +108,6 @@ mod imp {
         quiet(u);
         for bin in ["kbuildsycoca6", "kbuildsycoca5"] {
             let mut k = Command::new(bin);
-            k.arg("--noincremental");
             if k.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).status().is_ok() {
                 break;
             }
@@ -239,5 +246,18 @@ mod imp {
 
     pub fn is_installed(app: &WebApp) -> bool {
         lnk(app).exists()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn launcher_names_do_not_collide() {
+        let a = WebApp { id: "google".into(), name: "Google".into(), ..Default::default() };
+        let b = WebApp { id: "google-2".into(), name: "Google".into(), ..Default::default() };
+        assert_eq!(safe_name(&a), "Google");
+        assert_eq!(safe_name(&b), "Google (google-2)");
     }
 }

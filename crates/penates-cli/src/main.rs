@@ -188,6 +188,9 @@ fn main() -> Result<()> {
             }
         }
         Cmd::List { json } => {
+            for (id, why) in store::broken() {
+                eprintln!("warning: '{id}' has a broken config and is skipped: {why}");
+            }
             let apps = store::list()?;
             if json {
                 println!("{}", serde_json::to_string_pretty(&apps)?);
@@ -235,6 +238,9 @@ fn main() -> Result<()> {
             if penates_core::single::is_running(&id) {
                 bail!("'{id}' is running; close it first");
             }
+            if !store::CAN_CLEAR_DATA {
+                bail!("clearing data is not supported on macOS yet");
+            }
             if data {
                 store::clear_profile(&id);
                 println!("cleared cookies and data for '{id}'");
@@ -271,6 +277,8 @@ fn main() -> Result<()> {
                 if s.custom_js { flags.push("CUSTOM JAVASCRIPT"); }
                 if s.custom_css { flags.push("custom css"); }
                 if s.user_agent { flags.push("custom user agent"); }
+                if s.all_links_in_app { flags.push("keeps ALL links in the app"); }
+                else if s.extra_hosts > 0 { flags.push("keeps extra sites in the app"); }
                 println!("  {:<18} {}  {}", s.id, s.url, if flags.is_empty() { String::new() } else { format!("[{}]", flags.join(", ")) });
             }
             if f.settings.is_some() {
@@ -305,7 +313,10 @@ fn main() -> Result<()> {
         Cmd::Remove { id, purge } => {
             store::load(&id)?;
             store::remove(&id, purge)?;
-            println!("removed '{id}'{}", if purge { " and its data" } else { "" });
+            println!("removed '{id}'{}", if purge && store::CAN_CLEAR_DATA { " and its data" } else { "" });
+            if purge && !store::CAN_CLEAR_DATA {
+                eprintln!("note: on macOS its browsing data is kept (clearing is not supported there yet)");
+            }
         }
         Cmd::Check => {
             let r = updates::check()?;
@@ -352,10 +363,12 @@ fn main() -> Result<()> {
             match std::env::var("VISUAL").or_else(|_| std::env::var("EDITOR")) {
                 Ok(ed) => {
                     Command::new(ed).arg(&path).status()?;
-                    // validate + refresh launcher
-                    let app = store::load(&id).context("config no longer parses")?;
+                    // The edit must still parse and validate; then save the cleaned values and refresh the launcher.
+                    let mut app = store::load(&id).context("the edited config no longer parses; fix it and run `penates edit` again")?;
+                    ops::validate(&mut app).context("the edited config is not valid; fix it and run `penates edit` again")?;
                     store::save(&app)?;
                     ops::reinstall(Some(&app), &app);
+                    println!("saved '{id}'");
                 }
                 Err(_) => open::that(&path)?,
             }

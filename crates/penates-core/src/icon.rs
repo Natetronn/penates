@@ -89,7 +89,7 @@ pub fn candidates(page_url: &str) -> Vec<String> {
             found.extend(parse_manifest_icons(&murl, &body));
         }
     }
-    found.sort_by(|a, b| b.0.cmp(&a.0));
+    found.sort_by_key(|f| std::cmp::Reverse(f.0));
     let mut urls: Vec<String> = vec![];
     for (_, u) in found {
         if !urls.contains(&u) {
@@ -205,7 +205,7 @@ mod tests {
             {"src":"/i/512.png","sizes":"512x512","purpose":"any"},
             {"src":"/i/512m.png","sizes":"512x512","purpose":"maskable"}]}"#;
         let mut v = parse_manifest_icons(&base, json);
-        v.sort_by(|a, b| b.0.cmp(&a.0));
+        v.sort_by_key(|f| std::cmp::Reverse(f.0));
         assert_eq!(v[0].1, "https://app.example/i/512.png");
         assert_eq!(v[1].1, "https://app.example/i/512m.png");
         assert_eq!(v[2].1, "https://app.example/i/192.png");

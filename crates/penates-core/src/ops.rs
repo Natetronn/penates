@@ -109,6 +109,22 @@ pub fn update_all() -> Result<Vec<Outcome>> {
     Ok(out)
 }
 
+/// After Penates itself was updated, rewrite every launcher so each points at (and, on macOS,
+/// contains) the new binary. Cheap no-op otherwise.
+pub fn refresh_launchers_if_upgraded() {
+    let mut s = updates::load_settings();
+    if s.launchers_version == updates::CURRENT_VERSION {
+        return;
+    }
+    if let Ok(apps) = store::list() {
+        for a in &apps {
+            reinstall(Some(a), a);
+        }
+    }
+    s.launchers_version = updates::CURRENT_VERSION.into();
+    let _ = updates::save_settings(&s);
+}
+
 pub fn set_icon_file(id: &str, path: std::path::PathBuf, custom: bool) -> Result<WebApp> {
     let mut app = store::load(id)?;
     app.icon = Some(store::icon_ref(&path));

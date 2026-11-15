@@ -82,7 +82,7 @@ async fn create_app(
 }
 
 #[tauri::command]
-fn save_app(app: WebApp) -> CmdResult<WebApp> {
+async fn save_app(app: WebApp) -> CmdResult<WebApp> {
     ops::save_edit(app).map_err(err)
 }
 
@@ -205,7 +205,7 @@ async fn check_self_update(app: tauri::AppHandle) -> CmdResult<Option<SelfUpdate
         notes: u.body.clone().unwrap_or_default(),
         can_install: tauri::utils::platform::bundle_type().is_some(),
         package_manager: tauri::utils::platform::bundle_type().is_none()
-            && std::env::current_exe().map(|p| p.starts_with("/usr/")).unwrap_or(false),
+            && std::env::current_exe().map(|p| p.starts_with("/usr/") && !p.starts_with("/usr/local/")).unwrap_or(false),
         releases_page: updates::RELEASES_PAGE.into(),
     }))
 }
@@ -229,11 +229,14 @@ fn open_url(url: String) -> CmdResult<()> {
 }
 
 #[tauri::command]
-fn remove_app(id: String, purge: bool) -> CmdResult<()> {
+async fn remove_app(id: String, purge: bool) -> CmdResult<()> {
     store::remove(&id, purge).map_err(err)
 }
 
 fn ensure_closed(id: &str) -> CmdResult<String> {
+    if !store::CAN_CLEAR_DATA {
+        return Err("Clearing data is not supported on macOS yet.".into());
+    }
     let app = store::load(id).map_err(err)?;
     if single::is_running(id) {
         return Err(format!("{} is running. Close it first.", app.name));
@@ -248,20 +251,20 @@ struct CacheInfo {
 }
 
 #[tauri::command]
-fn cache_info(id: String) -> CacheInfo {
+async fn cache_info(id: String) -> CacheInfo {
     CacheInfo { bytes: store::cache_size(&id), running: single::is_running(&id) }
 }
 
 /// Delete cached files, keep logins. Returns bytes freed.
 #[tauri::command]
-fn clear_cache(id: String) -> CmdResult<u64> {
+async fn clear_cache(id: String) -> CmdResult<u64> {
     ensure_closed(&id)?;
     Ok(store::clear_cache(&id))
 }
 
 /// Delete cookies, storage and cache (signs the app out).
 #[tauri::command]
-fn clear_data(id: String) -> CmdResult<()> {
+async fn clear_data(id: String) -> CmdResult<()> {
     ensure_closed(&id)?;
     store::clear_profile(&id);
     Ok(())
@@ -270,7 +273,8 @@ fn clear_data(id: String) -> CmdResult<()> {
 #[tauri::command]
 fn run_app(id: String) -> CmdResult<()> {
     store::load(&id).map_err(err)?;
-    let exe = std::env::current_exe().map_err(err)?;
+    // Inside an AppImage, current_exe() lives in a mount that disappears when the manager quits.
+    let exe = integration::find_desktop_bin().map(Ok).unwrap_or_else(std::env::current_exe).map_err(err)?;
     Command::new(exe).args(["--run", &id]).stdin(Stdio::null()).spawn().map_err(err)?;
     Ok(())
 }
@@ -304,7 +308,7 @@ async fn set_icon_from_url(id: String, url: String) -> CmdResult<WebApp> {
 }
 
 #[tauri::command]
-fn set_icon_from_bytes(id: String, bytes: Vec<u8>) -> CmdResult<WebApp> {
+async fn set_icon_from_bytes(id: String, bytes: Vec<u8>) -> CmdResult<WebApp> {
     if bytes.len() > 8 * 1024 * 1024 {
         return Err("image is larger than 8 MB".into());
     }
@@ -377,7 +381,16 @@ fn app_context() -> tauri::Context {
 /// without asking. `file:`, `smb:` and custom app schemes are dropped: a site must not be able to
 /// make the desktop open local files or launch other programs.
 fn open_external(u: &url::Url) {
+    // At most one hand-off per second, so a page cannot flood the desktop with browser tabs or
+    // mail windows.
+    static LAST: std::sync::Mutex<Option<std::time::Instant>> = std::sync::Mutex::new(None);
     if matches!(u.scheme(), "http" | "https" | "mailto" | "tel") {
+        let mut last = LAST.lock().unwrap_or_else(|e| e.into_inner());
+        if last.is_some_and(|t| t.elapsed() < std::time::Duration::from_secs(1)) {
+            eprintln!("ignored rapid link to {}", u.scheme());
+            return;
+        }
+        *last = Some(std::time::Instant::now());
         let _ = open::that_detached(u.as_str());
     } else {
         eprintln!("blocked opening {}: link", u.scheme());
@@ -392,7 +405,7 @@ fn apply_site_permissions(win: &tauri::WebviewWindow, cfg: &WebApp) {
     let (notify, media) = (cfg.allow_notifications, cfg.allow_camera_microphone);
     let _ = win.with_webview(move |wv| {
         use gtk::glib::prelude::*;
-        use webkit2gtk::{NotificationPermissionRequest, PermissionRequestExt, SettingsExt, UserMediaPermissionRequest, WebViewExt};
+        use webkit2gtk::{DeviceInfoPermissionRequest, NotificationPermissionRequest, PermissionRequestExt, SettingsExt, UserMediaPermissionRequest, WebViewExt};
         let view = wv.inner();
         if media {
             if let Some(s) = WebViewExt::settings(&view) {
@@ -403,7 +416,7 @@ fn apply_site_permissions(win: &tauri::WebviewWindow, cfg: &WebApp) {
         view.connect_permission_request(move |_, req| {
             let allow = if req.is::<NotificationPermissionRequest>() {
                 notify
-            } else if req.is::<UserMediaPermissionRequest>() {
+            } else if req.is::<UserMediaPermissionRequest>() || req.is::<DeviceInfoPermissionRequest>() {
                 media
             } else {
                 false
@@ -462,6 +475,101 @@ fn build_tray(app: &tauri::App, cfg: &WebApp) -> tauri::Result<()> {
     Ok(())
 }
 
+/// Script that sends clicks on links to other sites to the system browser (via `window.open`, which
+/// `on_new_window` hands to the OS). Only real clicks count, so a page cannot open browser tabs on its
+/// own, and embedded frames from other sites load normally.
+fn link_guard_script(cfg: &WebApp) -> String {
+    let own = url::Url::parse(&cfg.url).ok().and_then(|u| u.host_str().map(str::to_owned)).unwrap_or_default();
+    format!(
+        r#"(() => {{
+  const own = {own}, pats = {pats};
+  const inApp = (h) => h === own || pats.some((p) => p.startsWith("*.") ? (h === p.slice(2) || h.endsWith(p.slice(1))) : p === h);
+  document.addEventListener("click", (e) => {{
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const a = e.target instanceof Element ? e.target.closest("a[href]") : null;
+    if (!a) return;
+    let u; try {{ u = new URL(a.href, location.href); }} catch {{ return; }}
+    if ((u.protocol === "http:" || u.protocol === "https:") && !inApp(u.hostname)) {{
+      e.preventDefault(); e.stopImmediatePropagation(); window.open(u.href, "_blank");
+    }}
+  }}, true);
+}})();"#,
+        own = serde_json::to_string(&own).unwrap(),
+        pats = serde_json::to_string(&cfg.internal_hosts).unwrap(),
+    )
+}
+
+/// The rules every window of a wrapped app gets: its main window and any popup it opens.
+fn with_rules<'a, M: Manager<tauri::Wry>>(
+    mut b: WebviewWindowBuilder<'a, tauri::Wry, M>,
+    cfg: &WebApp,
+    handle: tauri::AppHandle,
+) -> WebviewWindowBuilder<'a, tauri::Wry, M> {
+    if cfg.external_links_in_browser {
+        b = b.initialization_script(link_guard_script(cfg));
+    }
+    if let Some(ua) = &cfg.user_agent {
+        b = b.user_agent(ua);
+    }
+    let popup_cfg = cfg.clone();
+    b.on_navigation(|u| {
+        // Web pages (including embedded frames from other sites) load; anything else (mailto:,
+        // custom app schemes) is handed to the OS when safe, never loaded.
+        if matches!(u.scheme(), "http" | "https" | "about" | "blob" | "data") {
+            true
+        } else {
+            open_external(u);
+            false
+        }
+    })
+    .on_new_window(move |u, features| {
+        // Popups to the app's own sites (sign-in flows) open as app windows with these same rules;
+        // anything else goes to the system browser.
+        if popup_cfg.is_internal(&u) {
+            match open_popup(&handle, &popup_cfg, features) {
+                Some(window) => tauri::webview::NewWindowResponse::Create { window },
+                None => tauri::webview::NewWindowResponse::Deny,
+            }
+        } else {
+            open_external(&u);
+            tauri::webview::NewWindowResponse::Deny
+        }
+    })
+    .on_download(|_wv, ev| {
+        use tauri::webview::DownloadEvent;
+        match ev {
+            DownloadEvent::Requested { destination, .. } => {
+                *destination = unique_download_path(destination);
+                true
+            }
+            DownloadEvent::Finished { path, success, .. } => {
+                eprintln!("download {}: {:?}", if success { "finished" } else { "failed" }, path);
+                true
+            }
+            _ => true,
+        }
+    })
+}
+
+fn open_popup(handle: &tauri::AppHandle, cfg: &WebApp, features: tauri::webview::NewWindowFeatures) -> Option<tauri::WebviewWindow> {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    static N: AtomicUsize = AtomicUsize::new(0);
+    let label = format!("popup-{}", N.fetch_add(1, Ordering::Relaxed));
+    let b = WebviewWindowBuilder::new(handle, label, WebviewUrl::External("about:blank".parse().ok()?))
+        .title(&cfg.name)
+        .window_features(features)
+        .on_document_title_changed(|w, title| {
+            let _ = w.set_title(&title);
+        });
+    match with_rules(b, cfg, handle.clone()).build() {
+        Ok(w) => Some(w),
+        Err(e) => {
+            eprintln!("popup: {e}");
+            None
+        }
+    }
+}
+
 fn run_webapp(cfg: WebApp) -> tauri::Result<()> {
     // Taskbar identity: own WM class / app_id (Linux) and own AppUserModelID (Windows), so each
     // app gets its own taskbar entry matching its launcher and icon.
@@ -475,28 +583,25 @@ fn run_webapp(cfg: WebApp) -> tauri::Result<()> {
     }
 
     // Every running app owns a loopback port (so the manager can tell it is running). In
-    // single-window mode a second launch focuses the first window and exits.
-    let listener = single::try_bind(&cfg.id);
-    if listener.is_none() && cfg.single_instance && single::request_focus(&cfg.id) {
-        return Ok(());
+    // single-window mode a second launch focuses the first window and exits. The port answers
+    // from the start, so a second launch during a slow start does not open a second window.
+    static HANDLE: std::sync::OnceLock<tauri::AppHandle> = std::sync::OnceLock::new();
+    match single::try_bind(&cfg.id) {
+        Some(l) => single::serve(l, cfg.id.clone(), || {
+            if let Some(w) = HANDLE.get().and_then(|h| h.get_webview_window("main")) {
+                let _ = w.unminimize();
+                let _ = w.show();
+                let _ = w.set_focus();
+            }
+        }),
+        None if cfg.single_instance && single::request_focus(&cfg.id) => return Ok(()),
+        None => {}
     }
-    let mut listener = listener;
 
     tauri::Builder::default()
         .setup(move |app| {
-            let url = cfg.url.parse::<url::Url>().expect("validated url");
-            let nav_cfg = cfg.clone();
-            let mut js = String::new();
-            if let Some(css) = &cfg.inject_css {
-                let lit = serde_json::to_string(css).unwrap();
-                js.push_str(&format!(
-                    "document.addEventListener('DOMContentLoaded',()=>{{const s=document.createElement('style');s.textContent={lit};document.head.appendChild(s);}});\n"
-                ));
-            }
-            if let Some(extra) = &cfg.inject_js {
-                js.push_str(extra);
-            }
-
+            let _ = HANDLE.set(app.handle().clone());
+            let url = cfg.url.parse::<url::Url>().map_err(|e| format!("invalid URL in config: {e}"))?;
             let mut w = WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url))
                 .title(&cfg.name)
                 .theme(theme_of(&cfg.theme))
@@ -506,43 +611,18 @@ fn run_webapp(cfg: WebApp) -> tauri::Result<()> {
                 .resizable(cfg.resizable)
                 .always_on_top(cfg.always_on_top)
                 .decorations(cfg.decorations)
-                .devtools(cfg.devtools)
-                .initialization_script(&js)
-                .on_new_window({
-                    let c = cfg.clone();
-                    move |u, _features| {
-                        // Popups to the app's own sites (OAuth, "open in new window") keep their opener;
-                        // anything else goes to the system browser.
-                        if c.is_internal(&u) {
-                            tauri::webview::NewWindowResponse::Allow
-                        } else {
-                            open_external(&u);
-                            tauri::webview::NewWindowResponse::Deny
-                        }
-                    }
-                })
-                .on_download(|_wv, ev| {
-                    use tauri::webview::DownloadEvent;
-                    match ev {
-                        DownloadEvent::Requested { destination, .. } => {
-                            *destination = unique_download_path(destination);
-                            true
-                        }
-                        DownloadEvent::Finished { path, success, .. } => {
-                            eprintln!("download {}: {:?}", if success { "finished" } else { "failed" }, path);
-                            true
-                        }
-                        _ => true,
-                    }
-                })
-                .on_navigation(move |u| {
-                    if nav_cfg.is_internal(u) {
-                        true
-                    } else {
-                        open_external(u);
-                        false
-                    }
-                });
+                .devtools(cfg.devtools);
+            // Custom CSS and JS are separate scripts, so an error in the JS cannot stop the CSS.
+            if let Some(css) = &cfg.inject_css {
+                let lit = serde_json::to_string(css).unwrap();
+                w = w.initialization_script(format!(
+                    "document.addEventListener('DOMContentLoaded',()=>{{const s=document.createElement('style');s.textContent={lit};document.head.appendChild(s);}});"
+                ));
+            }
+            if let Some(js) = &cfg.inject_js {
+                w = w.initialization_script(js.clone());
+            }
+            w = with_rules(w, &cfg, app.handle().clone());
             // Isolated profile per app. macOS WKWebView uses a data-store id instead of a directory.
             #[cfg(target_os = "macos")]
             {
@@ -551,9 +631,6 @@ fn run_webapp(cfg: WebApp) -> tauri::Result<()> {
             #[cfg(not(target_os = "macos"))]
             {
                 w = w.data_directory(store::profile_dir(&cfg.id));
-            }
-            if let Some(ua) = &cfg.user_agent {
-                w = w.user_agent(ua);
             }
             let win = w.build()?;
             #[cfg(target_os = "linux")]
@@ -582,16 +659,6 @@ fn run_webapp(cfg: WebApp) -> tauri::Result<()> {
                         }
                     });
                 }
-            }
-            if let Some(l) = listener.take() {
-                let handle = app.handle().clone();
-                single::serve(l, cfg.id.clone(), move || {
-                    if let Some(w) = handle.get_webview_window("main") {
-                        let _ = w.unminimize();
-                        let _ = w.show();
-                        let _ = w.set_focus();
-                    }
-                });
             }
             Ok(())
         })
@@ -628,6 +695,8 @@ fn run_manager(start: Option<String>) -> tauri::Result<()> {
             check_self_update, install_self_update, icon_data, icon_candidates, set_icon_from_candidate, set_icon_from_url, set_icon_from_bytes, reset_icon
         ])
         .setup(move |app| {
+            // After a Penates update, refresh every app's launcher (off the UI thread).
+            std::thread::spawn(ops::refresh_launchers_if_upgraded);
             // `--tab settings` / `--tab edit:<id>` opens the manager on that view.
             let init = start.as_deref().map(|t| format!("window.__PENATES_START = {};", serde_json::to_string(t).unwrap())).unwrap_or_default();
             WebviewWindowBuilder::new(app, "manager", WebviewUrl::App("index.html".into()))
@@ -649,7 +718,7 @@ fn main() {
                 eprintln!("usage: penates-desktop --run <id>");
                 std::process::exit(2);
             };
-            match store::load(id) {
+            match store::load(id).and_then(|mut cfg| ops::validate(&mut cfg).map(|_| cfg)) {
                 Ok(cfg) => run_webapp(cfg),
                 Err(e) => {
                     eprintln!("error: {e}");

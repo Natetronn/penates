@@ -13,6 +13,13 @@ jobs:
   draft:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - name: The tag must match the version in Cargo.toml
+        run: |
+          v="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+          if [ "${GITHUB_REF_NAME#v}" != "$v" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match Cargo.toml version $v (bump the version first)"; exit 1
+          fi
       - name: Create the private draft release that holds the build
         env:
           GH_TOKEN: ${{ github.token }}

@@ -2,8 +2,7 @@
 
 Turn any website or web app into a desktop app with its own window, icon, taskbar entry, tray icon and
 separate login. Named after the Roman household gods: every site gets a home of its own.
-Built with Rust and [Tauri 2](https://v2.tauri.app/), an alternative to browser "install as app" shortcuts,
-with a command line tool and a desktop manager.
+Built with Rust and [Tauri 2](https://v2.tauri.app/), with a command line tool and a desktop manager.
 
 **[Download the latest release](https://github.com/Natetronn/penates-releases/releases/latest)**:
 AppImage, .deb, .rpm, Windows installer, macOS .dmg, or `paru -S penates-bin` on Arch.
@@ -23,13 +22,11 @@ AppImage, .deb, .rpm, Windows installer, macOS .dmg, or `paru -S penates-bin` on
 - **Themeable manager:** light/dark/system, six accents, four looks, all from plain CSS tokens.
 
 ## Screenshots
-| Edit an app | Settings |
+| Your apps (light) | Edit an app |
 |---|---|
-| <img src="docs/images/manager-edit.png" width="400" alt="Editing GitHub: name, URL, icon picker and window options"> | <img src="docs/images/manager-settings.png" width="400" alt="Settings: four looks, light or dark, accent colors and backup"> |
-
-| About |
-|---|
-| <img src="docs/images/manager-about.png" width="400" alt="About Penates: logo, version, update check and credits"> |
+| <img src="docs/images/manager-apps-light.png" width="400" alt="The app list in light mode"> | <img src="docs/images/manager-edit.png" width="400" alt="Editing GitHub: name, URL, icon picker and window options"> |
+| **Settings** | **About** |
+| <img src="docs/images/manager-settings.png" width="400" alt="Settings: four looks, light or dark, accent colors, updates and backup"> | <img src="docs/images/manager-about.png" width="400" alt="About Penates: logo, version and credits"> |
 
 ## Install
 Get an installer from the [releases page](https://github.com/Natetronn/penates-releases/releases/latest), or build from source

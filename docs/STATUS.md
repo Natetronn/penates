@@ -21,6 +21,7 @@ What has actually been run, and where. Last updated 2026-11-14, version 0.1.0.
 | Downloads | saved to `~/Downloads`, second download gets a new name |
 | Same-site popups | a real click on a `target=_blank` link to the app's own site opened a second app window (confirmed on screen) |
 | External links | real clicks sent to the browser (logged by a stand-in `xdg-open`); `steam:` blocked, `mailto:` and `https:` passed, `file:` refused by WebKit |
+| Embedded frames | a page embedding a frame from another site: the frame loads and runs, nothing is sent to the browser |
 | Wrapped-site isolation | a page inside an app window cannot call Tauri commands (all refused) |
 | Site permissions | notifications: real clicks gave "granted" and the notification was shown; camera and microphone: "granted: audio, video". With both settings off, both are denied (automated check). |
 | Cache | clearing frees the cache and keeps cookies and storage |

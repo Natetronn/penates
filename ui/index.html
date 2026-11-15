@@ -267,7 +267,8 @@ function renderImport(root) {
     s.exists ? el("span", { class: "chip" }, "already exists") : null,
     s.custom_js ? el("span", { class: "chip warn" }, "custom JavaScript") : null,
     s.custom_css ? el("span", { class: "chip" }, "custom CSS") : null,
-    s.user_agent ? el("span", { class: "chip" }, "custom user agent") : null));
+    s.user_agent ? el("span", { class: "chip" }, "custom user agent") : null,
+    s.all_links_in_app ? el("span", { class: "chip warn" }, "keeps all links in the app") : s.extra_hosts ? el("span", { class: "chip" }, `keeps ${s.extra_hosts} extra site${s.extra_hosts === 1 ? "" : "s"} in the app`) : null));
   put(root, el("h2", {}, `Import ${d.summary.length} app${d.summary.length === 1 ? "" : "s"}`), rows,
     anyJs ? el("div", { class: "banner" }, el("span", {}, "Some of these apps include custom JavaScript. It runs inside the site and could read what you type. It is removed unless you allow it below. Only allow it if you trust where this file came from.")) : null,
     el("fieldset", {}, el("legend", {}, "Options"),
@@ -352,26 +353,28 @@ async function renderEdit(root) {
         try {
           const cs = await invoke("icon_candidates", { url: inputs.url[0].value });
           candBox.replaceChildren(...(cs.length ? cs.map((c) => el("button", { title: c.src, onclick: async () => {
-            try { editing = await invoke("set_icon_from_candidate", { id: a.id, src: c.src }); say("Icon updated."); renderApps(); } catch (e) { fail(e); } } },
+            try { keepEdits(await invoke("set_icon_from_candidate", { id: a.id, src: c.src })); say("Icon updated."); } catch (e) { fail(e); } } },
             el("img", { src: c.data, alt: "Icon candidate" }))) : [el("span", { class: "hint" }, "No usable icons found on the site.")]));
         } catch (e) { candBox.textContent = ""; fail(e); }
         ev.target.disabled = false;
       } }),
       el("button", { textContent: "Upload image…", onclick: () => file.click() }),
       el("button", { textContent: "Use site default", onclick: async () => {
-        try { editing = await invoke("reset_icon", { id: a.id }); say("Reset to the site's icon."); renderApps(); } catch (e) { fail(e); } } })),
+        try { keepEdits(await invoke("reset_icon", { id: a.id })); say("Reset to the site's icon."); } catch (e) { fail(e); } } })),
     el("div", { class: "row" }, urlIn, el("button", { textContent: "Use URL", onclick: async (ev) => {
       if (!urlIn.value.trim()) return say("Paste an image address first.", "err");
       ev.target.disabled = true;
-      try { editing = await invoke("set_icon_from_url", { id: a.id, url: urlIn.value }); say("Icon updated."); renderApps(); } catch (e) { fail(e); }
+      try { keepEdits(await invoke("set_icon_from_url", { id: a.id, url: urlIn.value })); say("Icon updated."); } catch (e) { fail(e); }
       ev.target.disabled = false;
     } })));
   const file = el("input", { type: "file", accept: "image/png,image/jpeg,image/webp,image/gif,image/x-icon,.ico", hidden: true,
     onchange: async () => {
       const f = file.files[0]; if (!f) return;
-      try { editing = await invoke("set_icon_from_bytes", { id: a.id, bytes: Array.from(new Uint8Array(await f.arrayBuffer())) }); say("Icon updated."); renderApps(); }
+      try { keepEdits(await invoke("set_icon_from_bytes", { id: a.id, bytes: Array.from(new Uint8Array(await f.arrayBuffer())) })); say("Icon updated."); }
       catch (e) { fail(e); }
     } });
+  // An icon change is saved at once; keep whatever the user typed in the other fields meanwhile.
+  const keepEdits = (saved) => { editing = { ...collect(), icon: saved.icon, custom_icon: saved.custom_icon }; renderApps(); };
   const collect = () => {
     const out = { ...a };
     for (const [k, [inp, type]] of Object.entries(inputs)) {
@@ -412,7 +415,7 @@ function renderCreate() {
         const f = iconFile.files[0];
         const iconBytes = f ? Array.from(new Uint8Array(await f.arrayBuffer())) : null;
         const a = await invoke("create_app", { url: url.value, name: name.value || null, openAfter: open.checked, iconUrl: iconUrl.value.trim() || null, iconBytes });
-        say(`Created ${a.name}.`); url.value = ""; name.value = ""; iconUrl.value = ""; iconFile.value = ""; refreshReport(); show("apps");
+        url.value = ""; name.value = ""; iconUrl.value = ""; iconFile.value = ""; refreshReport(); show("apps"); say(`Created ${a.name}.`);
       } catch (err) { fail(err); }
       btn.disabled = false;
     } },

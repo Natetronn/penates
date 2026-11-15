@@ -39,7 +39,10 @@
     "icon": [
       "icons/icon.png"
     ],
-    "targets": "all"
+    "targets": "all",
+    "macOS": {
+      "minimumSystemVersion": "14.0"
+    }
   },
   "plugins": {
     "updater": {

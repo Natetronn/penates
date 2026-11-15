@@ -9,7 +9,8 @@ pub fn config_dir() -> PathBuf {
     root_config_dir().join("apps")
 }
 pub fn data_dir() -> PathBuf {
-    dirs::data_dir().expect("no data dir").join("penates")
+    // Local, not roaming, on Windows: profiles hold caches that must not sync across machines.
+    dirs::data_local_dir().expect("no data dir").join("penates")
 }
 /// Isolated webview profile (cookies, storage, cache) for one app.
 pub fn profile_dir(id: &str) -> PathBuf {
@@ -78,6 +79,19 @@ pub fn list() -> Result<Vec<WebApp>> {
     Ok(out)
 }
 
+/// Config files that exist but do not load (hand-edited into an invalid state), with the reason.
+pub fn broken() -> Vec<(String, String)> {
+    let Ok(rd) = std::fs::read_dir(config_dir()) else { return vec![] };
+    rd.flatten()
+        .filter_map(|e| {
+            let p = e.path();
+            (p.extension().and_then(|s| s.to_str()) == Some("toml")).then_some(())?;
+            let id = p.file_stem()?.to_str()?.to_string();
+            load(&id).err().map(|err| (id, format!("{err:#}")))
+        })
+        .collect()
+}
+
 /// Remove config, icon, launcher; optionally the browsing profile too.
 pub fn remove(id: &str, purge: bool) -> Result<()> {
     check_id(id)?;
@@ -94,6 +108,10 @@ pub fn remove(id: &str, purge: bool) -> Result<()> {
 }
 
 /// Delete cookies/storage/cache for an app.
+/// macOS keeps each app's data in a WKWebView data store, not a folder, so clearing is not
+/// supported there yet.
+pub const CAN_CLEAR_DATA: bool = !cfg!(target_os = "macos");
+
 pub fn clear_profile(id: &str) {
     if !valid_id(id) {
         return;

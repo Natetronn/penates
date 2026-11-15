@@ -97,6 +97,10 @@ pub struct Summary {
     pub custom_css: bool,
     pub user_agent: bool,
     pub has_icon: bool,
+    /// Extra hosts kept inside the app window (no address bar there).
+    pub extra_hosts: usize,
+    /// All links stay in the app window, other sites included.
+    pub all_links_in_app: bool,
     /// An app with this id already exists here.
     pub exists: bool,
 }
@@ -116,6 +120,8 @@ pub fn inspect(f: &ExportFile) -> Vec<Summary> {
                 custom_css: c.inject_css.is_some(),
                 user_agent: c.user_agent.is_some(),
                 has_icon: a.icon_png.is_some(),
+                extra_hosts: c.internal_hosts.len(),
+                all_links_in_app: !c.external_links_in_browser,
             }
         })
         .collect()

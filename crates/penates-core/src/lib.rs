@@ -144,6 +144,8 @@ pub fn slugify(s: &str) -> String {
             out.push('-');
         }
     }
+    // Ids are capped at 64 characters (see store::valid_id).
+    let out: String = out.chars().take(64).collect();
     out.trim_end_matches('-').to_string()
 }
 
@@ -190,6 +192,8 @@ mod tests {
     #[test]
     fn slug() {
         assert_eq!(slugify("My Cool App!"), "my-cool-app");
+        let long = slugify(&"Very Long Name ".repeat(10));
+        assert!(long.len() <= 64 && store::valid_id(&long), "{long}");
     }
 
     #[test]

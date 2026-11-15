@@ -52,6 +52,8 @@ impl Default for Appearance {
 pub struct Settings {
     pub updates: UpdateSettings,
     pub appearance: Appearance,
+    /// Version of Penates that last rewrote the launchers (see ops::refresh_launchers_if_upgraded).
+    pub launchers_version: String,
 }
 
 fn settings_path() -> std::path::PathBuf {
@@ -106,14 +108,6 @@ pub struct CatalogEntry {
     /// Ignored when applying presets (see `apply_preset`); kept so older manifests still parse.
     pub inject_js: Option<String>,
     pub icon_url: Option<String>,
-}
-
-pub fn platform_key() -> String {
-    let os = match std::env::consts::OS {
-        "macos" => "darwin",
-        o => o,
-    };
-    format!("{os}-{}", std::env::consts::ARCH)
 }
 
 pub fn load_manifest() -> Result<Manifest> {
