@@ -1,0 +1,17 @@
+pkgbase = penates-bin
+	pkgdesc = Turn websites into desktop apps with their own window, icon and login
+	pkgver = 0.1.0
+	pkgrel = 1
+	url = https://github.com/Natetronn/penates
+	arch = x86_64
+	license = MIT
+	depends = webkit2gtk-4.1
+	depends = gtk3
+	depends = libayatana-appindicator
+	optdepends = xdg-utils: open links and downloads in your browser
+	provides = penates
+	conflicts = penates
+	source = https://github.com/Natetronn/penates/releases/download/v0.1.0/penates-0.1.0-x86_64-unknown-linux-gnu.tar.gz
+	sha256sums = d6727f1de370f2d8656661354ecafda3866326890535bc1102148f28a3e84f46
+
+pkgname = penates-bin

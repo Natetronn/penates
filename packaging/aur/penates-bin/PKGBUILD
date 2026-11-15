@@ -13,7 +13,7 @@ optdepends=('xdg-utils: open links and downloads in your browser')
 provides=('penates')
 conflicts=('penates')
 source=("https://github.com/Natetronn/penates/releases/download/v${pkgver}/penates-${pkgver}-x86_64-unknown-linux-gnu.tar.gz")
-sha256sums=('SKIP')
+sha256sums=('d6727f1de370f2d8656661354ecafda3866326890535bc1102148f28a3e84f46')
 
 package() {
   cd "penates-${pkgver}-x86_64-unknown-linux-gnu"
