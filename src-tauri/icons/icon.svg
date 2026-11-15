@@ -1,42 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0d1230"/>
-      <stop offset="1" stop-color="#1a0f3d"/>
-    </linearGradient>
-    <radialGradient id="aura" cx="0.5" cy="0.5" r="0.55">
-      <stop offset="0" stop-color="#7c3aed" stop-opacity="0.55"/>
-      <stop offset="1" stop-color="#7c3aed" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="neon" gradientUnits="userSpaceOnUse" x1="110" y1="402" x2="402" y2="110">
-      <stop offset="0" stop-color="#22d3ee"/>
-      <stop offset="0.5" stop-color="#8b8cf8"/>
-      <stop offset="1" stop-color="#f472b6"/>
-    </linearGradient>
-    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="11"/>
-    </filter>
-    <filter id="dotglow" x="-100%" y="-100%" width="300%" height="300%">
-      <feGaussianBlur stdDeviation="9"/>
-    </filter>
-    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#fff" stop-opacity="0.16"/>
-      <stop offset="0.5" stop-color="#fff" stop-opacity="0"/>
-    </linearGradient>
-    <g id="globe" fill="none" stroke="url(#neon)" stroke-width="20" stroke-linecap="round">
-      <rect x="120" y="120" width="272" height="272" rx="84"/>
-      <ellipse cx="256" cy="256" rx="76" ry="136"/>
-      <path d="M120 256H392"/>
-      <path d="M146 184Q256 214 366 184M146 328Q256 298 366 328" stroke-width="14"/>
-    </g>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0d1230"/><stop offset="1" stop-color="#1a0f3d"/></linearGradient>
+    <linearGradient id="neon" gradientUnits="userSpaceOnUse" x1="110" y1="402" x2="402" y2="110"><stop offset="0" stop-color="#22d3ee"/><stop offset="0.5" stop-color="#8b8cf8"/><stop offset="1" stop-color="#f472b6"/></linearGradient>
   </defs>
   <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-  <rect width="512" height="512" rx="112" fill="url(#aura)"/>
-  <use href="#globe" filter="url(#glow)" opacity="0.75"/>
-  <use href="#globe"/>
-  <!-- orbiting dot -->
-  <circle cx="392" cy="120" r="30" fill="#67e8f9" filter="url(#dotglow)"/>
-  <circle cx="392" cy="120" r="23" fill="#0d1230"/>
-  <circle cx="392" cy="120" r="16" fill="#ecfeff"/>
-  <rect width="512" height="512" rx="112" fill="url(#shine)"/>
+  <g fill="none" stroke="url(#neon)" stroke-width="30" stroke-linecap="round">
+    <rect x="118" y="118" width="276" height="276" rx="88"/>
+    <ellipse cx="256" cy="256" rx="70" ry="138"/>
+    <path d="M118 256H394"/>
+  </g>
+  <circle cx="394" cy="118" r="30" fill="#0d1230"/><circle cx="394" cy="118" r="20" fill="#ecfeff"/>
 </svg>
