@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use penates_core::{icon, single, integration, resolve_name, normalize_url, ops, slugify, store, updates, WebApp};
+use penates_core::{export, icon, single, integration, resolve_name, normalize_url, ops, slugify, store, updates, WebApp};
 use std::process::{Command, Stdio};
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
@@ -142,6 +142,42 @@ fn set_appearance(app: tauri::AppHandle, appearance: updates::Appearance) -> Cmd
     let mut s = updates::load_settings();
     s.appearance = appearance;
     updates::save_settings(&s).map_err(err)
+}
+
+/// Save an export into the Downloads folder (no file dialog needed). Empty `ids` = all apps.
+#[tauri::command]
+fn export_apps(ids: Vec<String>, with_settings: bool) -> CmdResult<String> {
+    let f = export::build(&ids, with_settings).map_err(err)?;
+    let name = match f.apps.as_slice() {
+        [one] => format!("{}.penates", one.config.id),
+        _ => "penates-backup.penates".to_string(),
+    };
+    let path = unique_download_path(std::path::Path::new(&name));
+    std::fs::write(&path, serde_json::to_string_pretty(&f).map_err(err)?).map_err(err)?;
+    Ok(path.display().to_string())
+}
+
+#[derive(serde::Serialize)]
+struct Inspected {
+    /// The raw text, handed back to `import_apps` after the user confirms.
+    json: String,
+    summary: Vec<export::Summary>,
+    has_settings: bool,
+}
+
+/// Read an export (pasted file contents, or a URL) and describe it, without changing anything.
+#[tauri::command]
+async fn inspect_import(source: String, is_url: bool) -> CmdResult<Inspected> {
+    let text = if is_url { export::read_source(source.trim()).map_err(err)? } else { source };
+    let f = export::parse(&text).map_err(err)?;
+    Ok(Inspected { summary: export::inspect(&f), has_settings: f.settings.is_some(), json: text })
+}
+
+#[tauri::command]
+async fn import_apps(json: String, on_conflict: String, allow_js: bool, settings: bool) -> CmdResult<export::ImportReport> {
+    let f = export::parse(&json).map_err(err)?;
+    let opts = export::ImportOptions { on_conflict: on_conflict.parse().map_err(err)?, allow_js, settings };
+    Ok(export::apply(&f, &opts))
 }
 
 #[tauri::command]
@@ -498,7 +534,7 @@ fn run_manager(start: Option<String>) -> tauri::Result<()> {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             list_apps, app_version, suggest_name, create_app, save_app, update_app, update_all, check_updates,
-            get_update_settings, set_update_settings, get_appearance, set_appearance, open_url, remove_app, cache_info, clear_cache, clear_data, run_app,
+            get_update_settings, set_update_settings, get_appearance, set_appearance, open_url, remove_app, cache_info, clear_cache, clear_data, run_app, export_apps, inspect_import, import_apps,
             icon_data, icon_candidates, set_icon_from_candidate, set_icon_from_url, set_icon_from_bytes, reset_icon
         ])
         .setup(move |app| {

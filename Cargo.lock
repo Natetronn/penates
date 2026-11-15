@@ -132,6 +132,7 @@ name = "penates-core"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "base64 0.22.1",
  "dirs 5.0.1",
  "icns",
  "image",

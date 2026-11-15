@@ -1,5 +1,5 @@
 use anyhow::{bail, Context, Result};
-use penates_core::{icon, integration, resolve_name, normalize_url, ops, slugify, store, updates, WebApp};
+use penates_core::{export, icon, integration, resolve_name, normalize_url, ops, slugify, store, updates, WebApp};
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -76,6 +76,35 @@ enum Cmd {
         id: String,
         #[arg(long)]
         data: bool,
+    },
+    /// Export apps to a .penates file (share one app, or back up all). Never includes logins.
+    Export {
+        /// App ids; or use --all
+        ids: Vec<String>,
+        #[arg(long)]
+        all: bool,
+        /// Also include theme, accent and update-source settings (for backups)
+        #[arg(long)]
+        settings: bool,
+        /// Output file ("-" for stdout). Default: <id>.penates, or penates-backup.penates
+        #[arg(short, long)]
+        output: Option<String>,
+    },
+    /// Import apps from a .penates file or URL
+    Import {
+        source: String,
+        /// When an id already exists: skip, rename (keep both) or overwrite
+        #[arg(long, default_value = "rename")]
+        on_conflict: String,
+        /// Keep custom JavaScript (dropped by default; it runs inside the site)
+        #[arg(long)]
+        allow_js: bool,
+        /// Also apply the file's settings, including the update source
+        #[arg(long)]
+        settings: bool,
+        /// Don't ask for confirmation
+        #[arg(short, long)]
+        yes: bool,
     },
     /// Remove an app
     Remove {
@@ -208,6 +237,66 @@ fn main() -> Result<()> {
             } else {
                 println!("cleared {} of cache for '{id}'", fmt_bytes(store::clear_cache(&id)));
             }
+        }
+        Cmd::Export { ids, all, settings, output } => {
+            if ids.is_empty() && !all {
+                bail!("name the apps to export, or use --all");
+            }
+            let f = export::build(if all { &[] } else { &ids }, settings)?;
+            let text = serde_json::to_string_pretty(&f)?;
+            let out = output.unwrap_or_else(|| match f.apps.as_slice() {
+                [one] => format!("{}.penates", one.config.id),
+                _ => "penates-backup.penates".into(),
+            });
+            if out == "-" {
+                println!("{text}");
+            } else {
+                std::fs::write(&out, text)?;
+                println!("exported {} app{} to {out}", f.apps.len(), if f.apps.len() == 1 { "" } else { "s" });
+                println!("(contains configs and icons only; no cookies or logins)");
+            }
+        }
+        Cmd::Import { source, on_conflict, allow_js, settings, yes } => {
+            let f = export::parse(&export::read_source(&source)?)?;
+            println!("{} app{} in {source}:", f.apps.len(), if f.apps.len() == 1 { "" } else { "s" });
+            let mut any_js = false;
+            for s in export::inspect(&f) {
+                any_js |= s.custom_js;
+                let mut flags = vec![];
+                if s.exists { flags.push("already exists"); }
+                if s.custom_js { flags.push("CUSTOM JAVASCRIPT"); }
+                if s.custom_css { flags.push("custom css"); }
+                if s.user_agent { flags.push("custom user agent"); }
+                println!("  {:<18} {}  {}", s.id, s.url, if flags.is_empty() { String::new() } else { format!("[{}]", flags.join(", ")) });
+            }
+            if f.settings.is_some() {
+                println!("  (file also has settings{})", if settings { ", which WILL be applied, including the update source" } else { "; ignored unless --settings" });
+            }
+            if any_js && !allow_js {
+                println!("custom JavaScript will be removed (it runs inside the site). Use --allow-js to keep it, only if you trust the source.");
+            }
+            if !yes {
+                use std::io::{IsTerminal, Write};
+                if !std::io::stdin().is_terminal() {
+                    bail!("not a terminal; pass --yes to import without asking");
+                }
+                print!("import? [y/N] ");
+                std::io::stdout().flush()?;
+                let mut line = String::new();
+                std::io::stdin().read_line(&mut line)?;
+                if !matches!(line.trim().to_ascii_lowercase().as_str(), "y" | "yes") {
+                    bail!("cancelled");
+                }
+            }
+            let opts = export::ImportOptions { on_conflict: on_conflict.parse()?, allow_js, settings };
+            let r = export::apply(&f, &opts);
+            for id in &r.imported { println!("imported {id}"); }
+            for (a, b) in &r.renamed { println!("  ({a} already existed; saved as {b})"); }
+            for id in &r.skipped { println!("skipped {id} (already exists)"); }
+            for id in &r.js_removed { println!("removed custom JavaScript from {id}"); }
+            if r.settings_applied { println!("applied settings"); }
+            for e in &r.errors { eprintln!("error: {e}"); }
+            if !r.errors.is_empty() { std::process::exit(1); }
         }
         Cmd::Remove { id, purge } => {
             store::load(&id)?;

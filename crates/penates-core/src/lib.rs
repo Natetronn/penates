@@ -1,6 +1,7 @@
 //! Shared model + storage + desktop integration for penates.
 //! Both the CLI and the Tauri desktop app depend on this crate.
 
+pub mod export;
 pub mod icon;
 pub mod integration;
 pub mod ops;

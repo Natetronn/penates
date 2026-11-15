@@ -5,6 +5,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
+### Added
+- **Export, import and backup**: `penates export <id>... | --all [--settings] [-o file]` writes a `.penates` file (configs and icons, never cookies or logins); `penates import <file-or-url>` reviews it and recreates the apps. Conflicts: skip, rename (keep both) or overwrite. Custom JavaScript is stripped unless `--allow-js`; settings (including the update source) apply only with `--settings`; ids and URLs from a file are validated. The manager has Import, Export all, per-app Export and a Backup section in Settings.
+
 ## [0.1.0] - 2026-11-14
 First development snapshot. Not tagged or released. Verified on Linux (KDE Plasma, Wayland) only.
 

@@ -12,6 +12,7 @@ browser "install as app" shortcuts, with a command line tool and a desktop manag
 - **A real app window per site:** own taskbar entry and icon, separate cookies and storage per app, single-window mode, optional system tray icon (color or grayscale).
 - **Per-app options:** window size, zoom, maximized/fullscreen/frameless, always on top, user agent, extra in-app hosts, custom CSS/JS, devtools.
 - **Smart links:** links to other sites open in your browser; same-site popups (sign-in flows) stay in the app; downloads go to your Downloads folder.
+- **Share and back up:** export one app or all of them to a `.penates` file and import it elsewhere; logins are never included. See [docs/SHARING.md](docs/SHARING.md).
 - **Housekeeping:** clear cache (keeps you signed in) or clear cookies and data, update checks with versioned presets, icons from a file or URL.
 - **Themeable manager:** light/dark/system, six accents, four looks, all from plain CSS tokens.
 
@@ -50,7 +51,7 @@ Full reference: [docs/CLI.md](docs/CLI.md).
 | `docs` | architecture, configuration, theming, updates, packaging, status |
 
 ## Docs
-[Architecture](docs/ARCHITECTURE.md) · [CLI](docs/CLI.md) · [Configuration](docs/CONFIGURATION.md) · [Theming](docs/THEMING.md) · [Updates](docs/UPDATES.md) · [Packaging](docs/PACKAGING.md) · [Status](docs/STATUS.md) · [Changelog](CHANGELOG.md)
+[Architecture](docs/ARCHITECTURE.md) · [CLI](docs/CLI.md) · [Configuration](docs/CONFIGURATION.md) · [Theming](docs/THEMING.md) · [Updates](docs/UPDATES.md) · [Sharing](docs/SHARING.md) · [Packaging](docs/PACKAGING.md) · [Status](docs/STATUS.md) · [Changelog](CHANGELOG.md)
 
 ## License
 MIT. See [LICENSE](LICENSE).

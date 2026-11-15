@@ -36,6 +36,8 @@ textarea{font-family:var(--mono);font-size:12px;min-height:80px;resize:vertical}
 .menu{position:absolute;right:0;top:100%;margin-top:4px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);box-shadow:var(--shadow-pop);min-width:190px;z-index:10;padding:4px}
 .menu button{display:block;width:100%;text-align:left;border:0;background:none;padding:7px 10px}
 .menu button:hover{background:var(--chip)}
+.toolbar .hint{margin-right:auto}
+.chip.warn{color:var(--danger);border:1px solid var(--danger);background:none}
 .chip{font-size:11px;background:var(--chip);color:var(--muted);padding:2px 7px;border-radius:999px}
 fieldset{border:1px solid var(--line);border-radius:var(--radius-lg);margin:0 0 14px;padding:12px 14px;background:var(--card)}
 legend{font-weight:600;padding:0 6px}
@@ -105,9 +107,9 @@ function say(text, kind = "ok") {
 const fail = (e) => say(String(e), "err");
 
 // ---- tabs ----
-let tab = "apps", editing = null, report = null;
+let tab = "apps", editing = null, importing = null, report = null;
 function show(t) {
-  tab = t; if (t !== "apps") editing = null;
+  tab = t; if (t !== "apps") { editing = null; importing = null; }
   document.querySelectorAll("nav button").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === t));
   for (const n of ["apps", "create", "updates", "settings"]) $("tab-" + n).hidden = n !== t;
   $("banner").hidden = t === "updates"; // the Updates tab shows the same notice inline
@@ -135,10 +137,14 @@ function iconEl(app) {
 async function renderApps() {
   const root = $("tab-apps");
   if (editing) return renderEdit(root);
+  if (importing) return renderImport(root);
   const apps = await invoke("list_apps");
   put(root, 
     el("div", { class: "toolbar" },
       el("span", { class: "hint" }, apps.length + (apps.length === 1 ? " app installed" : " apps installed")),
+      el("button", { textContent: "Import…", onclick: () => { importing = { stage: "pick" }; renderApps(); } }),
+      el("button", { textContent: "Export all", title: "Save every app to a .penates file in Downloads", onclick: async () => {
+        try { say("Saved to " + (await invoke("export_apps", { ids: [], withSettings: false }))); } catch (e) { fail(e); } } }),
       el("button", { textContent: "Update all", onclick: async (ev) => {
         ev.target.disabled = true; say("Syncing all apps…");
         try { const r = await invoke("update_all"); say(`Synced ${r.length} app${r.length === 1 ? "" : "s"}.`); await refreshReport(); }
@@ -175,6 +181,7 @@ function appRow(a) {
       try { await invoke("clear_data", { id: a.id }); say("Cleared cookies and data for " + a.name + "."); } catch (e) { fail(e); }
     } });
     actions.append(el("div", { class: "menu" },
+      item("Export app…", "", async () => { say("Saved to " + (await invoke("export_apps", { ids: [a.id], withSettings: false }))); }),
       cacheBtn, dataBtn,
       item("Remove app", "danger", async () => { await invoke("remove_app", { id: a.id, purge: false }); say(a.name + " removed (data kept)."); renderApps(); }),
       item("Remove app and data", "danger", async () => { await invoke("remove_app", { id: a.id, purge: true }); say(a.name + " and its data removed."); renderApps(); })));
@@ -183,6 +190,56 @@ function appRow(a) {
     el("div", { class: "meta" }, el("b", {}, a.name), el("span", {}, a.url)),
     a.catalog_version ? el("span", { class: "chip", title: "Catalog preset version" }, "preset " + a.catalog_version) : null,
     actions);
+}
+
+// ---- import ----
+function renderImport(root) {
+  const cancel = () => { importing = null; renderApps(); };
+  if (importing.stage === "pick") {
+    const file = el("input", { type: "file", id: "imp-file", accept: ".penates,.json,application/json" });
+    const url = el("input", { type: "text", id: "imp-url", placeholder: "https://example.com/github.penates" });
+    url.style.flex = "1 1 260px";
+    const load = async (source, isUrl) => {
+      try { importing = { stage: "review", data: await invoke("inspect_import", { source, isUrl }) }; renderApps(); } catch (e) { fail(e); }
+    };
+    file.onchange = async () => { const f = file.files[0]; if (f) load(await f.text(), false); };
+    return put(root, el("h2", {}, "Import apps"),
+      el("fieldset", {}, el("legend", {}, "From a file"), el("p", { class: "hint" }, "Choose a .penates file exported from Penates. You review it before anything is added."), file),
+      el("fieldset", {}, el("legend", {}, "From a link"), el("div", { class: "row" }, url, el("button", { textContent: "Load", onclick: () => load(url.value, true) }))),
+      el("div", { class: "row" }, el("button", { textContent: "Cancel", onclick: cancel })));
+  }
+  const d = importing.data;
+  const anyJs = d.summary.some((s) => s.custom_js), anyExists = d.summary.some((s) => s.exists);
+  const conflict = el("select", { id: "imp-conflict" }, ...[["rename", "Keep both (rename the new one)"], ["skip", "Skip apps that already exist"], ["overwrite", "Overwrite apps that already exist"]].map(([v, t]) => el("option", { value: v, textContent: t })));
+  const allowJs = el("input", { type: "checkbox", id: "imp-js" });
+  const withSettings = el("input", { type: "checkbox", id: "imp-settings" });
+  const rows = d.summary.map((s) => el("div", { class: "app" },
+    el("div", { class: "meta" }, el("b", {}, s.name), el("span", {}, s.url)),
+    s.exists ? el("span", { class: "chip" }, "already exists") : null,
+    s.custom_js ? el("span", { class: "chip warn" }, "custom JavaScript") : null,
+    s.custom_css ? el("span", { class: "chip" }, "custom CSS") : null,
+    s.user_agent ? el("span", { class: "chip" }, "custom user agent") : null));
+  put(root, el("h2", {}, `Import ${d.summary.length} app${d.summary.length === 1 ? "" : "s"}`), rows,
+    anyJs ? el("div", { class: "banner" }, el("span", {}, "Some of these apps include custom JavaScript. It runs inside the site and could read what you type. It is removed unless you allow it below. Only allow it if you trust where this file came from.")) : null,
+    el("fieldset", {}, el("legend", {}, "Options"),
+      anyExists ? el("label", { class: "f" }, "If an app already exists", conflict) : null,
+      anyJs ? el("label", { class: "chk" }, allowJs, el("span", {}, "Keep custom JavaScript", el("small", {}, "Leave off unless you trust the source"))) : null,
+      d.has_settings ? el("label", { class: "chk" }, withSettings, el("span", {}, "Also apply the settings in this file", el("small", {}, "Theme, accent and the update source. A changed update source decides which presets and links you see."))) : null,
+      el("p", { class: "hint" }, "Files contain configs and icons only, never logins or cookies.")),
+    el("div", { class: "formbar" },
+      el("button", { class: "primary", textContent: "Import", onclick: async (ev) => {
+        ev.target.disabled = true; say("Importing…");
+        try {
+          const r = await invoke("import_apps", { json: d.json, onConflict: conflict.value, allowJs: allowJs.checked, settings: withSettings.checked });
+          const bits = [`Imported ${r.imported.length}`];
+          if (r.skipped.length) bits.push(`skipped ${r.skipped.length}`);
+          if (r.js_removed.length) bits.push(`removed custom JavaScript from ${r.js_removed.length}`);
+          if (r.settings_applied) bits.push("applied settings");
+          if (r.errors.length) fail(r.errors.join("; ")); else say(bits.join(", ") + ".");
+          importing = null; refreshReport(); renderApps();
+        } catch (e) { fail(e); ev.target.disabled = false; }
+      } }),
+      el("button", { textContent: "Cancel", onclick: cancel })));
 }
 
 // ---- edit ----
@@ -393,6 +450,11 @@ function renderSettings() {
     el("fieldset", {}, el("legend", {}, "Accent color"),
       el("div", { class: "swatches", role: "group", "aria-label": "Accent color" },
         ACCENTS.map((n) => { const b = el("button", { type: "button", class: "swatch", title: n, "aria-label": n, "aria-pressed": String(appearance.accent === n), onclick: () => setAppearance({ accent: n }) }); b.dataset.accent = n; return b; }))),
+    el("h2", {}, "Backup"),
+    el("fieldset", {}, el("legend", {}, "Back up everything"),
+      el("p", { class: "hint" }, "Saves every app plus these settings to one .penates file in your Downloads folder. Restore it with Import on the Apps tab. It never includes logins or cookies."),
+      el("div", { class: "row" }, el("button", { textContent: "Back up apps and settings", onclick: async () => {
+        try { say("Saved to " + (await invoke("export_apps", { ids: [], withSettings: true }))); } catch (e) { fail(e); } } }))),
     el("p", { class: "hint" }, "Colors, radii and shadows come from tokens.css; looks come from skins.css. Each app's own window theme is under Edit → Window."));
 }
 

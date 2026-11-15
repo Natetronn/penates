@@ -17,6 +17,8 @@
 | `clear <id> [--data]` | Clear the cache (keeps logins). `--data` clears cookies and storage too. Refused while the app runs. |
 | `check` | Check for a new Penates version and newer app presets. |
 | `update <id>` or `update --all` | Apply newer presets and refresh the site icon (never replaces a custom icon). |
+| `export <id>... \| --all` | Write a `.penates` file: configs and icons only, never logins. `--settings` adds theme/accent/update source (for backups); `-o <file>` (`-` for stdout). |
+| `import <file-or-url>` | Review a `.penates` file, then recreate its apps. `--on-conflict skip\|rename\|overwrite` (default rename), `--allow-js` keeps custom JavaScript (dropped by default), `--settings` applies its settings, `-y` skips the prompt. |
 | `remove <id> [--purge]` | Remove the app. `--purge` also deletes its cookies and data. |
 
 ## `create` options
