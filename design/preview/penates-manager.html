@@ -172,6 +172,8 @@ textarea{font-family:var(--mono);font-size:12px;min-height:80px;resize:vertical}
 .chip{font-size:11px;background:var(--chip);color:var(--muted);padding:2px 7px;border-radius:999px}
 .chip.warn{color:var(--danger);border:1px solid var(--danger);background:none}
 .chip.new{background:var(--accent);color:var(--accent-fg)}
+button.chip{border:0;font:inherit;font-size:11px;cursor:pointer}
+button.chip.new:hover{filter:brightness(1.1)}
 .app.opens>.ph,.app.opens>img,.app.opens>.meta{cursor:default;user-select:none}
 button.chip.ver{border:0;font:inherit;font-size:11px;cursor:pointer}
 button.chip.ver:hover{color:var(--fg)}
@@ -1148,9 +1150,8 @@ function appRow(a, pending) {
   const menuBtn = el("button", { textContent: "⋮", title: "More", "aria-label": "More actions for " + a.name, "aria-haspopup": "menu", "aria-expanded": "false" });
   const hasUpdate = pending.has(a.id);
   const actions = el("div", { class: "actions" },
+    // The same three controls on every row, so Open and Edit line up; Update is in the ⋮ menu.
     el("button", { class: "primary", textContent: "Open", onclick: open }),
-    // Only when this app has a newer preset waiting; otherwise Update lives in the ⋮ menu.
-    hasUpdate ? el("button", { textContent: "Update", onclick: (ev) => busy(ev.target, "Updating…", () => updateApp(a)) }) : null,
     el("button", { textContent: "Edit", onclick: () => { editing = structuredClone(a); renderApps(); } }),
     menuBtn);
   menuBtn.onclick = (ev) => {
@@ -1163,7 +1164,8 @@ function appRow(a, pending) {
       ondblclick: (e) => { if (!e.target.closest(".actions")) open(); } },
     iconEl(a),
     el("div", { class: "meta" }, el("b", {}, a.name), el("span", { class: "url" }, a.url)),
-    hasUpdate ? el("span", { class: "chip new", title: "A newer preset is waiting in the app catalog" }, "update available")
+    hasUpdate ? el("button", { type: "button", class: "chip new", title: "A newer preset is waiting in the app catalog. Show Updates",
+        onclick: () => show("updates") }, "update available")
       : a.catalog_version ? el("span", { class: "chip", title: "Catalog preset version" }, "preset " + a.catalog_version) : null,
     actions);
   return row;
