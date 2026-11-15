@@ -1,7 +1,8 @@
-//! Update checks. One JSON manifest (URL in settings.toml) describes both:
-//!  - the latest Penates release (semver; shape mirrors Tauri's updater JSON), and
-//!  - a catalog of per-site presets that get synced into installed apps.
-//! With an empty URL a bundled FAKE sample manifest is used.
+//! Update checks.
+//!  - Penates itself: the public `latest.json` published with each release (the same file Tauri's
+//!    updater reads; the desktop app installs from it, the CLI only reports).
+//!  - App presets: a catalog in a JSON manifest (URL in settings.toml) synced into installed apps.
+//!    With an empty URL the bundled sample manifest is used.
 
 use crate::{store, WebApp};
 use anyhow::{bail, Context, Result};
@@ -11,6 +12,9 @@ use std::collections::BTreeMap;
 
 pub const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 const SAMPLE: &str = include_str!("../data/sample-manifest.json");
+/// Public releases (installers and `latest.json`). The source repo is private.
+pub const RELEASES_PAGE: &str = "https://github.com/Natetronn/penates-releases/releases/latest";
+pub const LATEST_JSON: &str = "https://github.com/Natetronn/penates-releases/releases/latest/download/latest.json";
 
 // ---- settings (~/.config/penates/settings.toml) ----
 
@@ -68,6 +72,7 @@ pub fn save_settings(s: &Settings) -> Result<()> {
 #[serde(default)]
 pub struct Manifest {
     pub schema: u32,
+    /// Ignored since 0.1.0 (Penates's own version comes from `LATEST_JSON`); kept so old files parse.
     pub penates: Option<PenatesRelease>,
     pub catalog: Vec<CatalogEntry>,
 }
@@ -199,21 +204,39 @@ pub struct UpdateReport {
     /// "sample" or the manifest URL actually used.
     pub source: String,
     pub penates: Option<PenatesUpdate>,
+    /// Why Penates's own version could not be checked (offline, no release yet).
+    pub penates_error: Option<String>,
     pub apps: Vec<AppUpdate>,
+}
+
+/// The newest published Penates release (`latest.json`, Tauri updater format).
+pub fn latest_release() -> Result<PenatesRelease> {
+    let text = ureq::AgentBuilder::new()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .get(LATEST_JSON)
+        .call()
+        .context("could not reach the releases page")?
+        .into_string()?;
+    serde_json::from_str(&text).context("invalid latest.json")
 }
 
 pub fn check() -> Result<UpdateReport> {
     let m = load_manifest()?;
     let s = load_settings();
-    let penates = m.penates.as_ref().and_then(|r| {
-        (ver(&r.version) > ver(CURRENT_VERSION)).then(|| PenatesUpdate {
-            current: CURRENT_VERSION.into(),
-            latest: r.version.clone(),
-            notes: r.notes.clone(),
-            pub_date: r.pub_date.clone(),
-            download_url: r.platforms.get(&platform_key()).map(|p| p.url.clone()),
-        })
-    });
+    let (penates, penates_error) = match latest_release() {
+        Ok(r) => (
+            (ver(&r.version) > ver(CURRENT_VERSION)).then(|| PenatesUpdate {
+                current: CURRENT_VERSION.into(),
+                latest: r.version.clone(),
+                notes: r.notes.clone(),
+                pub_date: r.pub_date.clone(),
+                download_url: Some(RELEASES_PAGE.into()),
+            }),
+            None,
+        ),
+        Err(e) => (None, Some(format!("{e:#}"))),
+    };
     let mut apps = vec![];
     for a in store::list()? {
         if let Some(e) = find_entry(&m, &a) {
@@ -224,7 +247,7 @@ pub fn check() -> Result<UpdateReport> {
         }
     }
     let source = if s.updates.manifest_url.trim().is_empty() { "bundled sample".into() } else { s.updates.manifest_url };
-    Ok(UpdateReport { current: CURRENT_VERSION.into(), source, penates, apps })
+    Ok(UpdateReport { current: CURRENT_VERSION.into(), source, penates, penates_error, apps })
 }
 
 #[cfg(test)]

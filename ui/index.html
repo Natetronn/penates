@@ -381,27 +381,37 @@ function renderCreate() {
 }
 
 // ---- updates ----
+// Penates's own update (Tauri updater: signed, installs in place) and app presets.
+let selfUpdate = null, selfUpdateError = null;
+function selfUpdateBlock(u) {
+  const install = el("button", { class: "primary", textContent: "Install and restart", onclick: async (ev) => {
+    ev.target.disabled = true; ev.target.textContent = "Installing…"; say("Downloading Penates " + u.version + "…");
+    try { await invoke("install_self_update"); } catch (e) { fail(e); ev.target.disabled = false; ev.target.textContent = "Install and restart"; }
+  } });
+  const download = el("button", { class: u.can_install ? "" : "primary", textContent: u.can_install ? "Release notes" : "Download", onclick: () => invoke("open_url", { url: u.releases_page }).catch(fail) });
+  return el("div", { class: "banner" },
+    el("span", {}, `Penates ${u.version} is available (you have ${u.current}).` + (u.notes ? " " + u.notes.split("\n")[0] : "") + (u.can_install ? "" : u.package_manager ? " Update it with your package manager (for example paru -Syu)." : " This install can't update itself; download the new version.")),
+    u.can_install ? install : null, u.package_manager ? null : download);
+}
 async function refreshReport() {
-  try { report = await invoke("check_updates"); } catch (e) { report = { error: String(e) }; }
-  const n = report.error ? 0 : (report.penates ? 1 : 0) + report.apps.length;
+  const [r, s] = await Promise.allSettled([invoke("check_updates"), invoke("check_self_update")]);
+  report = r.status === "fulfilled" ? r.value : { error: String(r.reason) };
+  selfUpdate = s.status === "fulfilled" ? s.value : null;
+  selfUpdateError = s.status === "rejected" ? String(s.reason) : null;
+  const n = (selfUpdate ? 1 : 0) + (report.error ? 0 : report.apps.length);
   $("ubadge").hidden = !n; $("ubadge").textContent = n;
-  const b = $("banner");
-  if (report.penates) {
-    b.replaceChildren(el("div", { class: "banner" },
-      el("span", {}, `Penates ${report.penates.latest} is available (you have ${report.penates.current}). ${report.penates.notes}`),
-      report.penates.download_url ? el("button", { class: "primary", textContent: "Download", onclick: () => invoke("open_url", { url: report.penates.download_url }).catch(fail) }) : null));
-  } else b.replaceChildren();
+  if (selfUpdate) $("banner").replaceChildren(selfUpdateBlock(selfUpdate)); else $("banner").replaceChildren();
   if (tab === "updates") renderUpdates();
 }
 async function renderUpdates() {
   const s = await invoke("get_update_settings");
-  const url = el("input", { type: "text", id: "u-url", value: s.manifest_url, placeholder: "Empty = bundled sample manifest (fake)" });
+  const url = el("input", { type: "text", id: "u-url", value: s.manifest_url, placeholder: "Empty = bundled sample preset catalog" });
   const chk = el("input", { type: "checkbox", id: "u-chk", checked: s.check_on_start });
   const r = report;
-  const penatesBlock = !r ? el("p", { class: "hint" }, "Checking…") : r.error ? el("p", { class: "msg err" }, r.error)
-    : r.penates ? el("div", { class: "banner" }, el("span", {}, `Penates ${r.penates.latest} available. ${r.penates.notes}`),
-        r.penates.download_url ? el("button", { class: "primary", textContent: "Download", onclick: () => invoke("open_url", { url: r.penates.download_url }).catch(fail) }) : null)
-    : el("p", {}, "Penates " + r.current + " is up to date.");
+  const penatesBlock = selfUpdate ? selfUpdateBlock(selfUpdate)
+    : selfUpdateError ? el("p", { class: "hint" }, "Could not check for a new Penates: " + selfUpdateError)
+    : !r ? el("p", { class: "hint" }, "Checking…")
+    : el("p", {}, "Penates " + (r.current || "") + " is up to date.");
   const appsBlock = !r || r.error ? null : r.apps.length
     ? r.apps.map((u) => el("div", { class: "app" }, el("div", { class: "meta" }, el("b", {}, u.name), el("span", {}, `preset ${u.from ?? "none"} → ${u.to}  ${u.notes}`)),
         el("button", { textContent: "Update", onclick: async () => { try { await invoke("update_app", { id: u.id }); say(u.name + " updated."); refreshReport(); } catch (e) { fail(e); } } })))

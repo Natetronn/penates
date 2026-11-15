@@ -1,5 +1,6 @@
 # Maintainer: you
-# Local development PKGBUILD: builds from the checkout it lives in.
+# Local development PKGBUILD: builds from the checkout it lives in. (The AUR package is
+# packaging/aur/penates-bin, built from the public release tarball.)
 #   cd packaging/arch && makepkg -si
 # Before publishing (AUR), replace the build/package source with a release tarball or a git URL.
 pkgname=penates
@@ -18,7 +19,7 @@ _root() { cd "$startdir/../.." && pwd; }
 build() {
   cd "$(_root)"
   export CARGO_TARGET_DIR="$srcdir/target"
-  cargo build --release --locked --workspace
+  cargo build --release --locked --workspace --features penates-desktop/custom-protocol
 }
 
 package() {

@@ -1,0 +1,24 @@
+# Maintainer: Natetronn
+# AUR package built from the public release tarball (the source repository is private).
+# pkgver and sha256sums are updated by scripts/publish-release.py for each release.
+pkgname=penates-bin
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Turn websites into native desktop apps"
+arch=('x86_64')
+url="https://github.com/Natetronn/penates-releases"
+license=('MIT')
+depends=('webkit2gtk-4.1' 'gtk3' 'libayatana-appindicator')
+provides=('penates')
+conflicts=('penates')
+source=("https://github.com/Natetronn/penates-releases/releases/download/v${pkgver}/penates-${pkgver}-x86_64-unknown-linux-gnu.tar.gz")
+sha256sums=('SKIP')
+
+package() {
+  cd "penates-${pkgver}-x86_64-unknown-linux-gnu"
+  install -Dm755 bin/penates         "$pkgdir/usr/bin/penates"
+  install -Dm755 bin/penates-desktop "$pkgdir/usr/bin/penates-desktop"
+  install -Dm644 penates.desktop     "$pkgdir/usr/share/applications/penates.desktop"
+  install -Dm644 icon.png           "$pkgdir/usr/share/icons/hicolor/512x512/apps/penates.png"
+  install -Dm644 LICENSE            "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

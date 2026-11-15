@@ -1,7 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Penates",
-  "version": "0.1.0",
   "identifier": "dev.penates.desktop",
   "build": {
     "frontendDist": "../ui"
@@ -41,5 +40,16 @@
       "icons/icon.png"
     ],
     "targets": "all"
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDJFMjYyQTIxREU4RUMwNUUKUldSZXdJN2VJU29tTGg4QWxZUExHYU1sRHg5bERSODl4K2JQeU9oWUpWaGtXOC9raC9QWTVSOS8K",
+      "endpoints": [
+        "https://github.com/Natetronn/penates-releases/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

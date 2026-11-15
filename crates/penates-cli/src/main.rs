@@ -317,7 +317,10 @@ fn main() -> Result<()> {
                         println!("  download: {d}");
                     }
                 }
-                None => println!("  penates is up to date"),
+                None => match &r.penates_error {
+                    Some(e) => println!("  could not check for a new Penates: {e}"),
+                    None => println!("  penates is up to date"),
+                },
             }
             for a in &r.apps {
                 println!("  {:<18} preset {} -> {}  {}", a.id, a.from.as_deref().unwrap_or("none"), a.to, a.notes);

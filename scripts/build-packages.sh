@@ -24,9 +24,18 @@ fi
 mkdir -p src-tauri/binaries
 cp "$cli" "src-tauri/binaries/penates-${triple}${ext}"
 
+# Updater artifacts are signed. CI passes the key as a secret; locally use ~/.tauri/penates.key.
+if [[ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" && -f "$HOME/.tauri/penates.key" ]]; then
+  export TAURI_SIGNING_PRIVATE_KEY="$(cat "$HOME/.tauri/penates.key")"
+  export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}"
+fi
+if [[ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]]; then
+  echo "error: no signing key (set TAURI_SIGNING_PRIVATE_KEY or create ~/.tauri/penates.key)" >&2; exit 1
+fi
+
 # linuxdeploy (AppImage) trips over newer binutils without this
 export NO_STRIP="${NO_STRIP:-true}"
 cargo tauri build --config src-tauri/tauri.bundle.conf.json --bundles "${BUNDLES:-deb,rpm,appimage}" ${target_args[@]+"${target_args[@]}"} "$@"
 echo
 echo "Packages:"
-find target -path '*/bundle/*' -type f \( -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' -o -name '*.dmg' -o -name '*-setup.exe' \) -print
+find target -path '*/bundle/*' -type f \( -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' -o -name '*.dmg' -o -name '*-setup.exe' -o -name '*.sig' -o -name '*.app.tar.gz' \) -print

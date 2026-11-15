@@ -1,5 +1,6 @@
-# Builds installers for every platform when a version tag is pushed (v0.1.0, ...).
-# Windows and macOS installers cannot be built on Linux, so they are built here.
+# Builds signed installers for every platform when a version tag is pushed (v0.1.0, ...).
+# Nothing is published here: run scripts/publish-release.py <tag> to put a finished build on the
+# public releases repo (installers, latest.json for in-app updates, AUR files).
 name: Release
 on:
   push:
@@ -31,7 +32,13 @@ jobs:
         env:
           BUNDLES: ${{ matrix.bundles }}
           TARGET: ${{ matrix.target }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
         run: ./scripts/build-packages.sh
+      - name: Portable tarball (used by the AUR package)
+        if: startsWith(matrix.os, 'ubuntu')
+        shell: bash
+        run: ./scripts/make-tarball.sh
       - uses: actions/upload-artifact@v4
         with:
           name: penates-${{ matrix.os }}${{ matrix.target && format('-{0}', matrix.target) || '' }}
@@ -41,3 +48,6 @@ jobs:
             target/**/bundle/**/*.AppImage
             target/**/bundle/**/*.dmg
             target/**/bundle/**/*-setup.exe
+            target/**/bundle/**/*.sig
+            target/**/bundle/**/*.app.tar.gz
+            dist/*.tar.gz

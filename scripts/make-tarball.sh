@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 triple="$(rustc -vV | sed -n 's/^host: //p')"
 name="penates-${ver}-${triple}"
-cargo build --release --workspace --locked
+cargo build --release --workspace --locked --features penates-desktop/custom-protocol
 rm -rf "dist/$name"; mkdir -p "dist/$name/bin"
 cp target/release/penates target/release/penates-desktop "dist/$name/bin/"
 cp packaging/penates.desktop src-tauri/icons/icon.png LICENSE README.md "dist/$name/"

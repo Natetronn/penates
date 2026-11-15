@@ -181,6 +181,44 @@ async fn import_apps(json: String, on_conflict: String, allow_js: bool, settings
     Ok(export::apply(&f, &opts))
 }
 
+#[derive(serde::Serialize)]
+struct SelfUpdate {
+    current: String,
+    version: String,
+    notes: String,
+    /// The installed package type can update itself (AppImage, .deb, .rpm, NSIS/MSI, .app).
+    /// Arch packages, tarballs and dev builds get a download link instead.
+    can_install: bool,
+    /// Installed by a package manager (e.g. the AUR package): update it there, not in-app.
+    package_manager: bool,
+    releases_page: String,
+}
+
+/// Ask the public `latest.json` whether a newer Penates exists (signature-checked on install).
+#[tauri::command]
+async fn check_self_update(app: tauri::AppHandle) -> CmdResult<Option<SelfUpdate>> {
+    use tauri_plugin_updater::UpdaterExt;
+    let update = app.updater().map_err(err)?.check().await.map_err(err)?;
+    Ok(update.map(|u| SelfUpdate {
+        current: u.current_version.clone(),
+        version: u.version.clone(),
+        notes: u.body.clone().unwrap_or_default(),
+        can_install: tauri::utils::platform::bundle_type().is_some(),
+        package_manager: tauri::utils::platform::bundle_type().is_none()
+            && std::env::current_exe().map(|p| p.starts_with("/usr/")).unwrap_or(false),
+        releases_page: updates::RELEASES_PAGE.into(),
+    }))
+}
+
+/// Download, verify the signature, install and restart.
+#[tauri::command]
+async fn install_self_update(app: tauri::AppHandle) -> CmdResult<()> {
+    use tauri_plugin_updater::UpdaterExt;
+    let update = app.updater().map_err(err)?.check().await.map_err(err)?.ok_or("Penates is already up to date")?;
+    update.download_and_install(|_, _| {}, || {}).await.map_err(err)?;
+    app.restart();
+}
+
 #[tauri::command]
 fn open_url(url: String) -> CmdResult<()> {
     let u = url::Url::parse(&url).map_err(err)?;
@@ -582,10 +620,11 @@ fn run_manager(start: Option<String>) -> tauri::Result<()> {
         }
     }
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             list_apps, app_version, suggest_name, create_app, save_app, update_app, update_all, check_updates,
             get_update_settings, set_update_settings, get_appearance, set_appearance, open_url, remove_app, cache_info, clear_cache, clear_data, run_app, export_apps, inspect_import, import_apps,
-            icon_data, icon_candidates, set_icon_from_candidate, set_icon_from_url, set_icon_from_bytes, reset_icon
+            check_self_update, install_self_update, icon_data, icon_candidates, set_icon_from_candidate, set_icon_from_url, set_icon_from_bytes, reset_icon
         ])
         .setup(move |app| {
             // `--tab settings` / `--tab edit:<id>` opens the manager on that view.

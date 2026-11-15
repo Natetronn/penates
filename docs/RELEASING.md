@@ -1,0 +1,33 @@
+# Releasing
+
+The source repo (`Natetronn/penates`) is private. Installers, the in-app update file and the AUR tarball
+are published on the public `Natetronn/penates-releases`.
+
+## Steps
+1. Bump `version` in the root `Cargo.toml` (workspace) and move the `[Unreleased]` notes in `CHANGELOG.md`
+   under the new version.
+2. Commit, then tag and push: `git tag v0.2.0 && git push origin v0.2.0`.
+3. The **Release** workflow builds and signs installers on Linux, Windows and macOS (Apple Silicon and
+   Intel). Nothing is published yet.
+4. When it is green: `scripts/publish-release.py v0.2.0` (try `--dry-run` first). It downloads the build,
+   writes `latest.json`, creates the release on `penates-releases`, and updates
+   `packaging/aur/penates-bin/{PKGBUILD,.SRCINFO}`.
+5. AUR: copy those two files into your `ssh://aur@aur.archlinux.org/penates-bin.git` clone, commit, push.
+
+## In-app updates
+The desktop app uses Tauri's updater. It reads
+`https://github.com/Natetronn/penates-releases/releases/latest/download/latest.json`, verifies the
+signature of the download with the public key in `src-tauri/tauri.conf.json`, installs, and restarts.
+
+| Install type | Updates |
+|---|---|
+| AppImage, `.deb`, `.rpm`, Windows installer, macOS `.app` | in the app: **Install and restart** |
+| AUR (`penates-bin`), other package managers | `paru -Syu` / `yay`; the app says so |
+| Tarball, dev builds | the app links to the releases page |
+
+## Signing key
+- Private key: `~/.tauri/penates.key` on the release machine (no password), and the repo secret
+  `TAURI_SIGNING_PRIVATE_KEY` used by the Release workflow.
+- Public key: `plugins.updater.pubkey` in `src-tauri/tauri.conf.json`.
+- **Back up `~/.tauri/penates.key`.** If it is lost, installed copies can never verify another update; a new
+  key means users must reinstall by hand. Never commit it.

@@ -3,7 +3,8 @@
 | Format | Command | Output |
 |---|---|---|
 | `.deb`, `.rpm`, `.AppImage` | `./scripts/build-packages.sh` | `target/release/bundle/{deb,rpm,appimage}/` |
-| Arch / CachyOS | `cd packaging/arch && makepkg -si` | `penates-<ver>-1-x86_64.pkg.tar.zst` |
+| AUR (`penates-bin`) | built from the public release tarball; files in `packaging/aur/penates-bin`, refreshed by `scripts/publish-release.py` | see [RELEASING](RELEASING.md) |
+| Arch / CachyOS (local) | `cd packaging/arch && makepkg -si` | `penates-<ver>-1-x86_64.pkg.tar.zst` |
 | Portable tarball (any *nix) | `./scripts/make-tarball.sh` | `dist/penates-<ver>-<triple>.tar.gz` (contains `install.sh`; `PREFIX=$HOME/.local ./install.sh`) |
 | Windows (NSIS), macOS (`.app`, `.dmg`) | push a `v*` tag; `.github/workflows/release.yml` | workflow artifacts |
 

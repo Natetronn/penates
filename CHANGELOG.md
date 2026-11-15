@@ -5,6 +5,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-14
+First release. Verified on Linux (KDE Plasma, Wayland); Windows and macOS pass CI smoke tests.
+
+### Highlights
+- Turn websites into desktop apps with their own window, icon, taskbar entry, tray icon and isolated login.
+- In-app updates for AppImage, .deb, .rpm, Windows and macOS installs; AUR users update with their package manager.
+
 ### Security
 - App ids are validated wherever they become file or folder names; a bad id such as `..` can no longer reach a path (previously `remove --purge` could have deleted the wrong folder).
 - Links a site sends to the OS are limited to `http`, `https`, `mailto` and `tel`; `file:` and custom schemes are dropped instead of handed to `xdg-open`.
@@ -21,9 +28,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - **Smoke tests in CI** that launch the real apps on Windows and macOS through their launchers.
 - **Export, import and backup**: `penates export <id>... | --all [--settings] [-o file]` writes a `.penates` file (configs and icons, never cookies or logins); `penates import <file-or-url>` reviews it and recreates the apps. Conflicts: skip, rename (keep both) or overwrite. Custom JavaScript is stripped unless `--allow-js`; settings (including the update source) apply only with `--settings`; ids and URLs from a file are validated. The manager has Import, Export all, per-app Export and a Backup section in Settings.
 
-## [0.1.0] - 2026-11-14
-First development snapshot. Not tagged or released. Verified on Linux (KDE Plasma, Wayland) only.
-
 ### Added
 - **Core library** (`penates-core`): TOML app config in `~/.config/penates/apps/`, per-app isolated profiles, launcher integration for Linux (`.desktop`), macOS (`.app` bundle) and Windows (Start Menu shortcut).
 - **CLI** (`penates`): `create`, `list`, `show`, `path`, `run`, `edit`, `install`, `icon`, `icons`, `clear`, `remove`, `check`, `update`, `gui`.
@@ -37,7 +41,7 @@ First development snapshot. Not tagged or released. Verified on Linux (KDE Plasm
 - **Cache and data**: clear cache (keeps logins) or clear cookies and data; refused while the app is running.
 - **Updates**: one JSON manifest (semver) for Penates releases and a catalog of per-site presets synced into apps; bundled fake sample manifest until a real URL exists.
 - **Theming**: `ui/tokens.css` and `ui/skins.css`; light/dark/system, six accents, four looks (Penates, Nord, Solarized, High contrast).
-- **Logo**: neon globe in a rounded app tile.
+- **Logo**: globe in a rounded app tile.
 - **Packaging**: `.deb`, `.rpm`, `.AppImage`, Arch `PKGBUILD`, portable tarball with installer; CI and release workflows (Windows and macOS builds run in CI only).
 - **Docs**: README and `docs/`.
 
@@ -54,7 +58,6 @@ First development snapshot. Not tagged or released. Verified on Linux (KDE Plasm
 ### Known limitations
 - Per-app window theme cannot force light or dark for sites on Linux (WebKitGTK follows the desktop). It should work on Windows and macOS.
 - Desktop notifications from sites, camera/microphone prompts and `window.open` popups with real clicks are not fully verified.
-- The update check does not install anything and its manifest signatures are empty (the official Tauri updater requires signed releases).
 - macOS "clear data" does not clear anything (WKWebView has no profile folder to delete).
 - Windows and macOS compile and pass their unit tests in CI, but the apps have never been run there (launchers, taskbar identity, profiles are untested).
 

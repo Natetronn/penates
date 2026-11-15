@@ -15,6 +15,7 @@
       "deb",
       "rpm",
       "appimage"
-    ]
+    ],
+    "createUpdaterArtifacts": true
   }
 }
