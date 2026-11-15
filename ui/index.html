@@ -41,6 +41,22 @@ textarea{font-family:var(--mono);font-size:12px;min-height:80px;resize:vertical}
 .toolbar .hint{margin-right:auto}
 .chip.warn{color:var(--danger);border:1px solid var(--danger);background:none}
 .chip{font-size:11px;background:var(--chip);color:var(--muted);padding:2px 7px;border-radius:999px}
+header h1{display:flex;align-items:center;gap:8px}
+.hlogo{display:block;border-radius:5px}
+button.chip.ver{border:0;font:inherit;font-size:11px;cursor:pointer}
+button.chip.ver:hover{color:var(--fg)}
+dialog#about{border:1px solid var(--line);border-radius:var(--radius-lg);padding:0;width:min(520px,92vw);background:var(--card);color:var(--fg);box-shadow:var(--shadow-pop);overflow:hidden}
+dialog#about::backdrop{background:rgba(5,4,9,.6)}
+.about-hero{display:block;width:100%;height:auto;background:#050409}
+.about-body{padding:16px 20px 18px;display:grid;gap:10px}
+.about-body p{margin:0}
+.about-ver{font-weight:600}
+.about-facts{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:4px 0 0;font-size:13px}
+.about-facts dt{color:var(--muted)}.about-facts dd{margin:0}
+.about-facts a{color:var(--accent)}
+.about-update{align-items:center;margin-top:0}
+.about-close{justify-content:flex-end;margin-top:4px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 fieldset{border:1px solid var(--line);border-radius:var(--radius-lg);margin:0 0 14px;padding:12px 14px;background:var(--card)}
 legend{font-weight:600;padding:0 6px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;align-items:start}
@@ -79,7 +95,7 @@ h2{font-size:15px;margin:18px 0 8px}
 </head>
 <body>
 <header>
-  <h1>Penates <span class="chip" id="ver"></span></h1>
+  <h1><img class="hlogo" src="logo-small.svg" width="22" height="22" alt=""> Penates <button type="button" class="chip ver" id="ver" title="About Penates" aria-haspopup="dialog"></button></h1>
   <nav role="tablist">
     <button role="tab" data-tab="apps">Apps</button>
     <button role="tab" data-tab="create">Create</button>
@@ -87,6 +103,23 @@ h2{font-size:15px;margin:18px 0 8px}
     <button role="tab" data-tab="settings">Settings</button>
   </nav>
 </header>
+<dialog id="about" aria-labelledby="about-title">
+  <img class="about-hero" src="lockup.png" alt="Penates">
+  <div class="about-body">
+    <h2 id="about-title" class="sr-only">About Penates</h2>
+    <p class="about-ver"><span id="about-ver"></span></p>
+    <p>Turn websites and web apps into desktop apps, each with its own window, icon, taskbar entry and login.</p>
+    <p class="hint">Named after the Penates, the Roman household gods: every home had its own, and here every site gets a home of its own.</p>
+    <div class="row about-update"><button type="button" id="about-check">Check for updates</button><span id="about-status" class="hint"></span></div>
+    <dl class="about-facts">
+      <dt>Releases</dt><dd><a href="#" id="about-releases">github.com/Natetronn/penates-releases</a></dd>
+      <dt>License</dt><dd>MIT</dd>
+      <dt>Built with</dt><dd>Rust, Tauri 2 and the system web view (WebKitGTK, WebView2, WKWebView)</dd>
+      <dt>Logo</dt><dd>Natetronn</dd>
+    </dl>
+    <div class="row about-close"><button type="button" class="primary" id="about-close" autofocus>Close</button></div>
+  </div>
+</dialog>
 <main>
   <div id="banner"></div>
   <div id="msg" class="msg" role="status"></div>
@@ -482,8 +515,30 @@ function renderSettings() {
       el("p", { class: "hint" }, "Saves every app plus these settings to one .penates file in your Downloads folder. Restore it with Import on the Apps tab. It never includes logins or cookies."),
       el("div", { class: "row" }, el("button", { textContent: "Back up apps and settings", onclick: async () => {
         try { say("Saved to " + (await invoke("export_apps", { ids: [], withSettings: true }))); } catch (e) { fail(e); } } }))),
-    el("p", { class: "hint" }, "Colors, radii and shadows come from tokens.css; looks come from skins.css. Each app's own window theme is under Edit → Window."));
+    el("p", { class: "hint" }, "Colors, radii and shadows come from tokens.css; looks come from skins.css. Each app's own window theme is under Edit → Window."),
+    el("p", {}, el("button", { type: "button", textContent: "About Penates", onclick: openAbout })));
 }
+
+// ---- about ----
+const RELEASES_URL = "https://github.com/Natetronn/penates-releases/releases/latest";
+function openAbout() {
+  $("about-status").textContent = "";
+  $("about").showModal();
+}
+$("ver").onclick = openAbout;
+$("about-close").onclick = () => $("about").close();
+$("about").addEventListener("click", (e) => { if (e.target === $("about")) $("about").close(); });
+$("about-releases").onclick = (e) => { e.preventDefault(); invoke("open_url", { url: RELEASES_URL }).catch(fail); };
+$("about-check").onclick = async (ev) => {
+  const status = $("about-status");
+  ev.target.disabled = true; status.textContent = "Checking…";
+  try {
+    const u = await invoke("check_self_update");
+    if (!u) status.textContent = "You have the latest version.";
+    else { status.textContent = ""; $("about").close(); selfUpdate = u; $("banner").replaceChildren(selfUpdateBlock(u)); $("ubadge").hidden = false; }
+  } catch (e) { status.textContent = "Could not check: " + e; }
+  ev.target.disabled = false;
+};
 
 function render() {
   if (tab === "apps") renderApps().catch(fail);
@@ -493,13 +548,16 @@ function render() {
 }
 (async () => {
   try { appearance = await invoke("get_appearance"); applyAppearance(appearance); } catch {}
-  $("ver").textContent = "v" + (await invoke("app_version"));
+  const version = await invoke("app_version");
+  $("ver").textContent = "v" + version;
+  $("about-ver").textContent = "Penates " + version;
   const start = window.__PENATES_START || location.hash.slice(1);
   if (start.startsWith("edit:")) {
     const found = (await invoke("list_apps")).find((x) => x.id === start.slice(5));
     if (found) editing = JSON.parse(JSON.stringify(found));
     show("apps");
   } else show(["apps", "create", "updates", "settings"].includes(start) ? start : "apps");
+  if (start === "about") openAbout();
   const s = await invoke("get_update_settings");
   if (s.check_on_start) refreshReport();
 })();

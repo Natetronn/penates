@@ -27,6 +27,10 @@ AppImage, .deb, .rpm, Windows installer, macOS .dmg, or `paru -S penates-bin` on
 |---|---|
 | <img src="docs/images/manager-edit.png" width="400" alt="Editing GitHub: name, URL, icon picker and window options"> | <img src="docs/images/manager-settings.png" width="400" alt="Settings: four looks, light or dark, accent colors and backup"> |
 
+| About |
+|---|
+| <img src="docs/images/manager-about.png" width="400" alt="About Penates: logo, version, update check and credits"> |
+
 ## Install
 Get an installer from the [releases page](https://github.com/Natetronn/penates-releases/releases/latest), or build from source
 (Arch/CachyOS shown; see [docs/PACKAGING.md](docs/PACKAGING.md) for `.deb`, `.rpm`, AppImage and tarball):
