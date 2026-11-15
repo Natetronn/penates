@@ -8,8 +8,8 @@ are published on the public `Natetronn/penates-releases`.
    under the new version.
 2. Commit, then tag and push: `git tag v0.2.0 && git push origin v0.2.0`.
 3. The **Release** workflow builds and signs installers on Linux, Windows and macOS (Apple Silicon and
-   Intel). Nothing is published yet.
-4. When it is green: `scripts/publish-release.py v0.2.0` (try `--dry-run` first). It downloads the build,
+   Intel) and attaches them to a **draft** release in the private repo. Nothing is public yet.
+4. When it is green: `scripts/publish-release.py v0.2.0` (try `--dry-run` first). It downloads the draft's files,
    writes `latest.json`, creates the release on `penates-releases`, and updates
    `packaging/aur/penates-bin/{PKGBUILD,.SRCINFO}`.
 5. AUR: copy those two files into your `ssh://aur@aur.archlinux.org/penates-bin.git` clone, commit, push.

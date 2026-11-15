@@ -3,7 +3,7 @@
 
     scripts/publish-release.py v0.1.0 [--dry-run]
 
-1. Finds the successful "Release" workflow run for the tag (private repo) and downloads its files.
+1. Downloads the files the Release workflow attached to the private draft release for the tag.
 2. Collects installers and their updater signatures under unique names.
 3. Writes latest.json in Tauri's updater format (what the app checks and installs from).
 4. Creates the GitHub release on the public repo with those files (skipped with --dry-run).
@@ -26,17 +26,14 @@ def main():
     tag, dry = sys.argv[1], "--dry-run" in sys.argv
     ver = tag[1:]
 
-    runs = json.loads(gh("run", "list", "-R", SRC, "-w", "release.yml", "-L", "30",
-                         "--json", "databaseId,headBranch,conclusion"))
-    run = next((r for r in runs if r["headBranch"] == tag and r["conclusion"] == "success"), None)
-    if not run:
-        sys.exit(f"no successful Release run for {tag} yet")
-
     work = ROOT / "dist" / f"release-{tag}"
     shutil.rmtree(work, ignore_errors=True)
     (work / "upload").mkdir(parents=True)
-    gh("run", "download", str(run["databaseId"]), "-R", SRC, "-D", str(work / "artifacts"), capture=False)
-    files = [p for p in (work / "artifacts").rglob("*") if p.is_file()]
+    try:
+        gh("release", "download", tag, "-R", SRC, "-D", str(work / "artifacts"), capture=False)
+    except subprocess.CalledProcessError:
+        sys.exit(f"no draft release {tag} in {SRC} yet (has the Release workflow finished?)")
+    files = [p for p in (work / "artifacts").iterdir() if p.is_file()]
 
     up = work / "upload"
     base = f"https://github.com/{REL}/releases/download/{tag}/"
@@ -57,22 +54,23 @@ def main():
                 platforms[k] = {"signature": sig.read_text().strip(), "url": base + asset}
         return asset
 
-    def one(art, suffix):
-        hits = [p for p in files if p.parts[len((work / "artifacts").parts)] == art and p.name.endswith(suffix)]
+    def one(suffix):
+        hits = [p for p in files if p.name.endswith(suffix)]
         return hits[0] if hits else None
 
-    lin, win = "penates-ubuntu-22.04", "penates-windows-latest"
-    mac_arm, mac_x64 = "penates-macos-latest", "penates-macos-latest-x86_64-apple-darwin"
-    if p := one(lin, ".AppImage"): updater(["linux-x86_64-appimage", "linux-x86_64"], p)
-    if p := one(lin, ".deb"): updater(["linux-x86_64-deb"], p)
-    if p := one(lin, ".rpm"): updater(["linux-x86_64-rpm"], p)
-    tarball = one(lin, "-linux-gnu.tar.gz")
+    if p := one(".AppImage"): updater(["linux-x86_64-appimage", "linux-x86_64"], p)
+    if p := one(".deb"): updater(["linux-x86_64-deb"], p)
+    if p := one(".rpm"): updater(["linux-x86_64-rpm"], p)
+    tarball = one("-x86_64-unknown-linux-gnu.tar.gz")
     if tarball: add(tarball)
-    if p := one(win, "-setup.exe"): updater(["windows-x86_64-nsis", "windows-x86_64"], p)
-    for art, arch, label in [(mac_arm, "aarch64", "aarch64"), (mac_x64, "x86_64", "x64")]:
-        if p := one(art, ".app.tar.gz"):
-            updater([f"darwin-{arch}-app", f"darwin-{arch}"], p, f"Penates_{ver}_{label}.app.tar.gz")
-        if p := one(art, ".dmg"): add(p)
+    if p := one("-setup.exe"): updater(["windows-x86_64-nsis", "windows-x86_64"], p)
+    for arch, label in [("aarch64", "aarch64"), ("x86_64", "x64")]:
+        if p := one(f"_{label}.app.tar.gz"): updater([f"darwin-{arch}-app", f"darwin-{arch}"], p)
+        if p := one(f"_{label}.dmg"): add(p)
+    missing = [k for k in ("linux-x86_64-appimage", "linux-x86_64-deb", "linux-x86_64-rpm", "windows-x86_64-nsis",
+                           "darwin-aarch64-app", "darwin-x86_64-app") if k not in platforms]
+    if missing:
+        print("warning: no signed build for:", ", ".join(missing))
 
     if not platforms:
         sys.exit("no signed updater files found; was the build signed?")
