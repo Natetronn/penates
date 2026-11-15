@@ -91,7 +91,9 @@ pub fn run_app(id: String) -> CmdResult<()> {
     store::load(&id).map_err(err)?;
     // Inside an AppImage, current_exe() lives in a mount that disappears when the manager quits.
     let exe = integration::find_desktop_bin().map(Ok).unwrap_or_else(std::env::current_exe).map_err(err)?;
-    Command::new(exe).args(["--run", &id]).stdin(Stdio::null()).spawn().map_err(err)?;
+    let mut child = Command::new(exe).args(["--run", &id]).stdin(Stdio::null()).spawn().map_err(err)?;
+    // Collect the app's exit status when it closes, so it does not linger as a defunct process.
+    std::thread::spawn(move || child.wait());
     Ok(())
 }
 
