@@ -24,7 +24,7 @@ What has actually been run, and where. Last updated 2026-11-14, version 0.1.0.
 - Import and Export buttons in the real manager window (only the preview and the CLI were exercised).
 - File chooser in the icon picker; the Save and Update buttons end to end in the real window.
 - Notifications from sites, camera and microphone prompts.
-- **Windows and macOS: the code has never been compiled.** A Windows compile check needs `mingw-w64-gcc`.
+- **Windows and macOS: compiled and unit-tested in CI only** (GitHub Actions, 2026-11-14: build and `cargo test` pass on `windows-latest` and `macos-latest`). The apps have never been run there: Start Menu shortcut, AppUserModelID, `.app` bundle, profile folders and tray are untested.
 - Per-app window theme on Windows and macOS.
 
 ## Known limits

@@ -20,4 +20,4 @@ Build tools: `cargo install tauri-cli --version "^2" --locked`. The first AppIma
 `.deb` and `.rpm` contents (both binaries, launcher, icons); the AppImage starts; the tarball installs into a scratch prefix and runs; `makepkg` builds the Arch package. None were installed system-wide.
 
 ## Not checked
-Windows and macOS installers (built only in CI), installing the `.deb`/`.rpm` on their target distros, signing and notarization.
+Windows and macOS installers (the release workflow has never run; CI only builds and tests the code), installing the `.deb`/`.rpm` on their target distros, signing and notarization.

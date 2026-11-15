@@ -29,6 +29,7 @@ First development snapshot. Not tagged or released. Verified on Linux (KDE Plasm
 - **Docs**: README and `docs/`.
 
 ### Fixed during development
+- macOS build failed with a duplicate `_EMBED_INFO_PLIST` symbol because `generate_context!` was expanded twice (found by CI on the first push).
 - App list and Updates tab printed `[object HTMLDivElement]` (rows passed as an array).
 - Yellow fallback icon in the taskbar and title bar: launcher file name now matches the window's app ID, and the launcher cache is refreshed when launchers are written.
 - Selected state missing on theme buttons and swatches (ARIA attributes set as properties).
@@ -42,5 +43,5 @@ First development snapshot. Not tagged or released. Verified on Linux (KDE Plasm
 - Desktop notifications from sites, camera/microphone prompts and `window.open` popups with real clicks are not fully verified.
 - The update check does not install anything and its manifest signatures are empty (the official Tauri updater requires signed releases).
 - macOS "clear data" does not clear anything (WKWebView has no profile folder to delete).
-- Windows and macOS builds have never been compiled.
+- Windows and macOS compile and pass their unit tests in CI, but the apps have never been run there (launchers, taskbar identity, profiles are untested).
 

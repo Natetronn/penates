@@ -5,7 +5,7 @@ isolated login profile. Built with Rust and [Tauri 2](https://v2.tauri.app/), an
 browser "install as app" shortcuts, with a command line tool and a desktop manager.
 
 > **Status: 0.1.0 development snapshot.** Linux (KDE/Wayland) is built and exercised. Windows and
-> macOS code exists but has never been compiled or run. See [docs/STATUS.md](docs/STATUS.md) for exactly what is verified.
+> macOS build and pass their unit tests in CI but have never been run. See [docs/STATUS.md](docs/STATUS.md) for exactly what is verified.
 
 ## What it does
 - **One command or a few clicks:** `penates create github.com` finds the site's name and icon (PWA manifest, apple-touch, favicon) and adds it to your application menu.
