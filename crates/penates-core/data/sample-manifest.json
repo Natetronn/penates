@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "_comment": "Sample preset catalog bundled with Penates. Set [updates] manifest_url in ~/.config/penates/settings.toml (https:// or file://) to use your own. Penates's own updates come from latest.json on the public releases repo.",
+  "_comment": "Sample preset catalog bundled with Penates. Set [updates] manifest_url in ~/.config/penates/settings.toml (https:// or file://) to use your own. Penates's own updates come from latest.json on the GitHub releases page.",
   "catalog": [
     {
       "id": "github",

@@ -1,6 +1,6 @@
 # Builds signed installers for every platform when a version tag is pushed (v0.1.0, ...) and attaches
-# them to a DRAFT release in this private repo. Nothing is public until you run
-# scripts/publish-release.py <tag>, which copies them to the public releases repo with latest.json.
+# them to a DRAFT release. Drafts are only visible to the repo's owners; nothing is public until you run
+# scripts/publish-release.py <tag>, which adds latest.json and publishes the draft.
 name: Release
 on:
   push:
@@ -20,13 +20,13 @@ jobs:
           if [ "${GITHUB_REF_NAME#v}" != "$v" ]; then
             echo "::error::tag $GITHUB_REF_NAME does not match Cargo.toml version $v (bump the version first)"; exit 1
           fi
-      - name: Create the private draft release that holds the build
+      - name: Create the draft release that holds the build
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release view "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 ||
             gh release create "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" --draft \
-              --title "Build $GITHUB_REF_NAME" --notes "Private build. Publish with scripts/publish-release.py $GITHUB_REF_NAME."
+              --title "Build $GITHUB_REF_NAME" --notes "Draft build. Publish with scripts/publish-release.py $GITHUB_REF_NAME."
 
   package:
     needs: draft

@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
-"""Publish a finished release build to the public releases repo.
+"""Publish the draft release that the Release workflow built.
 
     scripts/publish-release.py v0.1.0 [--dry-run]
 
-1. Downloads the files the Release workflow attached to the private draft release for the tag.
+1. Downloads the files the Release workflow attached to the draft release for the tag.
 2. Collects installers and their updater signatures under unique names.
 3. Writes latest.json in Tauri's updater format (what the app checks and installs from).
-4. Creates the GitHub release on the public repo with those files (skipped with --dry-run).
+4. Uploads latest.json to the draft, sets the notes from CHANGELOG.md and publishes it (skipped with --dry-run).
 5. Updates packaging/aur/penates-bin (PKGBUILD + .SRCINFO) for the AUR; pushing to the AUR is manual.
 """
 import datetime, hashlib, json, pathlib, re, shutil, subprocess, sys
 
-SRC = "Natetronn/penates"
-REL = "Natetronn/penates-releases"
+REPO = "Natetronn/penates"
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 
@@ -30,13 +29,13 @@ def main():
     shutil.rmtree(work, ignore_errors=True)
     (work / "upload").mkdir(parents=True)
     try:
-        gh("release", "download", tag, "-R", SRC, "-D", str(work / "artifacts"), capture=False)
+        gh("release", "download", tag, "-R", REPO, "-D", str(work / "artifacts"), capture=False)
     except subprocess.CalledProcessError:
-        sys.exit(f"no draft release {tag} in {SRC} yet (has the Release workflow finished?)")
+        sys.exit(f"no draft release {tag} in {REPO} yet (has the Release workflow finished?)")
     files = [p for p in (work / "artifacts").iterdir() if p.is_file()]
 
     up = work / "upload"
-    base = f"https://github.com/{REL}/releases/download/{tag}/"
+    base = f"https://github.com/{REPO}/releases/download/{tag}/"
     platforms, assets = {}, []
 
     def add(path, name=None):
@@ -113,9 +112,11 @@ def main():
     if dry:
         print("dry run: nothing published")
         return
-    gh("release", "create", tag, "-R", REL, "--title", f"Penates {ver}", "--notes-file", str(work / "notes.md"),
-       *[str(a) for a in assets], capture=False)
-    print(f"published https://github.com/{REL}/releases/tag/{tag}")
+    # The installers are already on the draft under these names; add the updater file and publish.
+    gh("release", "upload", tag, "-R", REPO, "--clobber", str(up / "latest.json"), capture=False)
+    gh("release", "edit", tag, "-R", REPO, "--title", f"Penates {ver}", "--notes-file", str(work / "notes.md"),
+       "--draft=false", "--latest", capture=False)
+    print(f"published https://github.com/{REPO}/releases/tag/{tag}")
     print("AUR: copy packaging/aur/penates-bin/{PKGBUILD,.SRCINFO} into your aur penates-bin clone, commit and push.")
 
 

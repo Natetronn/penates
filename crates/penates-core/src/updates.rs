@@ -12,9 +12,9 @@ use std::collections::BTreeMap;
 
 pub const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 const SAMPLE: &str = include_str!("../data/sample-manifest.json");
-/// Public releases (installers and `latest.json`). The source repo is private.
-pub const RELEASES_PAGE: &str = "https://github.com/Natetronn/penates-releases/releases/latest";
-pub const LATEST_JSON: &str = "https://github.com/Natetronn/penates-releases/releases/latest/download/latest.json";
+/// GitHub releases (installers and `latest.json`).
+pub const RELEASES_PAGE: &str = "https://github.com/Natetronn/penates/releases/latest";
+pub const LATEST_JSON: &str = "https://github.com/Natetronn/penates/releases/latest/download/latest.json";
 
 // ---- settings (~/.config/penates/settings.toml) ----
 

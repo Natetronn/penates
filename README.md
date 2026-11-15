@@ -4,7 +4,7 @@ Turn any website or web app into a desktop app with its own window, icon, taskba
 separate login. Named after the Roman household gods: every site gets a home of its own.
 Built with Rust and [Tauri 2](https://v2.tauri.app/), with a command line tool and a desktop manager.
 
-**[Download the latest release](https://github.com/Natetronn/penates-releases/releases/latest)**:
+**[Download the latest release](https://github.com/Natetronn/penates/releases/latest)**:
 AppImage, .deb, .rpm, Windows installer, macOS .dmg, or `paru -S penates-bin` on Arch.
 
 <p align="center"><img src="docs/images/manager-apps.png" width="640" alt="The Penates manager listing five apps: Discord, GitHub, Notion, Proton Mail and YouTube Music"></p>
@@ -29,7 +29,7 @@ AppImage, .deb, .rpm, Windows installer, macOS .dmg, or `paru -S penates-bin` on
 | <img src="docs/images/manager-settings.png" width="400" alt="Settings: four looks, light or dark, accent colors, updates and backup"> | <img src="docs/images/manager-about.png" width="400" alt="About Penates: logo, version and credits"> |
 
 ## Install
-Get an installer from the [releases page](https://github.com/Natetronn/penates-releases/releases/latest), or build from source
+Get an installer from the [releases page](https://github.com/Natetronn/penates/releases/latest), or build from source
 (Arch/CachyOS shown; see [docs/PACKAGING.md](docs/PACKAGING.md) for `.deb`, `.rpm`, AppImage and tarball):
 
 ```sh

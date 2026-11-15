@@ -1,17 +1,17 @@
 # Maintainer: Natetronn
-# AUR package built from the public release tarball (the source repository is private).
+# AUR package built from the release tarball (prebuilt binaries).
 # pkgver and sha256sums are updated by scripts/publish-release.py for each release.
 pkgname=penates-bin
 pkgver=0.1.0
 pkgrel=1
 pkgdesc="Turn websites into desktop apps with their own window, icon and login"
 arch=('x86_64')
-url="https://github.com/Natetronn/penates-releases"
+url="https://github.com/Natetronn/penates"
 license=('MIT')
 depends=('webkit2gtk-4.1' 'gtk3' 'libayatana-appindicator')
 provides=('penates')
 conflicts=('penates')
-source=("https://github.com/Natetronn/penates-releases/releases/download/v${pkgver}/penates-${pkgver}-x86_64-unknown-linux-gnu.tar.gz")
+source=("https://github.com/Natetronn/penates/releases/download/v${pkgver}/penates-${pkgver}-x86_64-unknown-linux-gnu.tar.gz")
 sha256sums=('SKIP')
 
 package() {

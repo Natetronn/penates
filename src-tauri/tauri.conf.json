@@ -48,7 +48,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDJFMjYyQTIxREU4RUMwNUUKUldSZXdJN2VJU29tTGg4QWxZUExHYU1sRHg5bERSODl4K2JQeU9oWUpWaGtXOC9raC9QWTVSOS8K",
       "endpoints": [
-        "https://github.com/Natetronn/penates-releases/releases/latest/download/latest.json"
+        "https://github.com/Natetronn/penates/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"

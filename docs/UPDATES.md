@@ -2,7 +2,7 @@
 
 Two kinds of updates, each with its own check under **Settings → Updates** (the Updates tab lists what is available):
 
-1. **Penates itself** comes from `latest.json` on the public releases repo (Tauri updater format, signed).
+1. **Penates itself** comes from `latest.json` attached to the latest GitHub release (Tauri updater format, signed).
    The desktop app offers **Install and restart** where the install type allows it; `penates check`
    reports it. See [RELEASING](RELEASING.md).
 2. **App presets** come from a catalog of per-site fixes (extra sign-in hosts, a user agent, CSS) synced
