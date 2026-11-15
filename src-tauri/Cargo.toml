@@ -15,6 +15,7 @@ anyhow.workspace = true
 tauri = { version = "2", features = ["image-png", "tray-icon"] }
 open = "5"
 url = "2"
+dirs = "5"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = "0.18"

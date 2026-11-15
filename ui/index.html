@@ -115,6 +115,7 @@ document.querySelectorAll("nav button").forEach((b) => (b.onclick = () => show(b
 document.addEventListener("click", (e) => { if (!e.target.closest(".actions")) closeMenus(); });
 // replaceChildren that accepts nested arrays (lists of rows)
 const put = (parent, ...kids) => parent.replaceChildren(...kids.flat().filter((x) => x != null && x !== false));
+const fmtBytes = (b) => (b < 1024 ? b + " B" : b < 1048576 ? Math.round(b / 1024) + " KB" : (b / 1048576).toFixed(1) + " MB");
 const closeMenus = () => document.querySelectorAll(".menu").forEach((m) => m.remove());
 
 const iconCache = new Map();
@@ -162,8 +163,17 @@ function appRow(a) {
     ev.stopPropagation();
     const had = actions.querySelector(".menu"); closeMenus(); if (had) return;
     const item = (label, cls, fn) => el("button", { class: cls, textContent: label, onclick: async () => { closeMenus(); try { await fn(); } catch (e) { fail(e); } } });
+    const cacheBtn = item("Clear cache", "", async () => { const n = await invoke("clear_cache", { id: a.id }); say(`Cleared ${fmtBytes(n)} of cache for ${a.name}. You stay signed in.`); });
+    invoke("cache_info", { id: a.id }).then((i) => { cacheBtn.textContent = `Clear cache (${fmtBytes(i.bytes)})`; cacheBtn.disabled = i.bytes === 0; }).catch(() => {});
+    // Clearing data signs the app out, so it takes a second click.
+    const dataBtn = el("button", { class: "danger", textContent: "Clear cookies & data…", onclick: async (ev) => {
+      ev.stopPropagation();
+      if (!dataBtn.dataset.sure) { dataBtn.dataset.sure = "1"; dataBtn.textContent = "Click again: sign out & clear"; return; }
+      closeMenus();
+      try { await invoke("clear_data", { id: a.id }); say("Cleared cookies and data for " + a.name + "."); } catch (e) { fail(e); }
+    } });
     actions.append(el("div", { class: "menu" },
-      item("Clear cookies & data", "", async () => { await invoke("clear_data", { id: a.id }); say("Cleared data for " + a.name + ". Restart the app to apply."); }),
+      cacheBtn, dataBtn,
       item("Remove app", "danger", async () => { await invoke("remove_app", { id: a.id, purge: false }); say(a.name + " removed (data kept)."); renderApps(); }),
       item("Remove app and data", "danger", async () => { await invoke("remove_app", { id: a.id, purge: true }); say(a.name + " and its data removed."); renderApps(); })));
   };
@@ -393,7 +403,12 @@ function render() {
 (async () => {
   try { appearance = await invoke("get_appearance"); applyAppearance(appearance); } catch {}
   $("ver").textContent = "v" + (await invoke("app_version"));
-  show("apps");
+  const start = window.__PENATES_START || location.hash.slice(1);
+  if (start.startsWith("edit:")) {
+    const found = (await invoke("list_apps")).find((x) => x.id === start.slice(5));
+    if (found) editing = JSON.parse(JSON.stringify(found));
+    show("apps");
+  } else show(["apps", "create", "updates", "settings"].includes(start) ? start : "apps");
   const s = await invoke("get_update_settings");
   if (s.check_on_start) refreshReport();
 })();

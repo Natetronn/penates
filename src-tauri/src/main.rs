@@ -1,8 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod single;
-
-use penates_core::{icon, integration, resolve_name, normalize_url, ops, slugify, store, updates, WebApp};
+use penates_core::{icon, single, integration, resolve_name, normalize_url, ops, slugify, store, updates, WebApp};
 use std::process::{Command, Stdio};
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
@@ -160,9 +158,36 @@ fn remove_app(id: String, purge: bool) -> CmdResult<()> {
     store::remove(&id, purge).map_err(err)
 }
 
+fn ensure_closed(id: &str) -> CmdResult<String> {
+    let app = store::load(id).map_err(err)?;
+    if single::is_running(id) {
+        return Err(format!("{} is running. Close it first.", app.name));
+    }
+    Ok(app.name)
+}
+
+#[derive(serde::Serialize)]
+struct CacheInfo {
+    bytes: u64,
+    running: bool,
+}
+
+#[tauri::command]
+fn cache_info(id: String) -> CacheInfo {
+    CacheInfo { bytes: store::cache_size(&id), running: single::is_running(&id) }
+}
+
+/// Delete cached files, keep logins. Returns bytes freed.
+#[tauri::command]
+fn clear_cache(id: String) -> CmdResult<u64> {
+    ensure_closed(&id)?;
+    Ok(store::clear_cache(&id))
+}
+
+/// Delete cookies, storage and cache (signs the app out).
 #[tauri::command]
 fn clear_data(id: String) -> CmdResult<()> {
-    store::load(&id).map_err(err)?;
+    ensure_closed(&id)?;
     store::clear_profile(&id);
     Ok(())
 }
@@ -249,6 +274,23 @@ fn id_bytes(id: &str) -> [u8; 16] {
 
 // ---------- runner: one wrapped web app ----------
 
+/// Save downloads to the user's Downloads folder, never overwriting an existing file.
+fn unique_download_path(suggested: &std::path::Path) -> std::path::PathBuf {
+    let name = suggested.file_name().map(|n| n.to_os_string()).unwrap_or_else(|| "download".into());
+    let dir = dirs::download_dir().or_else(dirs::home_dir).unwrap_or_else(std::env::temp_dir);
+    let first = dir.join(&name);
+    if !first.exists() {
+        return first;
+    }
+    let p = std::path::Path::new(&name);
+    let stem = p.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+    let ext = p.extension().map(|e| format!(".{}", e.to_string_lossy())).unwrap_or_default();
+    (2..)
+        .map(|n| dir.join(format!("{stem} ({n}){ext}")))
+        .find(|c| !c.exists())
+        .expect("unbounded range")
+}
+
 fn toggle_main(app: &tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
         if w.is_visible().unwrap_or(true) && !w.is_minimized().unwrap_or(false) {
@@ -308,15 +350,13 @@ fn run_webapp(cfg: WebApp) -> tauri::Result<()> {
         ops::reinstall(None, &cfg);
     }
 
-    // One window per app: a second launch focuses the first and exits.
-    let mut listener = None;
-    if cfg.single_instance {
-        match single::claim(&cfg.id) {
-            single::Claim::Secondary => return Ok(()),
-            single::Claim::Primary(l) => listener = Some(l),
-            single::Claim::Unavailable => {}
-        }
+    // Every running app owns a loopback port (so the manager can tell it is running). In
+    // single-window mode a second launch focuses the first window and exits.
+    let listener = single::try_bind(&cfg.id);
+    if listener.is_none() && cfg.single_instance && single::request_focus(&cfg.id) {
+        return Ok(());
     }
+    let mut listener = listener;
 
     tauri::Builder::default()
         .setup(move |app| {
@@ -344,6 +384,33 @@ fn run_webapp(cfg: WebApp) -> tauri::Result<()> {
                 .decorations(cfg.decorations)
                 .devtools(cfg.devtools)
                 .initialization_script(&js)
+                .on_new_window({
+                    let c = cfg.clone();
+                    move |u, _features| {
+                        // Popups to the app's own sites (OAuth, "open in new window") keep their opener;
+                        // anything else goes to the system browser.
+                        if c.is_internal(&u) {
+                            tauri::webview::NewWindowResponse::Allow
+                        } else {
+                            let _ = open::that_detached(u.as_str());
+                            tauri::webview::NewWindowResponse::Deny
+                        }
+                    }
+                })
+                .on_download(|_wv, ev| {
+                    use tauri::webview::DownloadEvent;
+                    match ev {
+                        DownloadEvent::Requested { destination, .. } => {
+                            *destination = unique_download_path(destination);
+                            true
+                        }
+                        DownloadEvent::Finished { path, success, .. } => {
+                            eprintln!("download {}: {:?}", if success { "finished" } else { "failed" }, path);
+                            true
+                        }
+                        _ => true,
+                    }
+                })
                 .on_navigation(move |u| {
                     if nav_cfg.is_internal(u) {
                         true
@@ -416,7 +483,7 @@ fn set_aumid(id: &str) {
     }
 }
 
-fn run_manager() -> tauri::Result<()> {
+fn run_manager(start: Option<String>) -> tauri::Result<()> {
     #[cfg(target_os = "linux")]
     {
         gtk::glib::set_prgname(Some("penates"));
@@ -427,11 +494,14 @@ fn run_manager() -> tauri::Result<()> {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             list_apps, app_version, suggest_name, create_app, save_app, update_app, update_all, check_updates,
-            get_update_settings, set_update_settings, get_appearance, set_appearance, open_url, remove_app, clear_data, run_app,
+            get_update_settings, set_update_settings, get_appearance, set_appearance, open_url, remove_app, cache_info, clear_cache, clear_data, run_app,
             icon_data, icon_candidates, set_icon_from_candidate, set_icon_from_url, set_icon_from_bytes, reset_icon
         ])
-        .setup(|app| {
+        .setup(move |app| {
+            // `--tab settings` / `--tab edit:<id>` opens the manager on that view.
+            let init = start.as_deref().map(|t| format!("window.__PENATES_START = {};", serde_json::to_string(t).unwrap())).unwrap_or_default();
             WebviewWindowBuilder::new(app, "manager", WebviewUrl::App("index.html".into()))
+                .initialization_script(&init)
                 .title("Penates")
                 .theme(theme_of(&updates::load_settings().appearance.theme))
                 .inner_size(860.0, 720.0)
@@ -457,7 +527,7 @@ fn main() {
                 }
             }
         }
-        None => run_manager(),
+        None => run_manager(args.iter().position(|a| a == "--tab").and_then(|i| args.get(i + 1)).cloned()),
     };
     if let Err(e) = result {
         eprintln!("error: {e}");

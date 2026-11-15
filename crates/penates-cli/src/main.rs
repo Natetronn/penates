@@ -71,6 +71,12 @@ enum Cmd {
     },
     /// List the icons found for a site (PWA manifest, apple-touch, favicon), best first
     Icons { url: String },
+    /// Clear an app's cache (keeps logins), or with --data its cookies and storage too
+    Clear {
+        id: String,
+        #[arg(long)]
+        data: bool,
+    },
     /// Remove an app
     Remove {
         id: String,
@@ -90,6 +96,14 @@ enum Cmd {
     Edit { id: String },
     /// Open the desktop manager
     Gui,
+}
+
+fn fmt_bytes(b: u64) -> String {
+    match b {
+        0..=1023 => format!("{b} B"),
+        1024..=1048575 => format!("{:.0} KB", b as f64 / 1024.0),
+        _ => format!("{:.1} MB", b as f64 / 1048576.0),
+    }
 }
 
 fn desktop_bin() -> Result<PathBuf> {
@@ -181,6 +195,18 @@ fn main() -> Result<()> {
         Cmd::Icons { url } => {
             for (i, c) in icon::candidates(&normalize_url(&url)?).into_iter().enumerate() {
                 println!("{:>2}. {c}", i + 1);
+            }
+        }
+        Cmd::Clear { id, data } => {
+            store::load(&id)?;
+            if penates_core::single::is_running(&id) {
+                bail!("'{id}' is running; close it first");
+            }
+            if data {
+                store::clear_profile(&id);
+                println!("cleared cookies and data for '{id}'");
+            } else {
+                println!("cleared {} of cache for '{id}'", fmt_bytes(store::clear_cache(&id)));
             }
         }
         Cmd::Remove { id, purge } => {

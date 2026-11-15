@@ -83,3 +83,39 @@ pub fn remove(id: &str, purge: bool) -> Result<()> {
 pub fn clear_profile(id: &str) {
     let _ = std::fs::remove_dir_all(profile_dir(id));
 }
+
+fn dir_size(p: &std::path::Path) -> u64 {
+    let Ok(rd) = std::fs::read_dir(p) else { return 0 };
+    rd.flatten()
+        .map(|e| match e.metadata() {
+            Ok(m) if m.is_dir() => dir_size(&e.path()),
+            Ok(m) => m.len(),
+            Err(_) => 0,
+        })
+        .sum()
+}
+
+/// Folders inside an app's profile that hold only re-downloadable cache (no logins).
+pub fn cache_dirs(id: &str) -> Vec<PathBuf> {
+    let p = profile_dir(id);
+    vec![
+        p.join("WebKitCache"),               // Linux (WebKitGTK)
+        p.join("CacheStorage"),              // Linux: Cache API
+        p.join("EBWebView/Default/Cache"),   // Windows (WebView2)
+        p.join("EBWebView/Default/Code Cache"),
+        p.join("EBWebView/Default/GPUCache"),
+    ]
+}
+
+pub fn cache_size(id: &str) -> u64 {
+    cache_dirs(id).iter().map(|d| dir_size(d)).sum()
+}
+
+/// Delete the cache and keep cookies/logins. Returns bytes freed.
+pub fn clear_cache(id: &str) -> u64 {
+    let before = cache_size(id);
+    for d in cache_dirs(id) {
+        let _ = std::fs::remove_dir_all(d);
+    }
+    before.saturating_sub(cache_size(id))
+}

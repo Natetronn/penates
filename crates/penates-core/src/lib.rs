@@ -4,6 +4,7 @@
 pub mod icon;
 pub mod integration;
 pub mod ops;
+pub mod single;
 pub mod site;
 pub mod store;
 pub mod updates;
