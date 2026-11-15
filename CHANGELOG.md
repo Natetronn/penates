@@ -16,6 +16,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - Popular apps show each site's real icon, fetched once and cached for 30 days (`~/.cache/penates/catalog-icons/`, safe to delete).
 
 ### Fixed
+- Choosing "System" in the manager's Light or dark setting forced light on Linux after picking Light or Dark; it now follows the desktop (read from the XDG settings portal).
 - Favicons in ICO files whose largest image is a grayscale or palette PNG (Tailscale's, for one) were rejected; Penates now reads the file's images one by one.
 - After installing from the tarball, KDE's menu shows the Penates icon right away (the installer tells KDE programs the icon theme changed).
 - Import's file chooser showed no `.penates` files on Linux (the file filter only understood JSON); it now shows all files and checks the one you pick.

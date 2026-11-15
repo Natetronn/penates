@@ -277,11 +277,57 @@ pub fn get_appearance() -> settings::Appearance {
     settings::load().appearance
 }
 
+/// The desktop's light/dark choice, from the XDG settings portal (KDE, GNOME and others implement it).
+/// None when there is no preference or no portal.
+#[cfg(target_os = "linux")]
+fn desktop_theme() -> Option<tauri::Theme> {
+    use gtk::gio;
+    use gtk::glib::prelude::*;
+    let bus = gio::bus_get_sync(gio::BusType::Session, gio::Cancellable::NONE).ok()?;
+    let read = |method: &str| {
+        bus.call_sync(
+            Some("org.freedesktop.portal.Desktop"),
+            "/org/freedesktop/portal/desktop",
+            "org.freedesktop.portal.Settings",
+            method,
+            Some(&("org.freedesktop.appearance", "color-scheme").to_variant()),
+            None,
+            gio::DBusCallFlags::NONE,
+            1000,
+            gio::Cancellable::NONE,
+        )
+        .ok()
+    };
+    // ReadOne answers (v: u); the older Read answers (v: v: u).
+    let value = read("ReadOne").or_else(|| read("Read"))?.child_value(0);
+    let mut inner = value.as_variant()?;
+    if let Some(nested) = inner.as_variant() {
+        inner = nested;
+    }
+    match inner.get::<u32>()? {
+        1 => Some(tauri::Theme::Dark),
+        2 => Some(tauri::Theme::Light),
+        _ => None,
+    }
+}
+
+/// The window theme to set for a look. "system" has to be spelled out on Linux: there, "no theme"
+/// switches GTK's dark preference off (forcing light) instead of following the desktop.
+fn window_theme(theme: &str) -> Option<tauri::Theme> {
+    match crate::runner::theme_of(theme) {
+        Some(t) => Some(t),
+        #[cfg(target_os = "linux")]
+        None => Some(desktop_theme().unwrap_or(tauri::Theme::Light)),
+        #[cfg(not(target_os = "linux"))]
+        None => None,
+    }
+}
+
 #[tauri::command]
 pub fn set_appearance(app: tauri::AppHandle, appearance: settings::Appearance) -> CmdResult<()> {
     appearance.validate().map_err(err)?;
     if let Some(w) = app.get_webview_window("manager") {
-        let _ = w.set_theme(crate::runner::theme_of(&appearance.theme));
+        let _ = w.set_theme(window_theme(&appearance.theme));
     }
     settings::update(|s| s.appearance = appearance).map(|_| ()).map_err(err)
 }
