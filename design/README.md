@@ -16,7 +16,7 @@ The drawings the app ships live in `src-tauri/icons/`:
 
 | File | Use |
 |---|---|
-| `icon.svg` | Main icon with glow; renders 128 px and up |
+| `icon.svg` | Main icon with glow (stroke 28); renders 128 px and up |
 | `icon-64.svg` | 48–64 px: no glow, stroke 32 |
 | `icon-32.svg` | 24–32 px: stroke 38, flame without its inner cut-out |
 | `icon-16.svg` | 16 px: stroke 44 |
@@ -34,8 +34,8 @@ lockup on `#050409`, rendered from the canvas.
 | Lockup background | `#050409` |
 | Text on dark | `#F4F2FF` |
 | Text on light | `#17152A` |
-| Muted text | `#A9A5C4` |
-| Manager accent | `#6D3FE0` light, `#8B5CFF` dark (`ui/tokens.css`) |
+| Muted text | `#625E7A` on light, `#A9A5C4` on dark |
+| Manager accent | `#6D3FE0` light, `#9A76FF` dark (`ui/tokens.css`; a touch lighter than the logo's `#8B5CFF` so links keep 4.5:1 contrast) |
 
 ## Type
 
@@ -55,5 +55,5 @@ behind the sharp one, used only at 128 px and up.
 design/build-icons.sh                 # writes src-tauri/icons/
 design/build-icons.sh /tmp/icons      # or anywhere else to compare first
 ```
-Needs `rsvg-convert` (librsvg), ImageMagick 7 and the Tauri CLI. The output matches the committed icons
-pixel for pixel.
+Needs `rsvg-convert` (librsvg), ImageMagick 7 and the Tauri CLI. The PNGs and `icon.ico` come out
+byte-identical to the committed ones; `icon.icns` holds identical images (its entry order can differ).

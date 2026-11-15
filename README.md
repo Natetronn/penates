@@ -15,7 +15,8 @@ AppImage, .deb, .rpm, Windows installer, macOS .dmg, or `paru -S penates-bin` on
 ## What it does
 - **One command or a few clicks:** `penates create github.com` finds the site's name and icon (PWA manifest, apple-touch, favicon) and adds it to your application menu.
 - **A real app window per site:** own taskbar entry and icon, separate cookies and storage per app, single-window mode, optional system tray icon (color or grayscale).
-- **Per-app options:** window size, zoom, maximized/fullscreen/frameless, always on top, user agent, extra in-app hosts, custom CSS/JS, devtools.
+- **Per-app options:** window size, zoom, maximized/fullscreen/frameless, always on top, user agent, extra in-app hosts, custom CSS/JS, devtools, notification and camera/microphone permissions.
+- **App catalog:** known sites (GitHub, Notion, Discord, Proton Mail, YouTube and more) get small fixes such as in-app sign-in from the shared [penates-apps](https://github.com/Natetronn/penates-apps) catalog.
 - **Smart links:** links to other sites open in your browser; same-site popups (sign-in flows) stay in the app; downloads go to your Downloads folder.
 - **Share and back up:** export one app or all of them to a `.penates` file and import it elsewhere; logins are never included. See [docs/SHARING.md](docs/SHARING.md).
 - **Housekeeping:** clear cache (keeps you signed in) or clear cookies and data, update checks with versioned presets, icons from a file or URL.
@@ -26,10 +27,17 @@ AppImage, .deb, .rpm, Windows installer, macOS .dmg, or `paru -S penates-bin` on
 |---|---|
 | <img src="docs/images/manager-apps-light.png" width="400" alt="The app list in light mode"> | <img src="docs/images/manager-edit.png" width="400" alt="Editing GitHub: name, URL, icon picker and window options"> |
 | **Settings** | **About** |
-| <img src="docs/images/manager-settings.png" width="400" alt="Settings: four looks, light or dark, accent colors, updates and backup"> | <img src="docs/images/manager-about.png" width="400" alt="About Penates: logo, version and credits"> |
+| <img src="docs/images/manager-settings.png" width="400" alt="Settings: four looks, light or dark, accent colors and update checks"> | <img src="docs/images/manager-about.png" width="400" alt="About Penates: logo, version and credits"> |
 
 ## Install
-Get an installer from the [releases page](https://github.com/Natetronn/penates/releases/latest), or build from source
+Get an installer from the [releases page](https://github.com/Natetronn/penates/releases/latest). macOS needs version 14 or later.
+
+**First launch on macOS and Windows:** the installers are not signed with an Apple or Microsoft certificate yet.
+On macOS, open the app once, then allow it under System Settings → Privacy & Security → **Open Anyway**.
+On Windows, SmartScreen may say it protected your PC: choose **More info → Run anyway**. Penates's own
+updates are signed and checked before they install.
+
+Or build from source
 (Arch/CachyOS shown; see [docs/PACKAGING.md](docs/PACKAGING.md) for `.deb`, `.rpm`, AppImage and tarball):
 
 ```sh

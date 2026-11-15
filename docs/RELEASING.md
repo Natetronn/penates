@@ -4,18 +4,32 @@ Releases live on `Natetronn/penates`: installers, the in-app update file (`lates
 tarball are attached to each GitHub release. Builds sit in a draft (visible only to the repo's owners)
 until you publish them.
 
+## Before the first release (once)
+- The repo secret `TAURI_SIGNING_PRIVATE_KEY` holds the updater key (`gh secret list` shows it).
+- `gh` is signed in with access to the repo.
+- For the AUR: an AUR account with your SSH key, and the package repo created once with
+  `git clone ssh://aur@aur.archlinux.org/penates-bin.git` (an empty clone creates it on first push).
+
 ## Steps
-1. Bump `version` in the root `Cargo.toml` (workspace) and move the `[Unreleased]` notes in `CHANGELOG.md`
-   under the new version.
+1. Bump `version` in the root `Cargo.toml` (workspace) and `pkgver` in `packaging/arch/PKGBUILD`, then run
+   `cargo check` so `Cargo.lock` picks up the new version (every `--locked` build fails otherwise).
+   Move the `[Unreleased]` notes in `CHANGELOG.md` under the new version and add its compare link at the bottom.
    Refresh the built-in preset copy: `curl -fsSL https://raw.githubusercontent.com/Natetronn/penates-apps/main/catalog.json`
    into `crates/penates-core/data/presets.json` (keep its `_comment`), or copy it from a `penates-apps` checkout.
-2. Commit, then tag and push: `git tag v0.2.0 && git push origin v0.2.0`.
-3. The **Release** workflow builds and signs installers on Linux, Windows and macOS (Apple Silicon and
-   Intel) and attaches them to a **draft** release. Nothing is public yet.
-4. When it is green: `scripts/publish-release.py v0.2.0` (try `--dry-run` first). It downloads the draft's files,
-   writes `latest.json`, uploads it to the draft, sets the notes from `CHANGELOG.md`, publishes the release, and updates
-   `packaging/aur/penates-bin/{PKGBUILD,.SRCINFO}`.
-5. AUR: copy those two files into your `ssh://aur@aur.archlinux.org/penates-bin.git` clone, commit, push.
+2. Optional rehearsal: **Actions → Release → Run workflow** builds and signs every installer without uploading anything.
+3. Commit, then tag and push: `git tag v0.2.0 && git push origin v0.2.0`.
+4. The **Release** workflow checks that the tag matches `Cargo.toml`, builds and signs installers on Linux,
+   Windows and macOS (Apple Silicon and Intel) and attaches them to a **draft** release. Nothing is public yet.
+5. When it is green: `scripts/publish-release.py v0.2.0 --dry-run`, then without `--dry-run`. It downloads the
+   draft's files (refusing duplicates or files of another version), writes `latest.json`, uploads it to the draft,
+   sets the notes from `CHANGELOG.md`, publishes the release, and updates `packaging/aur/penates-bin/{PKGBUILD,.SRCINFO}`.
+6. AUR: copy those two files into your `penates-bin` AUR clone, commit, push. Then commit the updated files here too.
+
+**Pre-releases** (`v0.2.0-rc.1`): `scripts/publish-release.py v0.2.0-rc.1 --prerelease`. They are published as
+pre-releases, never as "latest", so installed copies do not update to them, and the AUR is left alone.
+
+**A bad draft**: delete the draft release and the tag (`git push --delete origin v0.2.0 && git tag -d v0.2.0`),
+fix, and tag again.
 
 ## In-app updates
 The desktop app uses Tauri's updater. It reads

@@ -3,17 +3,19 @@
 There are three independent layers.
 
 ## 1. Manager look (Settings tab)
-Saved in `settings.toml` under `[appearance]` and applied instantly by setting two attributes on `<html>`: `data-theme` and `data-accent` (plus `data-skin`).
+Saved in `settings.toml` under `[appearance]` and applied by setting three attributes on `<html>`:
+`data-theme`, `data-accent` and `data-skin`. The manager passes the saved look in before the page loads
+(`ui/boot.js` applies it), so the window never flashes the default theme first.
 
 - **Light or dark**: `system` follows the OS (`prefers-color-scheme`), or force `light` / `dark`.
-- **Accent**: `blue`, `violet`, `green`, `orange`, `rose`, `slate`. Each has a light and a dark value.
+- **Accent**: `violet` (default, from the logo), `blue`, `green`, `orange`, `rose`, `slate`. Each has a light and a dark value, chosen so text in the accent color and the label on an accent button both keep at least 4.5:1 contrast.
 - **Look (skin)**: `default`, `nord`, `solarized`, `mono` (high contrast, square corners).
 
 ## 2. Tokens and skins (plain CSS)
-- `ui/tokens.css` is the single source of truth: fonts, radii, shadow, surfaces (`--bg --card --line --chip --fg --muted`), status colors, and the accent palette. Light is the default; dark applies for the OS dark setting or `data-theme="dark"`, and `data-theme="light"` forces light.
+- `ui/tokens.css` is the single source of truth: fonts, radii, shadow, surfaces (`--bg --card --line --chip --fg --muted`), status colors, and the accent palette. Light is the default; dark applies for the OS dark setting or `data-theme="dark"`, and `data-theme="light"` forces light. Colors, radii and shadows all come from here; looks come from `skins.css`.
 - `ui/skins.css` layers named token sets over the base, each defining light and dark values. A skin selector works on any element, so the Settings preview cards show real skin colors.
-- **Add a skin**: copy a block in `skins.css`, change `data-skin="<name>"` and the colors, add the name to `SKINS` in `ui/index.html` and to the allow-list in `set_appearance` (`src-tauri/src/main.rs`).
-- **Add an accent**: add a `[data-accent="<name>"]` line to `tokens.css` and the name to `ACCENTS` and the allow-list.
+- **Add a skin**: copy a block in `skins.css`, change `data-skin="<name>"` and the colors, and add the name to `SKINS` in `ui/app.js` and in `crates/penates-core/src/settings.rs`.
+- **Add an accent**: add a `[data-accent="<name>"]` line to `tokens.css` and the name to `ACCENTS` in `ui/app.js` and `settings.rs`.
 
 ## 3. Per-app window theme
 `theme = "system" | "light" | "dark"` in an app's config (Edit → Window). It sets the native window theme and what the site reports through `prefers-color-scheme`.

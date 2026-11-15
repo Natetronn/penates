@@ -1,7 +1,7 @@
 //! The runner: one wrapped web app in its own window (`penates-desktop --run <id>`). It registers
 //! no IPC commands or plugins; the site gets nothing from Penates but a window.
 
-use penates_core::{icon, integration, ops, single, store, WebApp};
+use penates_core::{icon, integration, ops, single, WebApp};
 use std::sync::{Arc, Mutex};
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
@@ -312,7 +312,7 @@ fn build_main_window(app: &tauri::App, cfg: &WebApp, visited: &Visited) -> tauri
     }
     #[cfg(not(target_os = "macos"))]
     {
-        w = w.data_directory(store::profile_dir(&cfg.id));
+        w = w.data_directory(penates_core::store::profile_dir(&cfg.id));
     }
     w.build()
 }

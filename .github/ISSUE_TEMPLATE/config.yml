@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: A site needs a fix to work well (sign-in, user agent, styles)
+    url: https://github.com/Natetronn/penates-apps/issues
+    about: Presets for individual sites live in the penates-apps catalog.
+  - name: Security problem
+    url: https://github.com/Natetronn/penates/security/advisories/new
+    about: Please report security problems privately.

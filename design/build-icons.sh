@@ -4,9 +4,14 @@
 #   design/build-icons.sh [out-dir]      (default: src-tauri/icons)
 # Needs rsvg-convert (librsvg), ImageMagick 7 (magick) and the Tauri CLI (for icon.icns).
 set -euo pipefail
+for tool in rsvg-convert magick cargo; do
+  command -v "$tool" >/dev/null || { echo "missing: $tool" >&2; exit 1; }
+done
+# An out-dir is relative to where you ran the script; resolve it before moving to the repo root.
+if [[ -n "${1:-}" ]]; then mkdir -p "$1"; out="$(cd "$1" && pwd)"; fi
 cd "$(dirname "$0")/.."
 src=src-tauri/icons
-out="${1:-$src}"
+out="${out:-$src}"
 mkdir -p "$out"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 r() { rsvg-convert -w "$2" -h "$2" "$src/$1" -o "$3"; }
@@ -24,6 +29,6 @@ magick "$tmp"/{16,24,32,48,64,256}.png "$out/icon.ico"
 
 # macOS: let the Tauri CLI build the .icns from a 1024 px render, keep only that file.
 r icon.svg 1024 "$tmp/1024.png"
-cargo tauri icon "$tmp/1024.png" -o "$tmp/tauri" >/dev/null 2>&1
+if ! log="$(cargo tauri icon "$tmp/1024.png" -o "$tmp/tauri" 2>&1)"; then echo "$log" >&2; exit 1; fi
 cp "$tmp/tauri/icon.icns" "$out/icon.icns"
 echo "icons written to $out"

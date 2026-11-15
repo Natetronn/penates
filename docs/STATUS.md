@@ -1,39 +1,51 @@
 # Status
 
-What has actually been run, and where. Last updated 2026-11-14, version 0.1.0.
+What has actually been run, and where. Last updated 2026-11-15, version 0.1.0.
 
-| Platform | Build + unit tests | App launched | Checked by hand |
+| Platform | Build, tests, lint | App launched | Checked by hand |
 |---|---|---|---|
-| Linux (KDE Plasma, Wayland) | yes | yes | yes |
+| Linux (KDE Plasma, Wayland) | yes, and CI | yes, and CI smoke test | yes |
 | Windows | CI | CI smoke test | no |
 | macOS (Apple Silicon) | CI | CI smoke test | no |
 | macOS (Intel) | release build only | no | no |
 
-## Verified on Linux (KDE Plasma, Wayland)
+## Automated (every push)
+- **Unit tests** (33): config and URL handling, the id rule, host patterns and matching, names from pages and
+  addresses (including other alphabets), icon ranking, size limits and grayscale, catalog parsing and presets
+  (including "never JavaScript"), settings migration, export format and import safety, single-instance
+  messaging, download names, CLI argument rules. One test runs the runner's JavaScript link rule in Node and
+  checks it against the Rust rule.
+- **Clippy** with warnings as errors, on Linux, Windows and macOS.
+- **Smoke tests** on Linux (under Xvfb), Windows and macOS: create an app, check its launcher (`.desktop`,
+  Start Menu shortcut or `.app` bundle), launch it through that launcher, open the manager, export, remove and
+  import it. On Linux also: a second launch hands over to the first, a second manager exits, and removing a
+  running app's data is refused.
+
+## Verified on Linux by hand
 | Area | How it was checked |
 |---|---|
-| Build and tests | `cargo build --workspace`; 18 unit tests (config, URLs, host matching, semver, presets incl. no-JS, site names, manifest icons, grayscale, single-instance, export file format, id validation, name cleaning, create-time validation) |
-| CLI | create (name and icon from real sites), list, check, update, clear (refuses while running), icon from file and URL, `icons` against GitHub, Squoosh, YouTube Music |
+| CLI | create (name and icon from real sites, offline, non-Latin names), list (with a broken config), check, update, clear (refuses while running), icon from file and URL, `icons`, import with camera/devtools switched off, remove of a broken config |
+| Manager window | the release build launched and captured for Apps, Updates, Edit and Settings with the content security policy on |
 | Icons | PWA manifest preferred; local file deleted after import still works; config copied to another path still resolves |
-| Manager window | launched and captured for Apps, Create, Updates, Settings, Edit; title-bar icon is the Penates logo |
-| App window | launches, GitHub loads, title-bar icon is the site icon, registered with the window manager under the launcher's name, shown in the taskbar list |
-| Taskbar and tray (seen on screen) | confirmed by eye: taskbar entry and tray icon show the app icon; tray item registered; tray icon read back in color and grayscale (equal RGB on every visible pixel) |
-| Downloads | saved to `~/Downloads`, second download gets a new name |
-| Same-site popups | a real click on a `target=_blank` link to the app's own site opened a second app window (confirmed on screen) |
-| External links | real clicks sent to the browser (logged by a stand-in `xdg-open`); `steam:` blocked, `mailto:` and `https:` passed, `file:` refused by WebKit |
-| Embedded frames | a page embedding a frame from another site: the frame loads and runs, nothing is sent to the browser |
-| Wrapped-site isolation | a page inside an app window cannot call Tauri commands (all refused) |
-| Site permissions | notifications: real clicks gave "granted" and the notification was shown; camera and microphone: "granted: audio, video". With both settings off, both are denied (automated check). |
+| App window | launches, the site loads, title-bar icon is the site icon, registered under the launcher's name, shown in the taskbar |
+| Taskbar and tray | taskbar entry and tray icon show the app icon; tray icon read back in color and grayscale |
+| Downloads | saved to `~/Downloads`, a second download gets a new name |
+| Links (automated, 2026-11-15) | a local test site: an embedded frame from another site loads, a same-site link navigates in the app, and a link to another site does **not** load in the app |
+| Links (real clicks, before the 2026-11-15 refactor) | an external link opened the browser; a same-site `target=_blank` link opened a second app window; a link inside that popup opened the browser |
+| Wrapped-site isolation | a page inside an app window cannot call Tauri commands |
+| Site permissions | notifications and camera/microphone granted by real clicks when allowed, denied when not |
 | Cache | clearing frees the cache and keeps cookies and storage |
-| Bad ids | `..`, `../x`, `a/b` rejected by `remove --purge` and `clear --data` |
-| Export and import | CLI round trip in a scratch config: export one and all, import with rename/skip/overwrite, custom JavaScript stripped by default and kept with `--allow-js`, no cookies in the file, path-like id and `javascript:` URL rejected or sanitized |
-| Packages | see [PACKAGING](PACKAGING.md) |
+| Export and import | CLI round trips in a scratch config: rename/skip/overwrite, custom JavaScript stripped unless allowed, camera/devtools switched off, no cookies in the file, bad ids and `javascript:` URLs refused or sanitized |
+| Packages | see [PACKAGING](PACKAGING.md); the tarball installs into `~/.local` and the installed manager runs |
+
+## To check by hand before publishing
+- Real clicks on the new code: an external link opens the browser, a same-site popup opens an app window
+  (script-made clicks cannot open windows, so these need a person).
+- In the real manager window: Import and Export, Save in Edit, Update, and the icon file chooser.
 
 ## Not verified
-- Import and Export buttons in the real manager window (only the preview and the CLI were exercised).
-- File chooser in the icon picker; the Save and Update buttons end to end in the real window.
 - Site permissions on Windows and macOS (not enforced there yet).
-- **Windows and macOS by hand.** CI smoke tests (every push) create an app, check its launcher (Start Menu shortcut with icon on Windows, `.app` bundle on macOS), launch it through that launcher, open the manager, and export/remove/import it. Tray, popups, downloads and site permissions there are untested.
+- **Windows and macOS by hand.** Tray, popups, downloads and site permissions there are untested.
 - Per-app window theme on Windows and macOS.
 
 ## Known limits
