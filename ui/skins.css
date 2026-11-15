@@ -7,10 +7,10 @@
 [data-skin="default"] { --bg: #f8f7fc; --card: #ffffff; --line: #e3e0f0; --chip: #efedf8; --fg: #17152a; --muted: #625e7a; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"])[data-skin="default"],
-  :root:not([data-theme="light"]) [data-skin="default"] { --bg: #0c0b16; --card: #15132a; --line: #2a2647; --chip: #1e1b36; --fg: #f4f2ff; --muted: #a9a5c4; }
+  :root:not([data-theme="light"]) [data-skin="default"] { --bg: #191726; --card: #211f33; --line: #2e2b45; --chip: #29263d; --fg: #f4f2ff; --muted: #a9a5c4; }
 }
 :root[data-theme="dark"][data-skin="default"],
-:root[data-theme="dark"] [data-skin="default"] { --bg: #0c0b16; --card: #15132a; --line: #2a2647; --chip: #1e1b36; --fg: #f4f2ff; --muted: #a9a5c4; }
+:root[data-theme="dark"] [data-skin="default"] { --bg: #191726; --card: #211f33; --line: #2e2b45; --chip: #29263d; --fg: #f4f2ff; --muted: #a9a5c4; }
 
 /* Nord */
 [data-skin="nord"] { --bg: #eceff4; --card: #f8f9fb; --line: #d8dee9; --chip: #e5e9f0; --fg: #2e3440; --muted: #4c566a;

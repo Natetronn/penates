@@ -46,7 +46,7 @@
 /* dark: OS preference, unless the user forced light */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0c0b16; --card: #15132a; --line: #2a2647; --chip: #1e1b36;
+    --bg: #191726; --card: #211f33; --line: #2e2b45; --chip: #29263d;
     --fg: #f4f2ff; --muted: #a9a5c4;
     --danger: #ff7b6b; --ok: #4fd08a;
     --accent: var(--accent-dark); --accent-fg: #0e1014;
@@ -58,7 +58,7 @@
 
 /* dark: forced */
 :root[data-theme="dark"] {
-  --bg: #0c0b16; --card: #15132a; --line: #2a2647; --chip: #1e1b36;
+  --bg: #191726; --card: #211f33; --line: #2e2b45; --chip: #29263d;
   --fg: #f4f2ff; --muted: #a9a5c4;
   --danger: #ff7b6b; --ok: #4fd08a;
   --accent: var(--accent-dark); --accent-fg: #0e1014;
