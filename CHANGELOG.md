@@ -13,6 +13,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 ### Fixed
 - Favicons in ICO files whose largest image is a grayscale or palette PNG (Tailscale's, for one) were rejected; Penates now reads the file's images one by one.
 - After installing from the tarball, KDE's menu shows the Penates icon right away (the installer tells KDE programs the icon theme changed).
+- Import's file chooser showed no `.penates` files on Linux (the file filter only understood JSON); it now shows all files and checks the one you pick.
 - Apps opened from the manager no longer linger as defunct processes after you close them.
 - The CLI no longer panics when its output is cut short, e.g. `penates check | head -1`; it exits quietly like other command line tools.
 

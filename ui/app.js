@@ -185,7 +185,9 @@ function importFlags(s) {
 }
 
 function renderImportPick(root, cancel) {
-  const file = el("input", { type: "file", id: "imp-file", accept: ".penates,.json,application/json" });
+  // No `accept` filter: WebKitGTK turns it into a file-dialog filter of MIME types only, and .penates has
+  // none, so exported files would be hidden. The contents are checked on load instead.
+  const file = el("input", { type: "file", id: "imp-file" });
   const url = el("input", { type: "text", id: "imp-url", class: "grow", placeholder: "https://example.com/github.penates" });
   const load = async (source, isUrl) => {
     try { importing = { stage: "review", data: await invoke("inspect_import", { source, isUrl }) }; renderApps(); } catch (e) { fail(e); }
@@ -295,7 +297,7 @@ function iconSection(a, inputs, keepEdits) {
   const candBox = el("div", { class: "icons" });
   const urlIn = el("input", { type: "text", id: "icon-url", class: "grow", placeholder: "https://example.com/logo.png", "aria-label": "Icon image address" });
   const pick = (call) => async () => { try { const s = await call(); keepEdits(s.app); sayWith("Icon updated.", s.warning); } catch (e) { fail(e); } };
-  const file = el("input", { type: "file", accept: "image/png,image/jpeg,image/webp,image/gif,image/x-icon,.ico", hidden: true,
+  const file = el("input", { type: "file", accept: "image/png,image/jpeg,image/webp,image/gif,image/x-icon,image/vnd.microsoft.icon,.ico", hidden: true,
     onchange: () => { const f = file.files[0]; if (f) pick(async () => invoke("set_icon_from_bytes", { id: a.id, bytes: Array.from(new Uint8Array(await f.arrayBuffer())) }))(); } });
   const find = (ev) => busy(ev.target, null, async () => {
     candBox.textContent = "Searching…";
@@ -366,7 +368,7 @@ function renderCreate() {
   });
   const open = el("input", { type: "checkbox", id: "c-open", checked: true });
   const iconUrl = el("input", { type: "text", id: "c-icon-url", placeholder: "https://example.com/logo.png" });
-  const iconFile = el("input", { type: "file", id: "c-icon-file", accept: "image/png,image/jpeg,image/webp,image/gif,image/x-icon,.ico" });
+  const iconFile = el("input", { type: "file", id: "c-icon-file", accept: "image/png,image/jpeg,image/webp,image/gif,image/x-icon,image/vnd.microsoft.icon,.ico" });
   put($("tab-create"),
     el("h2", {}, "Create an app"),
     el("p", { class: "hint" }, "Paste a site address. The name and icon are read from the site automatically. You can edit either one here or later under Edit."),
