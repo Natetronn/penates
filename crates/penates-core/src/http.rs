@@ -32,6 +32,15 @@ pub fn get(url: &str, limit: u64) -> Result<Fetched> {
     Ok(Fetched { final_url, body })
 }
 
+/// GET `url` as text, or None when the server says it does not exist (404).
+pub fn get_text_if_exists(url: &str) -> Result<Option<String>> {
+    match AGENT.get(url).call() {
+        Err(ureq::Error::Status(404, _)) => Ok(None),
+        Err(e) => Err(e.into()),
+        Ok(_) => get_text(url).map(Some),
+    }
+}
+
 /// GET `url` as text (lossy UTF-8), capped at `MAX_BYTES`.
 pub fn get_text(url: &str) -> Result<String> {
     Ok(String::from_utf8_lossy(&get(url, MAX_BYTES)?.body).into_owned())

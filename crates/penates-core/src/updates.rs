@@ -129,9 +129,12 @@ pub struct LatestRelease {
     pub pub_date: String,
 }
 
-/// A newer published Penates, if there is one.
+/// A newer published Penates, if there is one. Before the first release there is no `latest.json`
+/// (404), which simply means nothing newer.
 pub fn check_penates() -> Result<Option<PenatesUpdate>> {
-    let text = http::get_text(LATEST_JSON).context("could not reach the releases page")?;
+    let Some(text) = http::get_text_if_exists(LATEST_JSON).context("could not reach the releases page")? else {
+        return Ok(None);
+    };
     let r: LatestRelease = serde_json::from_str(&text).context("invalid latest.json")?;
     Ok((ver(&r.version) > ver(CURRENT_VERSION)).then(|| PenatesUpdate {
         current: CURRENT_VERSION.into(),
@@ -155,20 +158,64 @@ pub struct AppsReport {
     pub current: String,
     /// "Penates app catalog", "built-in catalog (…)" or the catalog address used.
     pub source: String,
+    /// Apps in the catalog, and apps installed here.
+    pub catalog_size: usize,
+    pub app_count: usize,
     pub apps: Vec<AppUpdate>,
 }
 
 /// Apps whose catalog preset has a newer version.
 pub fn check_apps() -> Result<AppsReport> {
     let (c, source) = load_catalog()?;
-    let apps = store::list()
+    let mine = store::list();
+    let app_count = mine.len();
+    let apps = mine
         .into_iter()
         .filter_map(|a| {
             let e = newer_entry(&c, &a)?;
             Some(AppUpdate { to: e.version.clone(), notes: e.notes.clone(), from: a.catalog_version, id: a.id, name: a.name })
         })
         .collect();
-    Ok(AppsReport { current: CURRENT_VERSION.into(), source, apps })
+    Ok(AppsReport { current: CURRENT_VERSION.into(), source, catalog_size: c.catalog.len(), app_count, apps })
+}
+
+/// One app in the catalog, for browsing ("Popular apps").
+#[derive(Debug, Clone, Serialize)]
+pub struct CatalogApp {
+    pub id: String,
+    pub name: String,
+    pub url: String,
+    pub notes: String,
+    /// The id of an app already made for this site, if any.
+    pub added: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CatalogListing {
+    pub source: String,
+    pub apps: Vec<CatalogApp>,
+}
+
+/// Every app in the catalog, sorted by name, marking the ones already made here.
+pub fn catalog_listing() -> Result<CatalogListing> {
+    let (c, source) = load_catalog()?;
+    Ok(listing(&c, source, &store::list()))
+}
+
+fn listing(c: &Catalog, source: String, mine: &[WebApp]) -> CatalogListing {
+    let mut apps: Vec<CatalogApp> = c
+        .catalog
+        .iter()
+        .map(|e| CatalogApp {
+            id: e.id.clone(),
+            name: e.name.clone().unwrap_or_else(|| e.id.clone()),
+            url: e.url.clone(),
+            notes: e.notes.clone(),
+            added: mine.iter().find(|a| find_entry(c, a).is_some_and(|x| x.id == e.id)).map(|a| a.id.clone()),
+        })
+        .collect();
+    apps.sort_by_key(|a| a.name.to_lowercase());
+    CatalogListing { source, apps }
 }
 
 #[cfg(test)]
@@ -195,6 +242,18 @@ mod tests {
         assert!(app.inject_js.is_none());
         assert_eq!(app.inject_css.as_deref(), Some("a{}"));
         assert_eq!(app.internal_hosts, ["login.x.example"]); // cleaned; the *.com wildcard dropped
+    }
+
+    #[test]
+    fn listing_marks_apps_already_made() {
+        let c = parse_catalog(BUILTIN).unwrap();
+        let mine = [WebApp { id: "my-gh".into(), url: "https://www.github.com/".into(), ..Default::default() }];
+        let l = listing(&c, "test".into(), &mine);
+        assert_eq!(l.apps.len(), c.catalog.len());
+        assert!(l.apps.windows(2).all(|w| w[0].name.to_lowercase() <= w[1].name.to_lowercase()));
+        let gh = l.apps.iter().find(|a| a.id == "github").unwrap();
+        assert_eq!(gh.added.as_deref(), Some("my-gh"));
+        assert!(l.apps.iter().filter(|a| a.id != "github").all(|a| a.added.is_none()));
     }
 
     #[test]

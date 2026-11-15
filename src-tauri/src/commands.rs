@@ -194,6 +194,12 @@ pub async fn update_all() -> CmdResult<ops::UpdateAll> {
     blocking(|| Ok(ops::update_all())).await
 }
 
+/// The app catalog's apps, for browsing (Create → Popular apps).
+#[tauri::command]
+pub async fn catalog_apps() -> CmdResult<updates::CatalogListing> {
+    blocking(updates::catalog_listing).await
+}
+
 /// Apps with a newer catalog preset. (Penates's own version: `check_self_update`.)
 #[tauri::command]
 pub async fn check_apps() -> CmdResult<updates::AppsReport> {
@@ -217,7 +223,14 @@ pub struct SelfUpdate {
 #[tauri::command]
 pub async fn check_self_update(app: tauri::AppHandle) -> CmdResult<Option<SelfUpdate>> {
     use tauri_plugin_updater::UpdaterExt;
-    let update = app.updater().map_err(err)?.check().await.map_err(err)?;
+    let update = match app.updater().map_err(err)?.check().await {
+        Ok(u) => u,
+        // Before the first release there is no latest.json at all: nothing newer, not an error.
+        Err(e) => match blocking(updates::check_penates).await {
+            Ok(None) => None,
+            _ => return Err(err(e)),
+        },
+    };
     let bundled = tauri::utils::platform::bundle_type().is_some();
     Ok(update.map(|u| SelfUpdate {
         current: u.current_version.clone(),

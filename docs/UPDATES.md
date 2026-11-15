@@ -6,7 +6,8 @@ Two kinds of updates, each with its own check under **Settings → Updates** (th
    The desktop app offers **Install and restart** where the install type allows it; `penates check`
    reports it. See [RELEASING](RELEASING.md).
 2. **App presets** come from the app catalog: small per-site fixes (extra sign-in hosts, a user agent, CSS)
-   synced into installed apps.
+   synced into installed apps. The catalog's apps can also be browsed and added in one click under
+   **Create → Popular apps** (`penates catalog` on the command line).
 
 The two are checked separately, so a catalog that cannot be read never hides whether a new Penates exists.
 

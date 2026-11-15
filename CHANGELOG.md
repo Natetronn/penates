@@ -25,6 +25,7 @@ First release. Verified by hand on Linux (KDE Plasma, Wayland); Linux, Windows a
 - **Cache and data**: clear the cache (keeps you signed in) or clear cookies and data.
 - **Icons**: picked automatically, or chosen from a file or URL; Penates keeps its own copy in `~/.config/penates/icons/`.
 - **Export, import and backup**: one app or all of them to a `.penates` file (configs and icons, never cookies or logins); imports show what they would change before applying.
+- **Popular apps**: browse the app catalog under Create and add a ready-made app in one click (`penates catalog` lists it on the command line).
 - **Updates**: Penates checks for new versions of itself, and syncs small per-site fixes (presets) into your apps from the shared [penates-apps](https://github.com/Natetronn/penates-apps) catalog (GitHub, YouTube, YouTube Music, Notion, Proton Mail, Discord, WhatsApp, Spotify, Cloudflare, Tailscale), with a built-in copy for offline use. Both checks are in Settings → Updates.
 - **Manager**: Apps, Create, Updates and Settings tabs, an About dialog, light/dark/system, six accents and four looks (Penates, Nord, Solarized, High contrast), all from plain CSS tokens, keyboard friendly. Configs that no longer load are listed and can be removed.
 - **Packages**: AppImage, `.deb`, `.rpm`, Windows installer, macOS `.dmg`, an AUR package (`penates-bin`) and a portable tarball with an install script.

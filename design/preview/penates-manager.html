@@ -159,6 +159,7 @@ textarea{font-family:var(--mono);font-size:12px;min-height:80px;resize:vertical}
 .app{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);padding:10px 12px;margin-bottom:8px;flex-wrap:wrap}
 .app img,.ph{width:40px;height:40px;border-radius:9px;object-fit:contain;background:var(--chip);flex:none}
 .app.broken{border-style:dashed}
+.ph.letter{display:grid;place-items:center;font-weight:600;font-size:18px;color:var(--muted)}
 .meta{flex:1 1 180px;min-width:0}.meta b{display:block}
 .meta span{display:block;color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .meta span.url{font-family:var(--mono)}
@@ -374,7 +375,14 @@ const H = {
     await wait(500);
     const apps = db.map((a) => [a, entryFor(a)]).filter(([a, f]) => f && newer(f[1].v, a.catalog_version))
       .map(([a, [, e]]) => ({ id: a.id, name: a.name, from: a.catalog_version, to: e.v, notes: e.notes }));
-    return { current: '0.1.0', source: settings.catalog_url || 'Penates app catalog', apps };
+    return { current: '0.1.0', source: settings.catalog_url || 'Penates app catalog', catalog_size: CATALOG.catalog.length, app_count: db.length, apps };
+  },
+  async catalog_apps() {
+    await wait(300);
+    const apps = CATALOG.catalog.map((e) => { const mine = db.find((a) => { const f = entryFor(a); return f && f[0] === e.id; });
+      return { id: e.id, name: e.name || e.id, url: e.url, notes: e.notes, added: mine ? mine.id : null }; })
+      .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+    return { source: settings.catalog_url || 'Penates app catalog', apps };
   },
   get_update_settings: () => ({ ...settings }),
   set_update_settings({ updates }) { settings = updates; },
@@ -784,7 +792,34 @@ function renderCreate() {
         el("p", { class: "hint" }, "Leave both empty to use the site's own icon."),
         el("div", { class: "grid" }, el("label", { class: "f" }, "Image address", iconUrl), el("label", { class: "f" }, "Or choose a file", iconFile))),
       el("label", { class: "chk" }, open, el("span", {}, "Open after creating")),
-      el("div", { class: "row" }, el("button", { class: "primary", textContent: "Create app" }))));
+      el("div", { class: "row" }, el("button", { class: "primary", textContent: "Create app" }))),
+    popularApps());
+}
+
+// ---- popular apps (the app catalog, browsable) ----
+const hostOf = (url) => { try { return new URL(url).host.replace(/^www\./, ""); } catch { return url; } };
+function letterTile(name) {
+  return el("div", { class: "ph letter", "aria-hidden": "true" }, (name[0] || "?").toUpperCase());
+}
+function popularApps() {
+  const box = el("div", {}, el("p", { class: "hint" }, "Loading the app catalog…"));
+  const fill = async () => {
+    try {
+      const l = await invoke("catalog_apps");
+      put(box, el("p", { class: "hint" }, `Ready-made apps from the ${l.source}. Adding one also applies its fixes, such as keeping sign-in inside the window.`),
+        l.apps.map((c) => el("div", { class: "app" }, letterTile(c.name),
+          el("div", { class: "meta" }, el("b", {}, c.name), el("span", { class: "url" }, hostOf(c.url)), el("span", { class: "wrap" }, c.notes)),
+          c.added
+            ? [el("span", { class: "chip" }, "added"), el("button", { textContent: "Open", onclick: () => invoke("run_app", { id: c.added }).catch(fail) })]
+            : el("button", { class: "primary", textContent: "Add", "aria-label": "Add " + c.name, onclick: (ev) => busy(ev.target, "Adding…", async () => {
+                const r = await invoke("create_app", { url: c.url, name: c.name, openAfter: false, iconUrl: null, iconBytes: null });
+                sayWith(`Added ${r.app.name}. Open it from the Apps tab or your app menu.`, r.warnings);
+                refreshReport(); fill();
+              }) }))));
+    } catch (e) { put(box, el("p", { class: "hint" }, "Could not load the app catalog: " + e)); }
+  };
+  fill();
+  return [el("h2", {}, "Popular apps"), box];
 }
 
 // ---- updates ----
@@ -831,7 +866,8 @@ function appsStatus() {
   if (c.state === "checking") return el("p", { class: "hint" }, "Checking…");
   if (c.state === "error") return el("p", { class: "hint" }, "Could not check your apps: " + c.error);
   const r = c.report;
-  if (!r.apps.length) return el("p", {}, `All apps are up to date (catalog: ${r.source}).`);
+  if (!r.app_count) return el("p", {}, `No apps yet. The ${r.source} has ${plural(r.catalog_size, "ready-made app")}: see `, link("Popular apps", () => show("create")), " under Create.");
+  if (!r.apps.length) return el("p", {}, `All apps are up to date (${r.source}, ${plural(r.catalog_size, "app")}).`);
   return [el("p", { class: "hint" }, `From the ${r.source}.`), r.apps.map((u) => el("div", { class: "app" },
     el("div", { class: "meta" }, el("b", {}, u.name), el("span", { class: "wrap" }, `Preset ${u.from ?? "none"} → ${u.to}: ${u.notes}`)),
     el("button", { textContent: "Update", onclick: (ev) => busy(ev.target, "Updating…", async () => {
@@ -908,6 +944,11 @@ function updatesSection(us) {
     put(appsStatusEl, `Updated ${plural(r.updated.length, "app")}: icons refreshed and newer presets applied.`);
   }) });
   const url = el("input", { type: "text", id: "s-catalog-url", value: us.catalog_url, placeholder: "Empty = the Penates app catalog" });
+  const catalogStatus = el("p", { class: "hint", role: "status" }, "Checking the app catalog…");
+  const showCatalog = () => invoke("catalog_apps")
+    .then((l) => put(catalogStatus, `Using the ${l.source}: ${plural(l.apps.length, "app")}. `, link("Browse them", () => show("create"))))
+    .catch((e) => put(catalogStatus, "Could not load the app catalog: " + e));
+  showCatalog();
   return [el("h2", {}, "Updates"),
     el("label", { class: "chk", style: "margin-bottom:10px" }, onStart, el("span", {}, "Check for updates when Penates starts", el("small", {}, "Both kinds below: a new Penates and updates for your apps"))),
     el("fieldset", {}, el("legend", {}, "Penates"),
@@ -918,7 +959,8 @@ function updatesSection(us) {
       el("div", { class: "row update-check" }, appsBtn, updateAll, appsStatusEl),
       el("label", { class: "f" }, "App catalog address (https://, file:// or a path; leave empty for the Penates app catalog)", url),
       el("div", { class: "row" }, el("button", { type: "button", textContent: "Save address", onclick: () =>
-        save({ catalog_url: url.value.trim() }).then(() => { say("Saved."); refreshReport(); }).catch(fail) })))];
+        save({ catalog_url: url.value.trim() }).then(() => { say("Saved."); refreshReport(); put(catalogStatus, "Checking the app catalog…"); showCatalog(); }).catch(fail) })),
+      catalogStatus)];
 }
 
 async function renderSettings() {

@@ -114,6 +114,8 @@ enum Cmd {
         #[arg(long)]
         purge: bool,
     },
+    /// List the apps in the app catalog (ready-made fixes for known sites)
+    Catalog,
     /// Check for Penates and app-preset updates
     Check,
     /// Update one app (preset sync + icon refresh), or all with --all
@@ -366,11 +368,24 @@ fn cmd_check() -> Result<()> {
     for a in &r.apps {
         println!("  {:<18} preset {} -> {}  {}", a.id, a.from.as_deref().unwrap_or("none"), a.to, a.notes);
     }
-    if r.apps.is_empty() {
+    if r.app_count == 0 {
+        println!("  no apps yet; `penates catalog` lists {} ready-made ones", r.catalog_size);
+    } else if r.apps.is_empty() {
         println!("  all apps are up to date");
     } else {
         println!("run `penates update --all` to apply");
     }
+    Ok(())
+}
+
+fn cmd_catalog() -> Result<()> {
+    let l = updates::catalog_listing()?;
+    println!("{} ({} apps):", l.source, l.apps.len());
+    for a in &l.apps {
+        let mark = a.added.as_ref().map(|id| format!("  [added as {id}]")).unwrap_or_default();
+        println!("  {:<16} {:<34} {}{mark}", a.name, a.url, a.notes);
+    }
+    println!("add one with `penates create <url>`; its fixes apply automatically");
     Ok(())
 }
 
@@ -472,6 +487,7 @@ fn main() -> Result<()> {
         Cmd::Export { ids, all: _, settings, output } => cmd_export(ids, settings, output),
         Cmd::Import { source, on_conflict, allow_js, settings, yes } => cmd_import(&source, on_conflict, allow_js, settings, yes),
         Cmd::Remove { id, purge } => cmd_remove(&id, purge),
+        Cmd::Catalog => cmd_catalog(),
         Cmd::Check => cmd_check(),
         Cmd::Update { id, all: _ } => cmd_update(id),
         Cmd::Edit { id } => cmd_edit(&id),

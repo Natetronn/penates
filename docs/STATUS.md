@@ -10,9 +10,9 @@ What has actually been run, and where. Last updated 2026-11-15, version 0.1.0.
 | macOS (Intel) | release build only | no | no |
 
 ## Automated (every push)
-- **Unit tests** (33): config and URL handling, the id rule, host patterns and matching, names from pages and
+- **Unit tests** (34): config and URL handling, the id rule, host patterns and matching, names from pages and
   addresses (including other alphabets), icon ranking, size limits and grayscale, catalog parsing and presets
-  (including "never JavaScript"), settings migration, export format and import safety, single-instance
+  (including "never JavaScript"), the catalog listing, settings migration, export format and import safety, single-instance
   messaging, download names, CLI argument rules. One test runs the runner's JavaScript link rule in Node and
   checks it against the Rust rule.
 - **Clippy** with warnings as errors, on Linux, Windows and macOS.
@@ -25,7 +25,7 @@ What has actually been run, and where. Last updated 2026-11-15, version 0.1.0.
 | Area | How it was checked |
 |---|---|
 | CLI | create (name and icon from real sites, offline, non-Latin names), list (with a broken config), check, update, clear (refuses while running), icon from file and URL, `icons`, import with camera/devtools switched off, remove of a broken config |
-| Manager window | the release build launched and captured for Apps, Updates, Edit and Settings with the content security policy on |
+| Manager window | the release build launched and captured for Apps, Updates, Edit and Settings with the content security policy on; Create → Popular apps lists the live catalog; with no apps and no published release, Updates reads "No apps yet" and "up to date" |
 | Icons | PWA manifest preferred; local file deleted after import still works; config copied to another path still resolves |
 | App window | launches, the site loads, title-bar icon is the site icon, registered under the launcher's name, shown in the taskbar |
 | Taskbar and tray | taskbar entry and tray icon show the app icon; tray icon read back in color and grayscale |

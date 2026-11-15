@@ -92,7 +92,14 @@ const H = {
     await wait(500);
     const apps = db.map((a) => [a, entryFor(a)]).filter(([a, f]) => f && newer(f[1].v, a.catalog_version))
       .map(([a, [, e]]) => ({ id: a.id, name: a.name, from: a.catalog_version, to: e.v, notes: e.notes }));
-    return { current: '0.1.0', source: settings.catalog_url || 'Penates app catalog', apps };
+    return { current: '0.1.0', source: settings.catalog_url || 'Penates app catalog', catalog_size: CATALOG.catalog.length, app_count: db.length, apps };
+  },
+  async catalog_apps() {
+    await wait(300);
+    const apps = CATALOG.catalog.map((e) => { const mine = db.find((a) => { const f = entryFor(a); return f && f[0] === e.id; });
+      return { id: e.id, name: e.name || e.id, url: e.url, notes: e.notes, added: mine ? mine.id : null }; })
+      .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+    return { source: settings.catalog_url || 'Penates app catalog', apps };
   },
   get_update_settings: () => ({ ...settings }),
   set_update_settings({ updates }) { settings = updates; },
