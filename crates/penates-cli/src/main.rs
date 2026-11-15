@@ -63,7 +63,7 @@ enum Cmd {
     Run { id: String },
     /// (Re)create the application-menu launcher
     Install { id: String },
-    /// Re-fetch the icon from the site
+    /// Set an app's icon from a file or URL, or re-fetch the site's own
     Icon {
         id: String,
         /// Image file or http(s) URL; omit to re-fetch the site's own icon

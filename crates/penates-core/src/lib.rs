@@ -48,9 +48,9 @@ pub struct WebApp {
     /// Open links to other sites in the system browser (otherwise they load in-app).
     pub external_links_in_browser: bool,
     pub devtools: bool,
-    /// Show a system tray icon.
-    /// Window theme: "system", "light" or "dark" (also drives the site's prefers-color-scheme).
+    /// Window theme: "system", "light" or "dark" (honored on Windows and macOS; Linux sites follow the desktop).
     pub theme: String,
+    /// Show a system tray icon.
     pub tray: bool,
     /// Draw the tray icon in grayscale.
     pub tray_grayscale: bool,
