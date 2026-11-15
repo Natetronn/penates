@@ -327,6 +327,12 @@ fn unique_download_path(suggested: &std::path::Path) -> std::path::PathBuf {
         .expect("unbounded range")
 }
 
+/// The macro embeds the app's Info.plist as a global symbol, so it may only be expanded once
+/// (twice is a hard link error on macOS).
+fn app_context() -> tauri::Context {
+    tauri::generate_context!()
+}
+
 fn toggle_main(app: &tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
         if w.is_visible().unwrap_or(true) && !w.is_minimized().unwrap_or(false) {
@@ -506,7 +512,7 @@ fn run_webapp(cfg: WebApp) -> tauri::Result<()> {
             }
             Ok(())
         })
-        .run(tauri::generate_context!())
+        .run(app_context())
 }
 
 // ---------- manager ----------
@@ -548,7 +554,7 @@ fn run_manager(start: Option<String>) -> tauri::Result<()> {
                 .build()?;
             Ok(())
         })
-        .run(tauri::generate_context!())
+        .run(app_context())
 }
 
 fn main() {
