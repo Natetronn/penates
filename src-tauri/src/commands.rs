@@ -200,6 +200,12 @@ pub async fn catalog_apps() -> CmdResult<updates::CatalogListing> {
     blocking(updates::catalog_listing).await
 }
 
+/// The icon of a catalog app, for the Popular apps list (cached; see `icon::catalog_icon`).
+#[tauri::command]
+pub async fn catalog_icon(id: String, url: String, icon_url: Option<String>) -> CmdResult<String> {
+    blocking(move || Ok(png_data_url(&icon::catalog_icon(&id, &url, icon_url.as_deref())?))).await
+}
+
 /// Apps with a newer catalog preset. (Penates's own version: `check_self_update`.)
 #[tauri::command]
 pub async fn check_apps() -> CmdResult<updates::AppsReport> {

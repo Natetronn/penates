@@ -54,5 +54,6 @@ The manager's own launcher is `penates.desktop` (app ID `penates`); packages shi
 | Settings | `~/.config/penates/settings.toml` | `…/penates/settings.toml` | `%APPDATA%\penates\settings.toml` |
 | Browsing profiles | `~/.local/share/penates/profiles/<id>/` | WKWebView data stores | `%LOCALAPPDATA%\penates\profiles\<id>\` |
 | Launchers | `~/.local/share/applications/` | `~/Applications/Penates/` | Start Menu `Programs\Penates\` |
+| Popular-apps icon cache (safe to delete) | `~/.cache/penates/catalog-icons/` | `~/Library/Caches/penates/catalog-icons/` | `%LOCALAPPDATA%\penates\catalog-icons\` |
 
 Config and settings files are written through a temporary file and a rename, so a crash never leaves half a file.

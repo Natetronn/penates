@@ -53,17 +53,63 @@ fn download(src: &str) -> Result<Vec<u8>> {
     Ok(http::get(src, MAX_ICON_BYTES as u64)?.body)
 }
 
-/// Decode any supported image into a 256x256 transparent-padded square PNG. Decoding is capped
-/// (4096 px a side, 64 MB), so a hostile file cannot exhaust memory.
-pub fn normalize(bytes: &[u8]) -> Result<Vec<u8>> {
-    anyhow::ensure!(bytes.len() <= MAX_ICON_BYTES, "image is larger than 8 MB");
+/// Decode one image with size limits (4096 px a side, 64 MB), so a hostile file cannot exhaust memory.
+fn decode_limited(bytes: &[u8]) -> Result<image::DynamicImage> {
     let mut reader = image::ImageReader::new(std::io::Cursor::new(bytes)).with_guessed_format()?;
     let mut limits = image::Limits::default();
     limits.max_image_width = Some(4096);
     limits.max_image_height = Some(4096);
     limits.max_alloc = Some(64 * 1024 * 1024);
     reader.limits(limits);
-    let img = reader.decode().context("unsupported or oversized image (use PNG, JPG, ICO, GIF or WebP up to 4096 px)")?;
+    Ok(reader.decode()?)
+}
+
+/// The images inside an ICO file, largest first, each as a standalone file: embedded PNGs as they are,
+/// bitmap entries wrapped in a one-entry ICO. Used when the ICO decoder refuses the file as a whole
+/// (it only accepts full-color PNG entries, but many favicons embed grayscale or palette PNGs).
+fn ico_entries(bytes: &[u8]) -> Vec<Vec<u8>> {
+    let u16_at = |i: usize| bytes.get(i..i + 2).map(|b| u16::from_le_bytes([b[0], b[1]]));
+    let u32_at = |i: usize| bytes.get(i..i + 4).map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]]));
+    if u16_at(0) != Some(0) || u16_at(2) != Some(1) {
+        return vec![];
+    }
+    let count = u16_at(4).unwrap_or(0) as usize;
+    let mut entries: Vec<(u32, Vec<u8>)> = (0..count.min(64))
+        .filter_map(|n| {
+            let dir = 6 + n * 16;
+            let side = |b: u8| if b == 0 { 256 } else { b as u32 };
+            let size = side(*bytes.get(dir)?) * side(*bytes.get(dir + 1)?);
+            let (len, off) = (u32_at(dir + 8)? as usize, u32_at(dir + 12)? as usize);
+            let data = bytes.get(off..off.checked_add(len)?)?;
+            let file = if data.starts_with(b"\x89PNG") {
+                data.to_vec()
+            } else {
+                // A one-entry ICO around this bitmap: header, the directory entry (data now at offset 22), data.
+                let mut one = vec![0, 0, 1, 0, 1, 0];
+                one.extend_from_slice(&bytes[dir..dir + 12]);
+                one.extend_from_slice(&22u32.to_le_bytes());
+                one.extend_from_slice(data);
+                one
+            };
+            Some((size, file))
+        })
+        .collect();
+    entries.sort_by_key(|e| std::cmp::Reverse(e.0));
+    entries.into_iter().map(|e| e.1).collect()
+}
+
+/// Decode any supported image, trying an ICO's entries one by one when the file as a whole fails.
+fn decode(bytes: &[u8]) -> Result<image::DynamicImage> {
+    match decode_limited(bytes) {
+        Ok(img) => Ok(img),
+        Err(e) => ico_entries(bytes).iter().find_map(|entry| decode_limited(entry).ok()).ok_or(e),
+    }
+}
+
+/// Decode any supported image into a 256x256 transparent-padded square PNG.
+pub fn normalize(bytes: &[u8]) -> Result<Vec<u8>> {
+    anyhow::ensure!(bytes.len() <= MAX_ICON_BYTES, "image is larger than 8 MB");
+    let img = decode(bytes).context("unsupported or oversized image (use PNG, JPG, ICO, GIF or WebP up to 4096 px)")?;
     anyhow::ensure!(img.width().min(img.height()) >= 16, "icon too small");
     let img = img.resize(256, 256, imageops::FilterType::Lanczos3).to_rgba8();
     let mut canvas = RgbaImage::new(256, 256);
@@ -129,6 +175,37 @@ pub fn fetch_for(page_url: &str, id: &str) -> Result<PathBuf> {
     Ok(save_png(id, &best_from(&Page::fetch(page_url)?)?)?.0)
 }
 
+/// How long an icon shown in the catalog listing is reused before it is fetched again.
+const CATALOG_ICON_MAX_AGE: std::time::Duration = std::time::Duration::from_secs(30 * 24 * 3600);
+
+/// Cached icons for browsing the catalog. Separate from app icons, and safe to delete.
+fn catalog_icon_cache(id: &str) -> PathBuf {
+    dirs::cache_dir().unwrap_or_else(std::env::temp_dir).join("penates").join("catalog-icons").join(format!("{id}.png"))
+}
+
+/// The icon for a catalog app (for browsing, before it is added): the cached copy while it is fresh,
+/// else the entry's own icon address, else the site's best icon. A normalized 256 px PNG.
+pub fn catalog_icon(id: &str, url: &str, icon_url: Option<&str>) -> Result<Vec<u8>> {
+    store::check_id(id)?;
+    let site = Url::parse(url)?;
+    anyhow::ensure!(matches!(site.scheme(), "http" | "https"), "only http(s) sites");
+    let cached = catalog_icon_cache(id);
+    let fresh = std::fs::metadata(&cached)
+        .and_then(|m| m.modified())
+        .is_ok_and(|t| t.elapsed().is_ok_and(|age| age < CATALOG_ICON_MAX_AGE));
+    if fresh {
+        if let Ok(png) = std::fs::read(&cached) {
+            return Ok(png);
+        }
+    }
+    let png = match icon_url.and_then(|u| fetch_png(u).ok()) {
+        Some(png) => png,
+        None => best_from(&Page::fetch(url)?)?,
+    };
+    let _ = store::write_atomic(&cached, &png); // a cache: failing to write it is not an error
+    Ok(png)
+}
+
 pub struct Candidate {
     pub src: String,
     pub png: Vec<u8>,
@@ -185,6 +262,41 @@ mod tests {
         assert_eq!(max_size("48x48 96x96"), 96);
         assert_eq!(max_size("any"), 0);
         assert_eq!(max_size(&format!("{}x1", i64::MAX)), 10_000); // no overflow
+    }
+
+    /// An ICO whose largest entry is a grayscale PNG (as on login.tailscale.com), plus a 16 px one.
+    #[test]
+    fn ico_with_a_grayscale_png_entry_decodes() {
+        let mut gray = vec![];
+        image::DynamicImage::ImageLuma8(image::GrayImage::from_pixel(64, 64, image::Luma([200])))
+            .write_to(&mut std::io::Cursor::new(&mut gray), image::ImageFormat::Png)
+            .unwrap();
+        let mut small = vec![];
+        image::DynamicImage::ImageRgba8(RgbaImage::new(16, 16))
+            .write_to(&mut std::io::Cursor::new(&mut small), image::ImageFormat::Png)
+            .unwrap();
+        let mut ico = vec![0, 0, 1, 0, 2, 0];
+        let first = 6 + 2 * 16;
+        for (side, data, off) in [(64u8, &gray, first), (16u8, &small, first + gray.len())] {
+            ico.extend_from_slice(&[side, side, 0, 0, 1, 0, 32, 0]);
+            ico.extend_from_slice(&(data.len() as u32).to_le_bytes());
+            ico.extend_from_slice(&(off as u32).to_le_bytes());
+        }
+        ico.extend_from_slice(&gray);
+        ico.extend_from_slice(&small);
+        assert!(decode_limited(&ico).is_err(), "the library still refuses it; this test guards the fallback");
+        let png = normalize(&ico).unwrap();
+        let img = image::load_from_memory(&png).unwrap().to_rgba8();
+        assert_eq!(img.dimensions(), (256, 256));
+        assert_eq!(img.get_pixel(128, 128).0, [200, 200, 200, 255], "the 64 px grayscale entry was used");
+        assert!(ico_entries(b"not an ico").is_empty());
+    }
+
+    #[test]
+    fn catalog_icons_check_their_inputs_before_any_download() {
+        assert!(catalog_icon("../x", "https://example.com/", None).is_err());
+        assert!(catalog_icon("ok", "file:///etc/passwd", None).is_err());
+        assert!(catalog_icon("ok", "not a url", None).is_err());
     }
 
     #[test]

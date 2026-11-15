@@ -395,13 +395,21 @@ const hostOf = (url) => { try { return new URL(url).host.replace(/^www\./, ""); 
 function letterTile(name) {
   return el("div", { class: "ph letter", "aria-hidden": "true" }, (name[0] || "?").toUpperCase());
 }
+/** The site's icon (fetched once and cached by the Rust side); the letter tile until it arrives. */
+function catalogIcon(c) {
+  const tile = letterTile(c.name);
+  invoke("catalog_icon", { id: c.id, url: c.url, iconUrl: c.icon_url || null })
+    .then((d) => tile.replaceWith(el("img", { src: d, alt: "" })))
+    .catch(() => {}); // no icon: keep the letter
+  return tile;
+}
 function popularApps() {
   const box = el("div", {}, el("p", { class: "hint" }, "Loading the app catalog…"));
   const fill = async () => {
     try {
       const l = await invoke("catalog_apps");
       put(box, el("p", { class: "hint" }, `Ready-made apps from the ${l.source}. Adding one also applies its fixes, such as keeping sign-in inside the window.`),
-        l.apps.map((c) => el("div", { class: "app" }, letterTile(c.name),
+        l.apps.map((c) => el("div", { class: "app" }, catalogIcon(c),
           el("div", { class: "meta" }, el("b", {}, c.name), el("span", { class: "url" }, hostOf(c.url)), el("span", { class: "wrap" }, c.notes)),
           c.added
             ? [el("span", { class: "chip" }, "added"), el("button", { textContent: "Open", onclick: () => invoke("run_app", { id: c.added }).catch(fail) })]

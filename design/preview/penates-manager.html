@@ -380,9 +380,14 @@ const H = {
   async catalog_apps() {
     await wait(300);
     const apps = CATALOG.catalog.map((e) => { const mine = db.find((a) => { const f = entryFor(a); return f && f[0] === e.id; });
-      return { id: e.id, name: e.name || e.id, url: e.url, notes: e.notes, added: mine ? mine.id : null }; })
+      return { id: e.id, name: e.name || e.id, url: e.url, notes: e.notes, icon_url: e.icon_url || null, added: mine ? mine.id : null }; })
       .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
     return { source: settings.catalog_url || 'Penates app catalog', apps };
+  },
+  async catalog_icon({ id }) {
+    await wait(200 + Math.random() * 600);
+    const e = CAT[id]; if (!e) throw 'unknown catalog app';
+    return mkIcon((e.name || id)[0], COLORS[Object.keys(CAT).indexOf(id) % COLORS.length]);
   },
   get_update_settings: () => ({ ...settings }),
   set_update_settings({ updates }) { settings = updates; },
@@ -801,13 +806,21 @@ const hostOf = (url) => { try { return new URL(url).host.replace(/^www\./, ""); 
 function letterTile(name) {
   return el("div", { class: "ph letter", "aria-hidden": "true" }, (name[0] || "?").toUpperCase());
 }
+/** The site's icon (fetched once and cached by the Rust side); the letter tile until it arrives. */
+function catalogIcon(c) {
+  const tile = letterTile(c.name);
+  invoke("catalog_icon", { id: c.id, url: c.url, iconUrl: c.icon_url || null })
+    .then((d) => tile.replaceWith(el("img", { src: d, alt: "" })))
+    .catch(() => {}); // no icon: keep the letter
+  return tile;
+}
 function popularApps() {
   const box = el("div", {}, el("p", { class: "hint" }, "Loading the app catalog…"));
   const fill = async () => {
     try {
       const l = await invoke("catalog_apps");
       put(box, el("p", { class: "hint" }, `Ready-made apps from the ${l.source}. Adding one also applies its fixes, such as keeping sign-in inside the window.`),
-        l.apps.map((c) => el("div", { class: "app" }, letterTile(c.name),
+        l.apps.map((c) => el("div", { class: "app" }, catalogIcon(c),
           el("div", { class: "meta" }, el("b", {}, c.name), el("span", { class: "url" }, hostOf(c.url)), el("span", { class: "wrap" }, c.notes)),
           c.added
             ? [el("span", { class: "chip" }, "added"), el("button", { textContent: "Open", onclick: () => invoke("run_app", { id: c.added }).catch(fail) })]

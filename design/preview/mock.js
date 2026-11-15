@@ -97,9 +97,14 @@ const H = {
   async catalog_apps() {
     await wait(300);
     const apps = CATALOG.catalog.map((e) => { const mine = db.find((a) => { const f = entryFor(a); return f && f[0] === e.id; });
-      return { id: e.id, name: e.name || e.id, url: e.url, notes: e.notes, added: mine ? mine.id : null }; })
+      return { id: e.id, name: e.name || e.id, url: e.url, notes: e.notes, icon_url: e.icon_url || null, added: mine ? mine.id : null }; })
       .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
     return { source: settings.catalog_url || 'Penates app catalog', apps };
+  },
+  async catalog_icon({ id }) {
+    await wait(200 + Math.random() * 600);
+    const e = CAT[id]; if (!e) throw 'unknown catalog app';
+    return mkIcon((e.name || id)[0], COLORS[Object.keys(CAT).indexOf(id) % COLORS.length]);
   },
   get_update_settings: () => ({ ...settings }),
   set_update_settings({ updates }) { settings = updates; },

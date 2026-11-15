@@ -186,6 +186,8 @@ pub struct CatalogApp {
     pub name: String,
     pub url: String,
     pub notes: String,
+    /// An icon address the catalog gives for this site, if any.
+    pub icon_url: Option<String>,
     /// The id of an app already made for this site, if any.
     pub added: Option<String>,
 }
@@ -211,6 +213,7 @@ fn listing(c: &Catalog, source: String, mine: &[WebApp]) -> CatalogListing {
             name: e.name.clone().unwrap_or_else(|| e.id.clone()),
             url: e.url.clone(),
             notes: e.notes.clone(),
+            icon_url: e.icon_url.clone(),
             added: mine.iter().find(|a| find_entry(c, a).is_some_and(|x| x.id == e.id)).map(|a| a.id.clone()),
         })
         .collect();
