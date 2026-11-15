@@ -21,8 +21,9 @@ check_on_start = true
 ```
 By default Penates reads the shared app catalog from
 [Natetronn/penates-apps](https://github.com/Natetronn/penates-apps) (`catalog.json`, built from one file per
-app). New or fixed presets reach everyone without a new Penates release; to add or fix an app, open a pull
-request there. When the catalog cannot be reached, Penates uses the copy built into each release
+app). New or fixed presets reach everyone without a new Penates release. To add or fix an app, use
+**⋮ → Share with the app catalog…** in the manager (or `penates submit <id> --notes "…"`): it opens GitHub with
+the entry filled in. Or open a pull request there by hand. When the catalog cannot be reached, Penates uses the copy built into each release
 (`crates/penates-core/data/presets.json`). Point `catalog_url` at your own file (for example
 `file:///path/to/catalog.json`) to use a different catalog. (`manifest_url`, the name before 0.1.0, still works.)
 

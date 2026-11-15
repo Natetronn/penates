@@ -106,6 +106,17 @@ const H = {
     const e = CAT[id]; if (!e) throw 'unknown catalog app';
     return mkIcon((e.name || id)[0], COLORS[Object.keys(CAT).indexOf(id) % COLORS.length]);
   },
+  async catalog_submission({ id, notes }) {
+    await wait(150); const a = find(id); notes = notes.split(/\s+/).filter(Boolean).join(' ');
+    if (!notes) throw 'say in one line what the preset fixes';
+    if (!a.url.startsWith('https://')) throw 'only https sites can go in the app catalog';
+    const f = entryFor(a), change = !!f;
+    const v = change ? f[1].v.replace(/(\d+)$/, (n) => +n + 1) : '1.0.0';
+    const e = { id: change ? f[0] : a.id.replace(/_/g, '-'), version: v, name: a.name, url: a.url };
+    if (a.internal_hosts.length) e.internal_hosts = a.internal_hosts; if (a.user_agent) e.user_agent = a.user_agent; if (a.inject_css) e.inject_css = a.inject_css;
+    e.notes = notes;
+    return { kind: change ? 'change' : 'new', json: JSON.stringify(e, null, 2) + '\n', url: 'https://github.com/Natetronn/penates-apps/' + (change ? 'issues/new' : 'new/main/apps') };
+  },
   get_update_settings: () => ({ ...settings }),
   set_update_settings({ updates }) { settings = updates; },
   open_url({ url }) { say('Would open ' + url + ' in your browser (preview only).'); },

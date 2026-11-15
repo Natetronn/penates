@@ -116,6 +116,16 @@ enum Cmd {
     },
     /// List the apps in the app catalog (ready-made fixes for known sites)
     Catalog,
+    /// Propose one of your apps for the app catalog (opens GitHub with the entry filled in)
+    Submit {
+        id: String,
+        /// One line: what the preset fixes (e.g. "Keep Google sign-in inside the window")
+        #[arg(long)]
+        notes: String,
+        /// Print the entry and the address instead of opening the browser
+        #[arg(long)]
+        no_open: bool,
+    },
     /// Check for Penates and app-preset updates
     Check,
     /// Update one app (preset sync + icon refresh), or all with --all
@@ -389,6 +399,21 @@ fn cmd_catalog() -> Result<()> {
     Ok(())
 }
 
+fn cmd_submit(id: &str, notes: &str, no_open: bool) -> Result<()> {
+    let s = updates::submission(&store::load(id)?, notes)?;
+    println!("{}", s.json.trim_end());
+    if s.kind == "change" {
+        println!("this site is already in the catalog; the link suggests the change in an issue");
+    }
+    if no_open {
+        println!("{}", s.url);
+    } else {
+        open::that(&s.url)?;
+        println!("opened GitHub in your browser (you need a GitHub account to propose it)");
+    }
+    Ok(())
+}
+
 fn print_outcome(o: &ops::Outcome) {
     println!(
         "{:<18} icon {}{}",
@@ -499,6 +524,7 @@ fn main() -> Result<()> {
         Cmd::Import { source, on_conflict, allow_js, settings, yes } => cmd_import(&source, on_conflict, allow_js, settings, yes),
         Cmd::Remove { id, purge } => cmd_remove(&id, purge),
         Cmd::Catalog => cmd_catalog(),
+        Cmd::Submit { id, notes, no_open } => cmd_submit(&id, &notes, no_open),
         Cmd::Check => cmd_check(),
         Cmd::Update { id, all: _ } => cmd_update(id),
         Cmd::Edit { id } => cmd_edit(&id),

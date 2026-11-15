@@ -202,6 +202,12 @@ pub async fn catalog_apps() -> CmdResult<updates::CatalogListing> {
     blocking(updates::catalog_listing).await
 }
 
+/// Prepare a catalog submission for one of your apps (shown for review before anything opens).
+#[tauri::command]
+pub async fn catalog_submission(id: String, notes: String) -> CmdResult<updates::Submission> {
+    blocking(move || updates::submission(&store::load(&id)?, &notes)).await
+}
+
 /// The icon of a catalog app, for the Popular apps list (cached; see `icon::catalog_icon`).
 #[tauri::command]
 pub async fn catalog_icon(id: String, url: String, icon_url: Option<String>) -> CmdResult<String> {

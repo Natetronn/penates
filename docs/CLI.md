@@ -16,6 +16,7 @@
 | `icons <url>` | List icons found for a site, best first (PWA manifest, apple-touch, favicon). |
 | `clear <id> [--data]` | Clear the cache (keeps logins). `--data` clears cookies and storage too. Refused while the app runs. |
 | `catalog` | List the apps in the app catalog: ready-made fixes for known sites, marked when you already have one. |
+| `submit <id> --notes "…"` | Propose one of your apps for the app catalog: prints the entry and opens GitHub with it filled in (`--no-open` prints the address instead). Custom JavaScript is never included. |
 | `check` | Check for a new Penates version and newer app presets (each reported separately). |
 | `update <id>` or `update --all` | Apply newer presets and refresh the site icon (never replaces a custom icon). `--all` updates four apps at a time and exits with an error if any failed. |
 | `export <id>... \| --all` | Write a `.penates` file: configs and icons only, never logins. `--settings` adds look, accent and the app catalog address (for backups); `-o <file>` (`-` for stdout). |

@@ -21,6 +21,8 @@ pub const DEFAULT_CATALOG: &str = "https://raw.githubusercontent.com/Natetronn/p
 /// GitHub releases (installers and `latest.json`).
 pub const RELEASES_PAGE: &str = "https://github.com/Natetronn/penates/releases/latest";
 pub const LATEST_JSON: &str = "https://github.com/Natetronn/penates/releases/latest/download/latest.json";
+/// The repository the app catalog is built from (submissions go there).
+pub const CATALOG_REPO: &str = "Natetronn/penates-apps";
 
 // ---- the preset catalog ----
 
@@ -225,9 +227,110 @@ fn listing(c: &Catalog, source: String, mine: &[WebApp]) -> CatalogListing {
     CatalogListing { source, apps }
 }
 
+// ---- submitting an app to the catalog ----
+
+/// What `submission` prepared: the catalog entry, and the GitHub page that proposes it.
+#[derive(Debug, Clone, Serialize)]
+pub struct Submission {
+    /// "new" (GitHub's editor opens with the file written; propose it as a pull request) or "change"
+    /// (the site is already in the catalog: a pre-filled issue suggests the change).
+    pub kind: String,
+    /// The entry, exactly as it would be added to the catalog.
+    pub json: String,
+    pub url: String,
+}
+
+/// A catalog id from an app id: the catalog allows `a-z 0-9 -`, starting with a letter or digit.
+fn catalog_id(id: &str) -> String {
+    id.replace('_', "-").trim_start_matches('-').to_string()
+}
+
+/// Turn one of your apps into a catalog entry and the GitHub page that proposes it. Custom JavaScript is
+/// never included. `notes` is the one line that says what the preset fixes.
+pub fn submission(app: &WebApp, notes: &str) -> Result<Submission> {
+    let notes = notes.split_whitespace().collect::<Vec<_>>().join(" ");
+    anyhow::ensure!(!notes.is_empty(), "say in one line what the preset fixes");
+    anyhow::ensure!(app.url.starts_with("https://"), "only https sites can go in the app catalog");
+    let existing = load_catalog().ok().and_then(|(c, _)| find_entry(&c, app).cloned());
+    let (kind, id, version) = match &existing {
+        Some(e) => {
+            let v = ver(&e.version);
+            ("change", e.id.clone(), Version::new(v.major, v.minor, v.patch + 1).to_string())
+        }
+        None => ("new", catalog_id(&app.id), "1.0.0".to_string()),
+    };
+    /// The fields in the order the catalog's own files use.
+    #[derive(Serialize)]
+    struct Entry<'a> {
+        id: &'a str,
+        version: &'a str,
+        name: &'a str,
+        url: &'a str,
+        #[serde(skip_serializing_if = "<[String]>::is_empty")]
+        internal_hosts: &'a [String],
+        #[serde(skip_serializing_if = "Option::is_none")]
+        user_agent: Option<&'a str>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        inject_css: Option<&'a str>,
+        notes: &'a str,
+    }
+    let entry = Entry {
+        id: &id,
+        version: &version,
+        name: &app.name,
+        url: &app.url,
+        internal_hosts: &app.internal_hosts,
+        user_agent: app.user_agent.as_deref(),
+        inject_css: app.inject_css.as_deref(),
+        notes: &notes,
+    };
+    let json = serde_json::to_string_pretty(&entry)? + "\n";
+    let url = if kind == "new" {
+        url::Url::parse_with_params(
+            &format!("https://github.com/{CATALOG_REPO}/new/main/apps"),
+            &[("filename", format!("{id}.json")), ("value", json.clone())],
+        )?
+    } else {
+        let body = format!(
+            "A suggested change to the {} preset ({}):\n\n```json\n{json}```\n\nSent from Penates {}.",
+            app.name, notes, BUILD_VERSION
+        );
+        url::Url::parse_with_params(
+            &format!("https://github.com/{CATALOG_REPO}/issues/new"),
+            &[("title", format!("Preset change: {}", app.name)), ("body", body)],
+        )?
+    };
+    Ok(Submission { kind: kind.into(), json, url: url.into() })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn submissions_build_a_valid_entry_and_never_include_javascript() {
+        let app = WebApp {
+            id: "my_tool".into(),
+            name: "My Tool".into(),
+            url: "https://tool.example.org/".into(),
+            internal_hosts: vec!["login.example.org".into()],
+            inject_js: Some("steal()".into()),
+            ..Default::default()
+        };
+        let s = submission(&app, "  Keep the   sign-in page in the window ").unwrap();
+        assert_eq!(s.kind, "new");
+        let e: serde_json::Value = serde_json::from_str(&s.json).unwrap();
+        assert_eq!(e["id"], "my-tool"); // the catalog does not allow '_'
+        assert_eq!(e["version"], "1.0.0");
+        assert_eq!(e["notes"], "Keep the sign-in page in the window");
+        assert_eq!(e["internal_hosts"][0], "login.example.org");
+        assert!(!s.json.contains("steal") && e.get("inject_js").is_none());
+        let keys: Vec<&str> = s.json.lines().filter_map(|l| l.trim().strip_prefix('"')?.split('"').next()).filter(|k| k.chars().all(|c| c.is_ascii_lowercase() || c == '_')).collect();
+        assert_eq!(keys, ["id", "version", "name", "url", "internal_hosts", "notes"]);
+        assert!(s.url.starts_with("https://github.com/Natetronn/penates-apps/new/main/apps?filename=my-tool.json&value="));
+        assert!(submission(&app, "   ").is_err());
+        assert!(submission(&WebApp { url: "http://tool.example.org/".into(), ..app }, "x").is_err());
+    }
 
     #[test]
     fn builtin_catalog_parses_and_applies() {

@@ -51,10 +51,10 @@ async function busy(btn, label, work) {
 
 // ---- sections ----
 const TABS = ["apps", "create", "updates", "settings"];
-let tab = "apps", editing = null, importing = null;
+let tab = "apps", editing = null, importing = null, submitting = null;
 function show(t) {
   tab = t;
-  if (t !== "apps") importing = null; // an unfinished edit is kept; it is still there on Apps
+  if (t !== "apps") importing = submitting = null; // an unfinished edit is kept; it is still there on Apps
   document.querySelectorAll("nav button").forEach((b) => (b.dataset.tab === t ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")));
   for (const n of TABS) $("tab-" + n).hidden = n !== t;
   $("banner").hidden = t === "updates"; // the Updates tab shows the same notice inline
@@ -114,6 +114,7 @@ async function renderApps() {
   const root = $("tab-apps");
   if (editing) return renderEdit(root);
   if (importing) return renderImport(root);
+  if (submitting) return renderSubmit(root);
   const { apps, broken } = await invoke("list_apps");
   const pending = pendingUpdates();
   put(root,
@@ -148,6 +149,7 @@ function appMenu(a, actions, menuBtn) {
   invoke("cache_info", { id: a.id }).then((i) => { cache.textContent = `Clear cache (${fmtBytes(i.bytes)})`; cache.disabled = i.bytes === 0; }).catch(() => {});
   const menu = el("div", { class: "menu", role: "menu", "aria-label": "More actions for " + a.name },
     item("Update (preset and icon)", () => updateApp(a)),
+    item("Share with the app catalog…", () => { submitting = { app: a }; renderApps(); }),
     item("Export app…", async () => say("Saved to " + (await invoke("export_apps", { ids: [a.id], withSettings: false })))),
     cache,
     confirmItem("Clear cookies & data…", "Click again: sign out & clear", async () => { await invoke("clear_data", { id: a.id }); say("Cleared cookies and data for " + a.name + "."); }),
@@ -183,6 +185,51 @@ function appRow(a, pending) {
       : a.catalog_version ? el("span", { class: "chip", title: "Catalog preset version" }, "preset " + a.catalog_version) : null,
     actions);
   return row;
+}
+
+// ---- submit an app to the catalog ----
+function renderSubmit(root) {
+  const a = submitting.app;
+  const notes = el("input", { type: "text", id: "sub-notes", placeholder: "e.g. Keep Google sign-in inside the window" });
+  const preview = el("pre", { class: "preview", "aria-live": "polite" }, "Say what the preset fixes to see the entry.");
+  const title = el("h2", {}, `Share ${a.name} with the app catalog`);
+  const how = el("span", {}, "GitHub opens in your browser with everything filled in, and you send it from there.");
+  const go = el("button", { class: "primary", textContent: "Open GitHub", disabled: true });
+  let current = null, timer;
+  // Whether this adds a new site or suggests a change is decided by Penates (matching the catalog), so the
+  // wording follows its answer.
+  const describe = (kind) => {
+    title.textContent = kind === "change" ? `Suggest a change to the ${a.name} preset` : `Submit ${a.name} to the app catalog`;
+    how.textContent = kind === "change"
+      ? `${hostOf(a.url)} is already in the catalog. GitHub opens in your browser with an issue suggesting your app's settings as the next version of its preset.`
+      : `Everyone who adds ${hostOf(a.url)} would get these fixes. GitHub opens in your browser with the entry filled in; propose it there as a pull request.`;
+    go.textContent = kind === "change" ? "Open GitHub to suggest it" : "Open GitHub to propose it";
+  };
+  const refresh = () => {
+    clearTimeout(timer); go.disabled = true; current = null;
+    if (!notes.value.trim()) { preview.textContent = "Say what the preset fixes to see the entry."; return; }
+    timer = setTimeout(async () => {
+      try { current = await invoke("catalog_submission", { id: a.id, notes: notes.value }); describe(current.kind); preview.textContent = current.json; go.disabled = false; }
+      catch (e) { preview.textContent = String(e); }
+    }, 250);
+  };
+  notes.addEventListener("input", refresh);
+  go.onclick = async () => {
+    if (!current) return;
+    try {
+      await invoke("open_url", { url: current.url });
+      say(current.kind === "change" ? "Opened GitHub with your suggestion filled in." : "Opened GitHub with the entry filled in: choose \"Propose changes\" there.");
+      submitting = null; renderApps();
+    } catch (e) { fail(e); }
+  };
+  put(root, title,
+    el("p", { class: "hint" }, how, " Penates sends nothing itself, and you need a GitHub account."),
+    el("label", { class: "f" }, "What does it fix? (one line)", notes),
+    el("h3", {}, "What will be shared"),
+    el("p", { class: "hint" }, "Check the extra sites before sharing: they can reveal addresses you use, such as a company sign-in page. Custom JavaScript is never included."),
+    preview,
+    el("div", { class: "formbar" }, go, el("button", { textContent: "Cancel", onclick: () => { submitting = null; renderApps(); } })));
+  notes.focus();
 }
 
 // ---- import ----
