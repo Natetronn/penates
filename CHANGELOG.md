@@ -5,6 +5,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
+### Changed
+- Updates are in one place: the Updates tab has a Penates section and a Your apps section, each with its own check (and Update all apps under Your apps). Settings → Updates only holds settings. The Apps tab lost its "Update all" button.
+
 ### Added
 - App list: Open comes first; an Update button (and an "update available" chip) appears only when that app has a newer preset, otherwise Update is in the ⋮ menu; double-click an app's icon or name to open it.
 - "When it starts" per app (Edit → Window): open the window, start minimized, or start only in the tray. Without a tray icon, "only in the tray" starts minimized so the app is never unreachable.
@@ -40,7 +43,7 @@ First release. Verified by hand on Linux (KDE Plasma, Wayland); Linux, Windows a
 - **Icons**: picked automatically, or chosen from a file or URL; Penates keeps its own copy in `~/.config/penates/icons/`.
 - **Export, import and backup**: one app or all of them to a `.penates` file (configs and icons, never cookies or logins); imports show what they would change before applying.
 - **Popular apps**: browse the app catalog under Create and add a ready-made app in one click (`penates catalog` lists it on the command line).
-- **Updates**: Penates checks for new versions of itself, and syncs small per-site fixes (presets) into your apps from the shared [penates-apps](https://github.com/Natetronn/penates-apps) catalog (GitHub, YouTube, YouTube Music, Notion, Proton Mail, Discord, WhatsApp, Spotify, Cloudflare, Tailscale), with a built-in copy for offline use. Both checks are in Settings → Updates.
+- **Updates**: Penates checks for new versions of itself, and syncs small per-site fixes (presets) into your apps from the shared [penates-apps](https://github.com/Natetronn/penates-apps) catalog (GitHub, YouTube, YouTube Music, Notion, Proton Mail, Discord, WhatsApp, Spotify, Cloudflare, Tailscale), with a built-in copy for offline use. Both are in the Updates tab.
 - **Manager**: Apps, Create, Updates and Settings tabs, an About dialog, light/dark/system, six accents and four looks (Penates, Nord, Solarized, High contrast), all from plain CSS tokens, keyboard friendly. Configs that no longer load are listed and can be removed.
 - **Packages**: AppImage, `.deb`, `.rpm`, Windows installer, macOS `.dmg`, an AUR package (`penates-bin`) and a portable tarball with an install script.
 

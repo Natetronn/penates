@@ -512,13 +512,13 @@ function confirmItem(label, again, fn) {
   return b;
 }
 
-// ---- update all (Apps tab, Updates tab and Settings share this) ----
+// ---- update all your apps (the Updates tab) ----
 async function updateAllApps() {
   const r = await invoke("update_all");
   const changed = r.updated.filter((o) => o.preset || o.icon_refreshed).length;
   const warnings = r.updated.map((o) => o.warning && `${o.app.name}: ${o.warning}`).concat(r.failed.map((f) => `${f.id}: ${f.error}`));
   sayWith(`Updated ${plural(r.updated.length, "app")} (${changed} changed).`, warnings);
-  await refreshReport();
+  await checkApps();
   return r;
 }
 
@@ -529,14 +529,12 @@ async function renderApps() {
   if (importing) return renderImport(root);
   const { apps, broken } = await invoke("list_apps");
   const pending = pendingUpdates();
-  const updateAll = el("button", { textContent: "Update all", onclick: (ev) => busy(ev.target, "Updating…", async () => { await updateAllApps(); renderApps(); }) });
   put(root,
     el("div", { class: "toolbar" },
       el("span", { class: "hint" }, plural(apps.length, "app") + " installed"),
       el("button", { textContent: "Import…", onclick: () => { importing = { stage: "pick" }; renderApps(); } }),
       el("button", { textContent: "Export all", title: "Save every app to a .penates file in Downloads", onclick: async () => {
-        try { say("Saved to " + (await invoke("export_apps", { ids: [], withSettings: false }))); } catch (e) { fail(e); } } }),
-      updateAll),
+        try { say("Saved to " + (await invoke("export_apps", { ids: [], withSettings: false }))); } catch (e) { fail(e); } } })),
     apps.length ? apps.map((a) => appRow(a, pending)) : el("p", { class: "hint" }, "No apps yet. Use the Create tab to add one."),
     broken.map(brokenRow));
 }
@@ -552,7 +550,7 @@ function brokenRow(b) {
 async function updateApp(a) {
   const o = await invoke("update_app", { id: a.id });
   sayWith(`${a.name}: icon ${o.icon_refreshed ? "refreshed" : "unchanged"}` + (o.preset ? `, preset ${o.preset} applied` : "") + ".", o.warning);
-  refreshReport(); renderApps();
+  checkApps(); renderApps();
 }
 /** Apps with a newer catalog preset waiting, from the last update check. */
 const pendingUpdates = () => new Set((checks.apps.report?.apps || []).map((u) => u.id));
@@ -662,7 +660,7 @@ function renderImport(root) {
     el("div", { class: "formbar" },
       el("button", { class: "primary", textContent: "Import", onclick: (ev) => busy(ev.target, "Importing…", async () => {
         importResult(await invoke("import_apps", { json: d.json, onConflict: conflict.value, allowJs: allowJs.checked, settings: withSettings.checked }));
-        importing = null; refreshReport(); renderApps();
+        importing = null; checkApps(); renderApps();
       }) }),
       el("button", { textContent: "Cancel", onclick: cancel })));
 }
@@ -808,7 +806,7 @@ function renderCreate() {
         const iconBytes = f ? Array.from(new Uint8Array(await f.arrayBuffer())) : null;
         const c = await invoke("create_app", { url: url.value, name: name.value || null, openAfter: open.checked, iconUrl: iconUrl.value.trim() || null, iconBytes });
         url.value = name.value = iconUrl.value = iconFile.value = "";
-        refreshReport(); show("apps");
+        checkApps(); show("apps");
         sayWith(`Created ${c.app.name}.` + (c.preset ? ` Preset ${c.preset} from the app catalog applied.` : ""), c.warnings);
       });
     } },
@@ -847,7 +845,7 @@ function popularApps() {
             : el("button", { class: "primary", textContent: "Add", "aria-label": "Add " + c.name, onclick: (ev) => busy(ev.target, "Adding…", async () => {
                 const r = await invoke("create_app", { url: c.url, name: c.name, openAfter: false, iconUrl: null, iconBytes: null });
                 sayWith(`Added ${r.app.name}. Open it from the Apps tab or your app menu.`, r.warnings);
-                refreshReport(); fill();
+                checkApps(); fill();
               }) }))));
     } catch (e) { put(box, el("p", { class: "hint" }, "Could not load the app catalog: " + e)); }
   };
@@ -873,18 +871,32 @@ function selfUpdateBlock(u) {
     u.can_install ? install : null, u.package_manager ? null : download);
 }
 
-async function refreshReport() {
-  checks.penates = { state: "checking" }; checks.apps = { state: "checking" };
-  if (tab === "updates") renderUpdates();
-  const [apps, self] = await Promise.allSettled([invoke("check_apps"), invoke("check_self_update")]);
-  checks.apps = apps.status === "fulfilled" ? { state: "done", report: apps.value } : { state: "error", error: String(apps.reason) };
-  checks.penates = self.status === "fulfilled" ? { state: "done", update: self.value } : { state: "error", error: String(self.reason) };
+/** After either check: the tab badge, the "new Penates" banner, and whichever view shows the results. */
+function afterCheck() {
   const n = (checks.penates.update ? 1 : 0) + (checks.apps.report?.apps.length || 0);
   $("ubadge").hidden = !n; $("ubadge").textContent = n;
   put($("banner"), checks.penates.update ? selfUpdateBlock(checks.penates.update) : null);
   if (tab === "updates") renderUpdates();
   else if (tab === "apps" && !editing && !importing) renderApps().catch(fail); // show or hide Update buttons
 }
+
+/** Is there a newer Penates? */
+async function checkPenates() {
+  checks.penates = { state: "checking" }; afterCheck();
+  try { checks.penates = { state: "done", update: await invoke("check_self_update") }; }
+  catch (e) { checks.penates = { state: "error", error: String(e) }; }
+  afterCheck();
+}
+
+/** Which of your apps have a newer preset in the app catalog? */
+async function checkApps() {
+  checks.apps = { state: "checking" }; afterCheck();
+  try { checks.apps = { state: "done", report: await invoke("check_apps") }; }
+  catch (e) { checks.apps = { state: "error", error: String(e) }; }
+  afterCheck();
+}
+
+const refreshReport = () => Promise.all([checkPenates(), checkApps()]);
 
 function penatesStatus() {
   const c = checks.penates;
@@ -902,23 +914,33 @@ function appsStatus() {
   const r = c.report;
   if (!r.app_count) return el("p", {}, `No apps yet. The ${r.source} has ${plural(r.catalog_size, "ready-made app")}: see `, link("Popular apps", () => show("create")), " under Create.");
   if (!r.apps.length) return el("p", {}, `All apps are up to date (${r.source}, ${plural(r.catalog_size, "app")}).`);
-  return [el("p", { class: "hint" }, `From the ${r.source}.`), r.apps.map((u) => el("div", { class: "app" },
+  return [el("p", {}, `${plural(r.apps.length, "app has an update", "apps have updates")} (${r.source}):`), r.apps.map((u) => el("div", { class: "app" },
     el("div", { class: "meta" }, el("b", {}, u.name), el("span", { class: "wrap" }, `Preset ${u.from ?? "none"} → ${u.to}: ${u.notes}`)),
     el("button", { textContent: "Update", onclick: (ev) => busy(ev.target, "Updating…", async () => {
-      const o = await invoke("update_app", { id: u.id }); sayWith(u.name + " updated.", o.warning); refreshReport();
+      const o = await invoke("update_app", { id: u.id }); sayWith(u.name + " updated.", o.warning); checkApps();
     }) })))];
 }
 
+/** "Check now" (first time) or "Check again", disabled while that check runs. */
+function checkButton(c, run) {
+  return el("button", { textContent: c.state === "checking" ? "Checking…" : c.state === "idle" ? "Check now" : "Check again", disabled: c.state === "checking", onclick: run });
+}
+
 function renderUpdates() {
-  const checking = checks.penates.state === "checking" || checks.apps.state === "checking";
+  const r = checks.apps.report;
   put($("tab-updates"),
-    el("div", { class: "toolbar" }, el("h2", { style: "margin:0" }, "Updates"),
-      el("div", { class: "row", style: "margin:0" },
-        el("button", { textContent: checking ? "Checking…" : "Check now", disabled: checking, onclick: () => refreshReport() }),
-        el("button", { class: "primary", textContent: "Update all apps", onclick: (ev) => busy(ev.target, "Updating…", updateAllApps) }))),
-    el("h2", {}, "Penates"), penatesStatus(),
-    el("h2", {}, "Apps"), el("p", { class: "hint" }, "Presets add fixes such as sign-in hosts for known sites. Your icon choice is never overwritten."), appsStatus(),
-    el("p", { class: "hint" }, "When Penates checks, and which app catalog it uses, is under ", link("Settings", () => show("settings")), "."));
+    el("h2", {}, "Updates"),
+    el("fieldset", {}, el("legend", {}, "Penates"),
+      el("p", { class: "hint" }, "New versions of Penates itself, signed and checked before they install."),
+      penatesStatus(),
+      el("div", { class: "row" }, checkButton(checks.penates, checkPenates))),
+    el("fieldset", {}, el("legend", {}, "Your apps"),
+      el("p", { class: "hint" }, "Fixes for known sites from the app catalog (presets, such as keeping sign-in in the window), and fresh site icons. An icon you picked yourself is never replaced."),
+      appsStatus(),
+      el("div", { class: "row" }, checkButton(checks.apps, checkApps),
+        el("button", { class: "primary", textContent: "Update all apps", disabled: !r?.app_count,
+          title: "Apply newer presets and refresh site icons for every app", onclick: (ev) => busy(ev.target, "Updating…", updateAllApps) }))),
+    el("p", { class: "hint" }, "Whether Penates checks when it starts, and which app catalog it uses: ", link("Settings", () => show("settings")), "."));
 }
 
 // ---- appearance (tokens live in tokens.css; boot.js sets the attributes) ----
@@ -960,23 +982,6 @@ function updatesSection(us) {
   const save = (patch) => invoke("set_update_settings", { updates: { ...us, ...patch } }).then(() => Object.assign(us, patch));
   const onStart = el("input", { type: "checkbox", id: "s-check-start", checked: us.check_on_start,
     onchange: () => save({ check_on_start: onStart.checked }).then(() => say("Saved.")).catch(fail) });
-  const seeUpdates = () => link("See Updates", () => show("updates"));
-  const coreStatus = el("span", { class: "hint", role: "status" });
-  const coreBtn = el("button", { type: "button", textContent: "Check for a new Penates", onclick: (ev) => busy(ev.target, null, async () => {
-    put(coreStatus, "Checking…"); await refreshReport();
-    const c = checks.penates;
-    put(coreStatus, c.state === "error" ? "Could not check: " + c.error : c.update ? [`Penates ${c.update.version} is available. `, seeUpdates()] : "Penates is up to date.");
-  }) });
-  const appsStatusEl = el("span", { class: "hint", role: "status" });
-  const appsBtn = el("button", { type: "button", textContent: "Check your apps", onclick: (ev) => busy(ev.target, null, async () => {
-    put(appsStatusEl, "Checking…"); await refreshReport();
-    const c = checks.apps, n = c.report?.apps.length || 0;
-    put(appsStatusEl, c.state === "error" ? "Could not check: " + c.error : n ? [`${plural(n, "app has an update", "apps have updates")}. `, seeUpdates()] : "All your apps are up to date.");
-  }) });
-  const updateAll = el("button", { type: "button", textContent: "Update all apps", onclick: (ev) => busy(ev.target, "Updating…", async () => {
-    const r = await updateAllApps();
-    put(appsStatusEl, `Updated ${plural(r.updated.length, "app")}: icons refreshed and newer presets applied.`);
-  }) });
   const url = el("input", { type: "text", id: "s-catalog-url", value: us.catalog_url, placeholder: "Empty = the Penates app catalog" });
   const catalogStatus = el("p", { class: "hint", role: "status" }, "Checking the app catalog…");
   const showCatalog = () => invoke("catalog_apps")
@@ -984,16 +989,15 @@ function updatesSection(us) {
     .catch((e) => put(catalogStatus, "Could not load the app catalog: " + e));
   showCatalog();
   return [el("h2", {}, "Updates"),
-    el("label", { class: "chk", style: "margin-bottom:10px" }, onStart, el("span", {}, "Check for updates when Penates starts", el("small", {}, "Both kinds below: a new Penates and updates for your apps"))),
-    el("fieldset", {}, el("legend", {}, "Penates"),
-      el("p", { class: "hint" }, "New versions of Penates itself. Installs in place and restarts, where your install type allows it."),
-      el("div", { class: "row update-check" }, coreBtn, coreStatus)),
-    el("fieldset", {}, el("legend", {}, "Your apps"),
-      el("p", { class: "hint" }, "Refreshes each app's site icon (unless you picked one) and adds fixes for known sites, such as sign-in hosts, from the app catalog."),
-      el("div", { class: "row update-check" }, appsBtn, updateAll, appsStatusEl),
-      el("label", { class: "f" }, "App catalog address (https://, file:// or a path; leave empty for the Penates app catalog)", url),
+    el("fieldset", {}, el("legend", {}, "Checking"),
+      el("label", { class: "chk" }, onStart, el("span", {}, "Check for updates when Penates starts",
+        el("small", {}, "Both kinds: a new Penates, and updates for your apps"))),
+      el("p", { class: "hint" }, "To check now or install updates, go to ", link("Updates", () => show("updates")), ".")),
+    el("fieldset", {}, el("legend", {}, "App catalog"),
+      el("p", { class: "hint" }, "Where your apps' fixes and the Popular apps list come from."),
+      el("label", { class: "f" }, "Catalog address (https://, file:// or a path; leave empty for the Penates app catalog)", url),
       el("div", { class: "row" }, el("button", { type: "button", textContent: "Save address", onclick: () =>
-        save({ catalog_url: url.value.trim() }).then(() => { say("Saved."); refreshReport(); put(catalogStatus, "Checking the app catalog…"); showCatalog(); }).catch(fail) })),
+        save({ catalog_url: url.value.trim() }).then(() => { say("Saved."); checkApps(); put(catalogStatus, "Checking the app catalog…"); showCatalog(); }).catch(fail) })),
       catalogStatus)];
 }
 

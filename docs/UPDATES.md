@@ -1,6 +1,7 @@
 # Updates
 
-Two kinds of updates, each with its own check under **Settings → Updates** (the Updates tab lists what is available):
+Two kinds of updates, kept apart in the manager's **Updates** tab, each with its own check
+(**Settings → Updates** only holds the settings: checking at startup, and the app catalog address):
 
 1. **Penates itself** comes from `latest.json` attached to the latest GitHub release (Tauri updater format, signed).
    The desktop app offers **Install and restart** where the install type allows it; `penates check`
