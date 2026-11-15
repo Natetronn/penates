@@ -30,19 +30,19 @@ What has actually been run, and where. Last updated 2026-11-15, version 0.1.0.
 | App window | launches, the site loads, title-bar icon is the site icon, registered under the launcher's name, shown in the taskbar |
 | Taskbar and tray | taskbar entry and tray icon show the app icon; tray icon read back in color and grayscale |
 | Downloads | saved to `~/Downloads`, a second download gets a new name |
-| Navigation keys (automated) | on a local test site: Alt+Left went back, the mouse's forward button went forward, F5 reloaded (script-sent events; real mouse side buttons still to be tried) |
+| Navigation keys | automated on a local test site: Alt+Left went back, the mouse's forward button went forward, F5 reloaded; Alt+Left also confirmed with a real keypress (real mouse side buttons still to be tried) |
 | Links (automated, 2026-11-15) | a local test site: an embedded frame from another site loads, a same-site link navigates in the app, and a link to another site does **not** load in the app |
-| Links (real clicks, before the 2026-11-15 refactor) | an external link opened the browser; a same-site `target=_blank` link opened a second app window; a link inside that popup opened the browser |
+| Links (real clicks, 2026-11-15, current code) | on a local test site: a link to another site opened the browser; a same-site `target=_blank` link opened a Penates popup window, not the browser; a link to another site inside that popup opened the browser |
+| Sign-in | GitHub and Tailscale signed in inside their app windows (both redirect within the window) |
 | Wrapped-site isolation | a page inside an app window cannot call Tauri commands |
 | Site permissions | notifications and camera/microphone granted by real clicks when allowed, denied when not |
 | Cache | clearing frees the cache and keeps cookies and storage |
 | Export and import | CLI round trips in a scratch config: rename/skip/overwrite, custom JavaScript stripped unless allowed, camera/devtools switched off, no cookies in the file, bad ids and `javascript:` URLs refused or sanitized |
 | Packages | see [PACKAGING](PACKAGING.md); the tarball installs into `~/.local` and the installed manager runs |
 
-## To check by hand before publishing
-- Real clicks on the new code: an external link opens the browser, a same-site popup opens an app window
-  (script-made clicks cannot open windows, so these need a person).
+## To check by hand
 - In the real manager window: Import and Export, Save in Edit, Update, and the icon file chooser.
+- The mouse's back and forward side buttons with a real mouse.
 
 ## Not verified
 - Site permissions on Windows and macOS (not enforced there yet).
