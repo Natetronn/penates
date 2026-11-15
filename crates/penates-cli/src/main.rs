@@ -178,8 +178,12 @@ fn main() -> Result<()> {
                 ..Default::default()
             };
             ops::validate(&mut app)?;
+            let preset = ops::link_preset(&mut app);
             store::save(&app)?;
             println!("created '{}' ({})", app.name, app.id);
+            if let Some(v) = preset {
+                println!("preset: {} {v} from the app catalog", app.catalog_id.as_deref().unwrap_or(&app.id));
+            }
             if !no_install {
                 match desktop_bin().and_then(|b| integration::install(&app, &b)) {
                     Ok(p) => println!("launcher: {}", p.display()),

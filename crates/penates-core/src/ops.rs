@@ -92,6 +92,17 @@ pub fn update_with(id: &str, manifest: Option<&updates::Manifest>) -> Result<Out
     Ok(Outcome { app, icon_refreshed, preset })
 }
 
+/// Link a new app to the catalog preset for its site, if there is one. A user agent or CSS the user
+/// chose already wins over the preset's. Best effort: no catalog means no preset.
+pub fn link_preset(app: &mut WebApp) -> Option<String> {
+    let m = updates::load_manifest().ok()?;
+    let (ua, css) = (app.user_agent.clone(), app.inject_css.clone());
+    let (v, _) = updates::apply_preset(app, &m)?;
+    if ua.is_some() { app.user_agent = ua; }
+    if css.is_some() { app.inject_css = css; }
+    Some(v)
+}
+
 pub fn update(id: &str) -> Result<Outcome> {
     let m = updates::load_manifest().ok();
     update_with(id, m.as_ref())

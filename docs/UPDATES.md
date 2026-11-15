@@ -12,10 +12,15 @@ Two kinds of updates, each with its own check under **Settings → Updates** (th
 `~/.config/penates/settings.toml`:
 ```toml
 [updates]
-manifest_url = ""      # https:// or file:// URL; empty = the bundled FAKE sample manifest
+manifest_url = ""      # https:// or file:// URL; empty = the Penates app catalog
 check_on_start = true
 ```
-The sample lives at `crates/penates-core/data/sample-manifest.json`. Point `manifest_url` at your own file (for example `file:///path/to/manifest.json`) to test.
+By default Penates reads the shared app catalog from
+[Natetronn/penates-apps](https://github.com/Natetronn/penates-apps) (`catalog.json`, built from one file per
+app). New or fixed presets reach everyone without a new Penates release; to add or fix an app, open a pull
+request there. When the catalog cannot be reached, Penates uses the copy built into each release
+(`crates/penates-core/data/presets.json`). Point `manifest_url` at your own file (for example
+`file:///path/to/manifest.json`) to use a different catalog.
 
 ## Preset manifest format (`schema: 1`)
 ```json

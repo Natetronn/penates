@@ -2,7 +2,8 @@
 //!  - Penates itself: the public `latest.json` published with each release (the same file Tauri's
 //!    updater reads; the desktop app installs from it, the CLI only reports).
 //!  - App presets: a catalog in a JSON manifest (URL in settings.toml) synced into installed apps.
-//!    With an empty URL the bundled sample manifest is used.
+//!    With an empty URL the Penates app catalog (github.com/Natetronn/penates-apps) is used, or the
+//!    built-in copy (`data/presets.json`) when it cannot be reached.
 
 use crate::{store, WebApp};
 use anyhow::{bail, Context, Result};
@@ -11,7 +12,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 pub const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
-const SAMPLE: &str = include_str!("../data/sample-manifest.json");
+const BUILTIN: &str = include_str!("../data/presets.json");
+/// The shared preset catalog, built from github.com/Natetronn/penates-apps.
+pub const DEFAULT_CATALOG: &str = "https://raw.githubusercontent.com/Natetronn/penates-apps/main/catalog.json";
 /// GitHub releases (installers and `latest.json`).
 pub const RELEASES_PAGE: &str = "https://github.com/Natetronn/penates/releases/latest";
 pub const LATEST_JSON: &str = "https://github.com/Natetronn/penates/releases/latest/download/latest.json";
@@ -21,7 +24,7 @@ pub const LATEST_JSON: &str = "https://github.com/Natetronn/penates/releases/lat
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct UpdateSettings {
-    /// https:// or file:// URL (or a local path). Empty = bundled sample manifest.
+    /// https:// or file:// URL (or a local path). Empty = the Penates app catalog (built-in copy offline).
     pub manifest_url: String,
     pub check_on_start: bool,
 }
@@ -111,25 +114,43 @@ pub struct CatalogEntry {
 }
 
 pub fn load_manifest() -> Result<Manifest> {
+    load_manifest_with_source().map(|(m, _)| m)
+}
+
+/// The preset catalog and a label for where it came from.
+pub fn load_manifest_with_source() -> Result<(Manifest, String)> {
     let url = load_settings().updates.manifest_url;
     let url = url.trim();
-    let text = if url.is_empty() {
-        SAMPLE.to_string()
-    } else if let Some(p) = url.strip_prefix("file://") {
+    if url.is_empty() {
+        return Ok(match fetch(DEFAULT_CATALOG).and_then(|t| parse_manifest(&t)) {
+            Ok(m) => (m, "Penates app catalog".into()),
+            Err(_) => (parse_manifest(BUILTIN)?, "built-in catalog (app catalog unreachable)".into()),
+        });
+    }
+    let text = if let Some(p) = url.strip_prefix("file://") {
         std::fs::read_to_string(p).with_context(|| format!("reading {p}"))?
     } else if url.starts_with("https://") {
-        ureq::AgentBuilder::new()
-            .timeout(std::time::Duration::from_secs(10))
-            .build()
-            .get(url)
-            .call()?
-            .into_string()?
+        fetch(url)?
     } else if !url.contains("://") {
         std::fs::read_to_string(url).with_context(|| format!("reading {url}"))?
     } else {
         bail!("manifest_url must be https://, file:// or a path");
     };
-    let m: Manifest = serde_json::from_str(&text).context("invalid update manifest")?;
+    Ok((parse_manifest(&text)?, url.to_string()))
+}
+
+fn fetch(url: &str) -> Result<String> {
+    Ok(ureq::AgentBuilder::new()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .get(url)
+        .call()
+        .with_context(|| format!("could not reach {url}"))?
+        .into_string()?)
+}
+
+fn parse_manifest(text: &str) -> Result<Manifest> {
+    let m: Manifest = serde_json::from_str(text).context("invalid update manifest")?;
     anyhow::ensure!(m.schema == 1, "unsupported manifest schema {}", m.schema);
     Ok(m)
 }
@@ -195,7 +216,7 @@ pub struct AppUpdate {
 #[derive(Debug, Clone, Serialize)]
 pub struct UpdateReport {
     pub current: String,
-    /// "sample" or the manifest URL actually used.
+    /// "Penates app catalog", "built-in catalog (…)" or the manifest URL used.
     pub source: String,
     pub penates: Option<PenatesUpdate>,
     /// Why Penates's own version could not be checked (offline, no release yet).
@@ -216,8 +237,7 @@ pub fn latest_release() -> Result<PenatesRelease> {
 }
 
 pub fn check() -> Result<UpdateReport> {
-    let m = load_manifest()?;
-    let s = load_settings();
+    let (m, source) = load_manifest_with_source()?;
     let (penates, penates_error) = match latest_release() {
         Ok(r) => (
             (ver(&r.version) > ver(CURRENT_VERSION)).then(|| PenatesUpdate {
@@ -240,7 +260,6 @@ pub fn check() -> Result<UpdateReport> {
             }
         }
     }
-    let source = if s.updates.manifest_url.trim().is_empty() { "bundled sample".into() } else { s.updates.manifest_url };
     Ok(UpdateReport { current: CURRENT_VERSION.into(), source, penates, penates_error, apps })
 }
 
@@ -249,12 +268,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn sample_parses_and_applies() {
-        let m: Manifest = serde_json::from_str(SAMPLE).unwrap();
+    fn builtin_catalog_parses_and_applies() {
+        let m: Manifest = serde_json::from_str(BUILTIN).unwrap();
         assert_eq!(m.schema, 1);
         let mut app = WebApp { id: "gh".into(), url: "https://github.com/".into(), ..Default::default() };
         let (v, _) = apply_preset(&mut app, &m).unwrap();
-        assert_eq!(v, "1.1.0");
+        assert_eq!(v, "1.0.0");
         assert!(app.internal_hosts.contains(&"githubassets.com".to_string()));
         assert!(apply_preset(&mut app, &m).is_none()); // already current
     }

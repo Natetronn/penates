@@ -7,6 +7,8 @@ until you publish them.
 ## Steps
 1. Bump `version` in the root `Cargo.toml` (workspace) and move the `[Unreleased]` notes in `CHANGELOG.md`
    under the new version.
+   Refresh the built-in preset copy: `curl -fsSL https://raw.githubusercontent.com/Natetronn/penates-apps/main/catalog.json`
+   into `crates/penates-core/data/presets.json` (keep its `_comment`), or copy it from a `penates-apps` checkout.
 2. Commit, then tag and push: `git tag v0.2.0 && git push origin v0.2.0`.
 3. The **Release** workflow builds and signs installers on Linux, Windows and macOS (Apple Silicon and
    Intel) and attaches them to a **draft** release. Nothing is public yet.

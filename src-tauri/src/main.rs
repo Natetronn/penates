@@ -69,10 +69,7 @@ async fn create_app(
     let icon = icon.map(|p| store::icon_ref(&p));
     let mut app = WebApp { id, name, url, icon, custom_icon, ..Default::default() };
     ops::validate(&mut app).map_err(err)?;
-    // Link to a catalog preset if one matches this site.
-    if let Ok(m) = updates::load_manifest() {
-        updates::apply_preset(&mut app, &m);
-    }
+    ops::link_preset(&mut app);
     store::save(&app).map_err(err)?;
     ops::reinstall(None, &app);
     if open_after {

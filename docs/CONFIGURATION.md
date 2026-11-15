@@ -40,7 +40,7 @@ Each app is one TOML file, `~/.config/penates/apps/<id>.toml`. Edit it by hand (
 `~/.config/penates/settings.toml`:
 ```toml
 [updates]
-manifest_url = ""        # https:// or file://; empty = bundled sample manifest
+manifest_url = ""        # https:// or file://; empty = the Penates app catalog
 check_on_start = true
 
 [appearance]

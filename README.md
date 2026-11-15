@@ -35,7 +35,7 @@ Get an installer from the [releases page](https://github.com/Natetronn/penates/r
 ```sh
 sudo pacman -S --needed rustup webkit2gtk-4.1 libayatana-appindicator
 rustup default stable
-git clone <this repo> && cd penates
+git clone https://github.com/Natetronn/penates && cd penates
 cd packaging/arch && makepkg -si        # installs penates + penates-desktop
 ```
 

@@ -520,7 +520,7 @@ async function renderSettings() {
     catch (e) { appsStatus.replaceChildren("Could not update: " + e); }
     updateAllBtn.disabled = false;
   } });
-  const url = el("input", { type: "text", id: "s-preset-url", value: us.manifest_url, placeholder: "Empty = the built-in catalog" });
+  const url = el("input", { type: "text", id: "s-preset-url", value: us.manifest_url, placeholder: "Empty = the Penates app catalog" });
   put($("tab-settings"),
     el("h2", {}, "Appearance"),
     el("fieldset", {}, el("legend", {}, "Look"),
