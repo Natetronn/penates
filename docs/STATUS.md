@@ -29,6 +29,7 @@ What has actually been run, and where. Last updated 2026-11-15, version 0.1.0.
 | Icons | PWA manifest preferred; local file deleted after import still works; config copied to another path still resolves |
 | App window | launches, the site loads, title-bar icon is the site icon, registered under the launcher's name, shown in the taskbar |
 | Taskbar and tray | taskbar entry and tray icon show the app icon; tray icon read back in color and grayscale |
+| Start modes (automated, KWin + tray registry) | "only in the tray" with a tray: no window, tray icon registered; "minimized": minimized window; "only in the tray" without a tray: starts minimized instead; launching a tray-started app again shows its window |
 | Downloads | saved to `~/Downloads`, a second download gets a new name |
 | Navigation keys | automated on a local test site: Alt+Left went back, the mouse's forward button went forward, F5 reloaded; Alt+Left also confirmed with a real keypress (real mouse side buttons still to be tried) |
 | Links (automated, 2026-11-15) | a local test site: an embedded frame from another site loads, a same-site link navigates in the app, and a link to another site does **not** load in the app |

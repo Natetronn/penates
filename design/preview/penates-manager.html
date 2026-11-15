@@ -291,7 +291,7 @@ function mkIcon(letter, color) {
   x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(letter, 64, 68); return c.toDataURL('image/png');
 }
 const DEF = { width: 1200, height: 800, zoom: 1, user_agent: null, inject_css: null, inject_js: null, internal_hosts: [], single_instance: true,
-  start_maximized: true, start_fullscreen: false, resizable: true, always_on_top: false, decorations: true, external_links_in_browser: true, devtools: false,
+  start_maximized: true, start_fullscreen: false, start_as: 'window', resizable: true, always_on_top: false, decorations: true, external_links_in_browser: true, devtools: false,
   allow_notifications: true, allow_camera_microphone: false, tray: false, tray_grayscale: false, close_to_tray: false, theme: 'system', custom_icon: false,
   catalog_id: null, catalog_version: null, launcher: true };
 const icons = {};
@@ -655,6 +655,7 @@ const FIELDS = {
   General: [["name", "Name", "text"], ["url", "URL", "text"]],
   Window: [["width", "Width (px)", "number"], ["height", "Height (px)", "number"], ["zoom", "Zoom", "number", { step: 0.05 }],
     ["theme", "Window theme", "select", { options: [["system", "Follow system"], ["light", "Light"], ["dark", "Dark"]], help: "Windows and macOS. On Linux, sites follow your desktop's light/dark setting." }],
+    ["start_as", "When it starts", "select", { options: [["window", "Open the window"], ["minimized", "Minimized"], ["tray", "Only in the tray"]], help: "\"Only in the tray\" needs the tray icon (under Behavior); without it the app starts minimized. Launching it again shows the window." }],
     ["start_maximized", "Start maximized", "bool", "Open full-frame; width and height apply when restored"],
     ["start_fullscreen", "Start fullscreen", "bool"], ["resizable", "Resizable", "bool"],
     ["always_on_top", "Always on top", "bool"], ["decorations", "Show title bar and borders", "bool", "Turn off for a frameless window"]],
@@ -675,7 +676,7 @@ const NEEDS = { tray_grayscale: "tray", close_to_tray: "tray" };
 
 function fieldInput(a, k, label, type, extra) {
   if (type === "select") {
-    const input = el("select", { id: "f-" + k }, extra.options.map(([v, t]) => el("option", { value: v, textContent: t, selected: (a[k] || "system") === v })));
+    const input = el("select", { id: "f-" + k }, extra.options.map(([v, t]) => el("option", { value: v, textContent: t, selected: (a[k] || extra.options[0][0]) === v })));
     return { input, node: el("label", { class: "f" }, label, input, extra.help ? el("small", { class: "hint" }, extra.help) : null), check: false };
   }
   if (type === "bool") {

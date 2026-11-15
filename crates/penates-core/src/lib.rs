@@ -43,6 +43,9 @@ pub struct WebApp {
     pub single_instance: bool,
     pub start_maximized: bool,
     pub start_fullscreen: bool,
+    /// How the app starts: "window" (shown), "minimized", or "tray" (hidden, with only the tray icon;
+    /// falls back to minimized when there is no tray icon).
+    pub start_as: String,
     pub resizable: bool,
     pub always_on_top: bool,
     /// Show the native title bar and borders.
@@ -86,6 +89,7 @@ impl Default for WebApp {
             single_instance: true,
             start_maximized: true,
             start_fullscreen: false,
+            start_as: "window".into(),
             resizable: true,
             always_on_top: false,
             decorations: true,

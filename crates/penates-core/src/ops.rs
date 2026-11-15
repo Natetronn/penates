@@ -77,6 +77,9 @@ pub fn clean_name(s: &str) -> String {
     s.split_whitespace().collect::<Vec<_>>().join(" ").chars().take(100).collect()
 }
 
+/// The ways an app can start (see `WebApp::start_as`).
+pub const START_AS: [&str; 3] = ["window", "minimized", "tray"];
+
 /// Clean up user-edited values. Fails on an unusable URL, an empty name or an entry in
 /// `internal_hosts` that is not a host name.
 pub fn validate(app: &mut WebApp) -> Result<()> {
@@ -97,6 +100,9 @@ pub fn validate(app: &mut WebApp) -> Result<()> {
     app.internal_hosts = hosts;
     if !crate::settings::THEMES.contains(&app.theme.as_str()) {
         app.theme = "system".into();
+    }
+    if !START_AS.contains(&app.start_as.as_str()) {
+        app.start_as = "window".into();
     }
     blank_to_none(&mut app.user_agent);
     blank_to_none(&mut app.inject_css);
@@ -429,6 +435,9 @@ mod tests {
         validate(&mut a).unwrap();
         assert_eq!((a.name.as_str(), a.url.as_str()), ("A", "https://example.com/"));
         assert_eq!((a.zoom, a.width, a.theme.as_str()), (0.25, 200.0, "system"));
+        a.start_as = "sideways".into();
+        validate(&mut a).unwrap();
+        assert_eq!(a.start_as, "window");
         assert_eq!(a.internal_hosts, ["accounts.google.com"]);
         a.internal_hosts = vec!["*.com".into()];
         assert!(validate(&mut a).is_err());

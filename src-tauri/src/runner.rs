@@ -314,7 +314,9 @@ fn build_main_window(app: &tauri::App, cfg: &WebApp, visited: &Visited) -> tauri
         .resizable(cfg.resizable)
         .always_on_top(cfg.always_on_top)
         .decorations(cfg.decorations)
-        .devtools(cfg.devtools);
+        .devtools(cfg.devtools)
+        // "Only in the tray" starts hidden; `run` shows it (minimized) if the tray icon fails.
+        .visible(cfg.start_as != "tray");
     // Custom CSS and JS are separate scripts, so an error in the JS cannot stop the CSS.
     if let Some(css) = &cfg.inject_css {
         let lit = serde_json::to_string(css).unwrap();
@@ -403,12 +405,27 @@ pub fn run(cfg: WebApp, context: tauri::Context) -> tauri::Result<()> {
             if let Some(img) = cfg.icon_path().and_then(|p| tauri::image::Image::from_path(p).ok()) {
                 let _ = win.set_icon(img);
             }
-            if cfg.tray {
-                match build_tray(app, &cfg) {
-                    Ok(()) if cfg.close_to_tray => enable_close_to_tray(&win),
-                    Ok(()) => {}
-                    Err(e) => eprintln!("tray: {e}"), // no tray, so closing must really close
+            let tray_ok = cfg.tray
+                && match build_tray(app, &cfg) {
+                    Ok(()) => true,
+                    Err(e) => {
+                        eprintln!("tray: {e}"); // no tray, so closing must really close
+                        false
+                    }
+                };
+            if tray_ok && cfg.close_to_tray {
+                enable_close_to_tray(&win);
+            }
+            match cfg.start_as.as_str() {
+                "minimized" => {
+                    let _ = win.minimize();
                 }
+                // Without a tray icon a hidden window could not be reached: start minimized instead.
+                "tray" if !tray_ok => {
+                    let _ = win.show();
+                    let _ = win.minimize();
+                }
+                _ => {}
             }
             Ok(())
         })

@@ -244,6 +244,7 @@ const FIELDS = {
   General: [["name", "Name", "text"], ["url", "URL", "text"]],
   Window: [["width", "Width (px)", "number"], ["height", "Height (px)", "number"], ["zoom", "Zoom", "number", { step: 0.05 }],
     ["theme", "Window theme", "select", { options: [["system", "Follow system"], ["light", "Light"], ["dark", "Dark"]], help: "Windows and macOS. On Linux, sites follow your desktop's light/dark setting." }],
+    ["start_as", "When it starts", "select", { options: [["window", "Open the window"], ["minimized", "Minimized"], ["tray", "Only in the tray"]], help: "\"Only in the tray\" needs the tray icon (under Behavior); without it the app starts minimized. Launching it again shows the window." }],
     ["start_maximized", "Start maximized", "bool", "Open full-frame; width and height apply when restored"],
     ["start_fullscreen", "Start fullscreen", "bool"], ["resizable", "Resizable", "bool"],
     ["always_on_top", "Always on top", "bool"], ["decorations", "Show title bar and borders", "bool", "Turn off for a frameless window"]],
@@ -264,7 +265,7 @@ const NEEDS = { tray_grayscale: "tray", close_to_tray: "tray" };
 
 function fieldInput(a, k, label, type, extra) {
   if (type === "select") {
-    const input = el("select", { id: "f-" + k }, extra.options.map(([v, t]) => el("option", { value: v, textContent: t, selected: (a[k] || "system") === v })));
+    const input = el("select", { id: "f-" + k }, extra.options.map(([v, t]) => el("option", { value: v, textContent: t, selected: (a[k] || extra.options[0][0]) === v })));
     return { input, node: el("label", { class: "f" }, label, input, extra.help ? el("small", { class: "hint" }, extra.help) : null), check: false };
   }
   if (type === "bool") {

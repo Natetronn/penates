@@ -16,6 +16,7 @@ Each app is one TOML file, `~/.config/penates/apps/<id>.toml` (other systems: se
 | `zoom` | 1.0 | page zoom (0.25 to 5) |
 | `start_maximized` | `true` | open full frame |
 | `start_fullscreen` | `false` | open fullscreen |
+| `start_as` | `"window"` | `"window"`, `"minimized"`, or `"tray"` (hidden, only the tray icon; needs `tray = true`, else it starts minimized). Launching the app again shows the window |
 | `resizable` | `true` | |
 | `always_on_top` | `false` | |
 | `decorations` | `true` | native title bar and borders (`false` = frameless) |
