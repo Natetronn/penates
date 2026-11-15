@@ -5,6 +5,11 @@
   "name": "getpenates",
   "compatibility_date": "2026-11-15",
   "send_metrics": false,
+  // The site is served at getpenates.com (set in the dashboard). workers.dev serves only branch previews,
+  // which carry a noindex header there.
+  "workers_dev": false,
+  "preview_urls": true,
+  "previews": {},
   "assets": {
     "directory": "./dist",
     "not_found_handling": "404-page"
