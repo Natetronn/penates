@@ -446,7 +446,18 @@ fn cmd_edit(id: &str) -> Result<()> {
     Ok(())
 }
 
+/// Exit quietly when the reader goes away (`penates list | head`), like other command line tools.
+/// Rust ignores SIGPIPE by default, which turns a closed pipe into a panic on the next `println!`.
+fn quiet_on_closed_pipe() {
+    #[cfg(unix)]
+    // SAFETY: restoring the default disposition of one signal at startup, before any threads exist.
+    unsafe {
+        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+    }
+}
+
 fn main() -> Result<()> {
+    quiet_on_closed_pipe();
     match Cli::parse().cmd {
         Cmd::Create {
             url, name, id, icon, user_agent, width, height, zoom, internal_hosts, inject_css, inject_js, devtools,

@@ -5,6 +5,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
+### Fixed
+- The CLI no longer panics when its output is cut short, e.g. `penates check | head -1`; it exits quietly like other command line tools.
+
 ## [0.1.0] - 2026-11-15
 First release. Verified by hand on Linux (KDE Plasma, Wayland); Linux, Windows and macOS pass CI smoke tests.
 
