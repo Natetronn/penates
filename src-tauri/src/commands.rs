@@ -42,7 +42,7 @@ pub async fn list_apps() -> CmdResult<AppList> {
 
 #[tauri::command]
 pub fn app_version() -> String {
-    updates::CURRENT_VERSION.to_string()
+    updates::BUILD_VERSION.to_string()
 }
 
 /// Name suggested for a URL, used to prefill the Create form.

@@ -10,7 +10,11 @@ use anyhow::{bail, Context, Result};
 use semver::Version;
 use serde::{Deserialize, Serialize};
 
+/// This build's version, for comparing with releases.
 pub const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
+/// The version to show people: `0.1.0` for a release build, `0.1.0+8b4141a` for any other commit
+/// (set by build.rs).
+pub const BUILD_VERSION: &str = env!("PENATES_BUILD_VERSION");
 const BUILTIN: &str = include_str!("../data/presets.json");
 /// The shared preset catalog, built from github.com/Natetronn/penates-apps.
 pub const DEFAULT_CATALOG: &str = "https://raw.githubusercontent.com/Natetronn/penates-apps/main/catalog.json";

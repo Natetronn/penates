@@ -49,7 +49,7 @@ fn launcher_warning(r: Result<Option<PathBuf>>) -> Option<String> {
 pub fn refresh_launchers_if_needed() {
     let Some(bin) = integration::find_desktop_bin().map(|b| b.display().to_string()) else { return };
     let s = settings::load();
-    if s.launchers_version == updates::CURRENT_VERSION && s.launchers_bin == bin {
+    if s.launchers_version == updates::BUILD_VERSION && s.launchers_bin == bin {
         return;
     }
     for f in reinstall_all(&store::list()) {
@@ -57,7 +57,7 @@ pub fn refresh_launchers_if_needed() {
     }
     // Re-read before saving, so a setting changed meanwhile is not reverted.
     let _ = settings::update(|s| {
-        s.launchers_version = updates::CURRENT_VERSION.into();
+        s.launchers_version = updates::BUILD_VERSION.into();
         s.launchers_bin = bin;
     });
 }

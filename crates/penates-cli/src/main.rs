@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
 #[derive(Parser)]
-#[command(name = "penates", version, about = "Turn websites into desktop apps")]
+#[command(name = "penates", version = updates::BUILD_VERSION, about = "Turn websites into desktop apps")]
 struct Cli {
     #[command(subcommand)]
     cmd: Cmd,
@@ -354,7 +354,7 @@ fn cmd_remove(id: &str, purge: bool) -> Result<()> {
 }
 
 fn cmd_check() -> Result<()> {
-    println!("penates {}", updates::CURRENT_VERSION);
+    println!("penates {}", updates::BUILD_VERSION);
     match updates::check_penates() {
         Ok(Some(u)) => {
             println!("  new version {} available: {}", u.latest, u.notes.lines().next().unwrap_or(""));

@@ -6,10 +6,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 ## [Unreleased]
 
 ### Added
+- Development builds show their commit next to the version (`0.1.0+8b4141a`) in the manager and `penates --version`; release builds show the plain version.
 - Popular apps show each site's real icon, fetched once and cached for 30 days (`~/.cache/penates/catalog-icons/`, safe to delete).
 
 ### Fixed
 - Favicons in ICO files whose largest image is a grayscale or palette PNG (Tailscale's, for one) were rejected; Penates now reads the file's images one by one.
+- After installing from the tarball, KDE's menu shows the Penates icon right away (the installer tells KDE programs the icon theme changed).
 - The CLI no longer panics when its output is cut short, e.g. `penates check | head -1`; it exits quietly like other command line tools.
 
 ## [0.1.0] - 2026-11-15

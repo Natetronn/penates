@@ -48,6 +48,8 @@ sed -e "s|^Exec=penates-desktop|Exec=\"$PREFIX/bin/penates-desktop\"|" -e "s|^Ic
 command -v update-desktop-database >/dev/null && update-desktop-database "$PREFIX/share/applications" 2>/dev/null || true
 [ "$icon" = penates ] && command -v gtk-update-icon-cache >/dev/null && gtk-update-icon-cache -q -t "$hicolor" 2>/dev/null || true
 for k in kbuildsycoca6 kbuildsycoca5; do command -v $k >/dev/null && { $k >/dev/null 2>&1; break; }; done
+# KDE programs (the Plasma menu among them) keep icons in memory; tell them the theme changed.
+command -v dbus-send >/dev/null && dbus-send --session --type=signal /KIconLoader org.kde.KIconLoader.iconChanged int32:0 2>/dev/null || true
 echo "Installed to $PREFIX. Run: penates --help   or   penates gui"
 INSTALL
 chmod +x "dist/$name/install.sh"
