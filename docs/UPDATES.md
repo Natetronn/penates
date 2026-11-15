@@ -1,6 +1,6 @@
 # Updates
 
-Two kinds of updates:
+Two kinds of updates, each with its own check under **Settings → Updates** (the Updates tab lists what is available):
 
 1. **Penates itself** comes from `latest.json` on the public releases repo (Tauri updater format, signed).
    The desktop app offers **Install and restart** where the install type allows it; `penates check`

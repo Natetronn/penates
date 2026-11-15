@@ -54,7 +54,6 @@ dialog#about::backdrop{background:rgba(5,4,9,.6)}
 .about-facts{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:4px 0 0;font-size:13px}
 .about-facts dt{color:var(--muted)}.about-facts dd{margin:0}
 .about-facts a{color:var(--accent)}
-.about-update{align-items:center;margin-top:0}
 .about-close{justify-content:flex-end;margin-top:4px}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 fieldset{border:1px solid var(--line);border-radius:var(--radius-lg);margin:0 0 14px;padding:12px 14px;background:var(--card)}
@@ -81,6 +80,9 @@ label.chk small{display:block;color:var(--muted)}
 .formbar{position:sticky;bottom:0;background:var(--bg);padding:10px 0;display:flex;gap:8px;border-top:1px solid var(--line)}
 h2{font-size:15px;margin:18px 0 8px}
 .hint{color:var(--muted);font-size:12px}
+.update-check{align-items:center}
+.update-check + label.f{margin-top:14px}
+.hint a, p a{color:var(--accent)}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
 .seg button{border:0;border-radius:0;background:var(--card)}
 .seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-fg)}
@@ -110,7 +112,6 @@ h2{font-size:15px;margin:18px 0 8px}
     <p class="about-ver"><span id="about-ver"></span></p>
     <p>Turn websites and web apps into desktop apps, each with its own window, icon, taskbar entry and login.</p>
     <p class="hint">Named after the Penates, the Roman household gods: every home had its own, and here every site gets a home of its own.</p>
-    <div class="row about-update"><button type="button" id="about-check">Check for updates</button><span id="about-status" class="hint"></span></div>
     <dl class="about-facts">
       <dt>Releases</dt><dd><a href="#" id="about-releases">github.com/Natetronn/penates-releases</a></dd>
       <dt>License</dt><dd>MIT</dd>
@@ -447,9 +448,6 @@ async function refreshReport() {
   if (tab === "updates") renderUpdates();
 }
 async function renderUpdates() {
-  const s = await invoke("get_update_settings");
-  const url = el("input", { type: "text", id: "u-url", value: s.manifest_url, placeholder: "Empty = bundled sample preset catalog" });
-  const chk = el("input", { type: "checkbox", id: "u-chk", checked: s.check_on_start });
   const r = report;
   const penatesBlock = selfUpdate ? selfUpdateBlock(selfUpdate)
     : selfUpdateError ? el("p", { class: "hint" }, "Could not check for a new Penates: " + selfUpdateError)
@@ -466,13 +464,8 @@ async function renderUpdates() {
         el("button", { class: "primary", textContent: "Update all apps", onclick: async () => { try { await invoke("update_all"); say("Apps synced."); await refreshReport(); } catch (e) { fail(e); } } }))),
     el("h2", {}, "Penates"), penatesBlock,
     el("h2", {}, "Apps"), el("p", { class: "hint" }, "Presets add fixes such as sign-in hosts for known sites. Your icon choice is never overwritten."), appsBlock,
-    el("h2", {}, "Update source"),
-    el("fieldset", {}, el("legend", {}, "Manifest"),
-      el("label", { class: "f" }, "Manifest URL (https:// or file://)", url),
-      el("label", { class: "chk" }, chk, el("span", {}, "Check for updates when Penates starts")),
-      el("p", { class: "hint" }, r && !r.error ? "Using: " + r.source : ""),
-      el("div", { class: "row" }, el("button", { textContent: "Save source", onclick: async () => {
-        try { await invoke("set_update_settings", { settings: { manifest_url: url.value.trim(), check_on_start: chk.checked } }); say("Saved."); await refreshReport(); } catch (e) { fail(e); } } }))));
+    el("p", { class: "hint" }, "When and where Penates checks for updates is under ",
+      el("a", { href: "#", textContent: "Settings", onclick: (e) => { e.preventDefault(); show("settings"); } }), "."));
 }
 
 // ---- appearance (tokens live in tokens.css; this only sets two attributes) ----
@@ -491,7 +484,40 @@ async function setAppearance(patch) {
   try { await invoke("set_appearance", { appearance }); } catch (e) { fail(e); }
   renderSettings();
 }
-function renderSettings() {
+async function renderSettings() {
+  const us = await invoke("get_update_settings");
+  const saveUpdates = (patch) => invoke("set_update_settings", { settings: { ...us, ...patch } }).then(() => Object.assign(us, patch));
+  const onStart = el("input", { type: "checkbox", id: "s-check-start", checked: us.check_on_start,
+    onchange: () => saveUpdates({ check_on_start: onStart.checked }).then(() => say("Saved.")).catch(fail) });
+  const seeUpdates = () => el("a", { href: "#", textContent: "See Updates", onclick: (e) => { e.preventDefault(); show("updates"); } });
+  // 1) Penates itself
+  const coreStatus = el("span", { class: "hint", id: "s-core-status" });
+  const coreBtn = el("button", { type: "button", textContent: "Check for a new Penates", onclick: async () => {
+    coreBtn.disabled = true; coreStatus.replaceChildren("Checking…");
+    await refreshReport();
+    if (selfUpdate) coreStatus.replaceChildren(`Penates ${selfUpdate.version} is available. `, seeUpdates());
+    else if (selfUpdateError) coreStatus.replaceChildren("Could not check: " + selfUpdateError);
+    else coreStatus.replaceChildren("Penates is up to date.");
+    coreBtn.disabled = false;
+  } });
+  // 2) the apps you made
+  const appsStatus = el("span", { class: "hint", id: "s-apps-status" });
+  const appsBtn = el("button", { type: "button", textContent: "Check your apps", onclick: async () => {
+    appsBtn.disabled = true; appsStatus.replaceChildren("Checking…");
+    await refreshReport();
+    const n = report && !report.error ? report.apps.length : 0;
+    if (report && report.error) appsStatus.replaceChildren("Could not check: " + report.error);
+    else if (n) appsStatus.replaceChildren(`${n} app${n === 1 ? " has an update" : "s have updates"}. `, seeUpdates());
+    else appsStatus.replaceChildren("All your apps are up to date.");
+    appsBtn.disabled = false;
+  } });
+  const updateAllBtn = el("button", { type: "button", textContent: "Update all apps", onclick: async () => {
+    updateAllBtn.disabled = true; appsStatus.replaceChildren("Updating…");
+    try { const r = await invoke("update_all"); appsStatus.replaceChildren(`Updated ${r.length} app${r.length === 1 ? "" : "s"}: icons refreshed and newer presets applied.`); refreshReport(); }
+    catch (e) { appsStatus.replaceChildren("Could not update: " + e); }
+    updateAllBtn.disabled = false;
+  } });
+  const url = el("input", { type: "text", id: "s-preset-url", value: us.manifest_url, placeholder: "Empty = the built-in catalog" });
   put($("tab-settings"),
     el("h2", {}, "Appearance"),
     el("fieldset", {}, el("legend", {}, "Look"),
@@ -510,6 +536,17 @@ function renderSettings() {
     el("fieldset", {}, el("legend", {}, "Accent color"),
       el("div", { class: "swatches", role: "group", "aria-label": "Accent color" },
         ACCENTS.map((n) => { const b = el("button", { type: "button", class: "swatch", title: n, "aria-label": n, "aria-pressed": String(appearance.accent === n), onclick: () => setAppearance({ accent: n }) }); b.dataset.accent = n; return b; }))),
+    el("h2", {}, "Updates"),
+    el("label", { class: "chk" }, onStart, el("span", {}, "Check for updates when Penates starts", el("small", {}, "Both kinds below: a new Penates and updates for your apps"))),
+    el("fieldset", {}, el("legend", {}, "Penates"),
+      el("p", { class: "hint" }, "New versions of Penates itself. Installs in place and restarts, where your install type allows it."),
+      el("div", { class: "row update-check" }, coreBtn, coreStatus)),
+    el("fieldset", {}, el("legend", {}, "Your apps"),
+      el("p", { class: "hint" }, "Refreshes each app's site icon (unless you picked one) and adds fixes for known sites, such as sign-in hosts, from the preset catalog."),
+      el("div", { class: "row update-check" }, appsBtn, updateAllBtn, appsStatus),
+      el("label", { class: "f" }, "Preset catalog address (https:// or file://; leave empty for the built-in one)", url),
+      el("div", { class: "row" }, el("button", { type: "button", textContent: "Save address", onclick: () =>
+        saveUpdates({ manifest_url: url.value.trim() }).then(() => { say("Saved."); refreshReport(); }).catch(fail) }))),
     el("h2", {}, "Backup"),
     el("fieldset", {}, el("legend", {}, "Back up everything"),
       el("p", { class: "hint" }, "Saves every app plus these settings to one .penates file in your Downloads folder. Restore it with Import on the Apps tab. It never includes logins or cookies."),
@@ -522,28 +559,17 @@ function renderSettings() {
 // ---- about ----
 const RELEASES_URL = "https://github.com/Natetronn/penates-releases/releases/latest";
 function openAbout() {
-  $("about-status").textContent = "";
   $("about").showModal();
 }
 $("ver").onclick = openAbout;
 $("about-close").onclick = () => $("about").close();
 $("about").addEventListener("click", (e) => { if (e.target === $("about")) $("about").close(); });
 $("about-releases").onclick = (e) => { e.preventDefault(); invoke("open_url", { url: RELEASES_URL }).catch(fail); };
-$("about-check").onclick = async (ev) => {
-  const status = $("about-status");
-  ev.target.disabled = true; status.textContent = "Checking…";
-  try {
-    const u = await invoke("check_self_update");
-    if (!u) status.textContent = "You have the latest version.";
-    else { status.textContent = ""; $("about").close(); selfUpdate = u; $("banner").replaceChildren(selfUpdateBlock(u)); $("ubadge").hidden = false; }
-  } catch (e) { status.textContent = "Could not check: " + e; }
-  ev.target.disabled = false;
-};
 
 function render() {
   if (tab === "apps") renderApps().catch(fail);
   else if (tab === "create") renderCreate();
-  else if (tab === "settings") renderSettings();
+  else if (tab === "settings") renderSettings().catch(fail);
   else renderUpdates().catch(fail);
 }
 (async () => {
