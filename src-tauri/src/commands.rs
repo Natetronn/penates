@@ -135,8 +135,8 @@ pub async fn clear_data(id: String) -> CmdResult<()> {
 
 #[tauri::command]
 pub async fn icon_data(path: String) -> CmdResult<String> {
-    // `path` is an icon file name (older configs: an absolute path); only the name is used and it is
-    // always resolved inside our icon folder.
+    // `path` is an icon file name (a full path also works): only the name is used, and it is always
+    // resolved inside our icon folder.
     blocking(move || {
         let name = std::path::Path::new(&path).file_name().ok_or_else(|| anyhow::anyhow!("bad icon name"))?.to_owned();
         Ok(png_data_url(&std::fs::read(store::icon_dir().join(name))?))

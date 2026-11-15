@@ -438,7 +438,7 @@ mod tests {
 
     #[test]
     fn data_store_ids_are_stable_and_distinct() {
-        // Regression: this overflowed (panicked) in debug builds on macOS.
+        // The hash must not overflow: debug builds check arithmetic and would panic.
         assert_eq!(id_bytes("github"), id_bytes("github"));
         assert_ne!(id_bytes("github"), id_bytes("notion"));
         assert_ne!(id_bytes(""), [0u8; 16]);

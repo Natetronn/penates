@@ -64,7 +64,7 @@ fn path() -> std::path::PathBuf {
     store::root_config_dir().join("settings.toml")
 }
 
-/// The saved settings, or defaults. A file that no longer parses is moved aside to
+/// The saved settings, or defaults. A file that does not parse is moved aside to
 /// `settings.toml.broken` (so the next save cannot silently destroy it) and reported on stderr.
 pub fn load() -> Settings {
     let p = path();
@@ -97,7 +97,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn old_manifest_url_key_still_loads() {
+    fn manifest_url_is_another_name_for_catalog_url() {
         let s: Settings = toml::from_str("[updates]\nmanifest_url = \"file:///x.json\"\n").unwrap();
         assert_eq!(s.updates.catalog_url, "file:///x.json");
         assert!(s.updates.check_on_start);

@@ -107,8 +107,8 @@ impl Default for WebApp {
 }
 
 impl WebApp {
-    /// Full path of the stored icon, resolved inside the icon folder. Older configs that hold an
-    /// absolute path still work (only the file name is used). None if there is no icon file.
+    /// Full path of the stored icon, resolved inside the icon folder. Only the file name of `icon` is
+    /// used, so a full path there works too. None if there is no icon file.
     pub fn icon_path(&self) -> Option<std::path::PathBuf> {
         let name = std::path::Path::new(self.icon.as_deref()?).file_name()?.to_owned();
         let p = store::icon_dir().join(name);
@@ -245,7 +245,7 @@ mod tests {
     fn icon_ref_is_just_a_file_name() {
         let p = std::path::Path::new("/home/x/.config/penates/icons/gh.png");
         assert_eq!(store::icon_ref(p), "gh.png");
-        // old absolute paths resolve by file name inside the icon folder
+        // a full path resolves by its file name inside the icon folder
         let app = WebApp { icon: Some("/somewhere/else/missing-xyz.png".into()), ..Default::default() };
         assert!(app.icon_path().is_none()); // file doesn't exist; no panic
     }

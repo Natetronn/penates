@@ -25,7 +25,7 @@ app). New or fixed presets reach everyone without a new Penates release. To add 
 **⋮ → Share with the app catalog…** in the manager (or `penates submit <id> --notes "…"`): it opens GitHub with
 the entry filled in. Or open a pull request there by hand. When the catalog cannot be reached, Penates uses the copy built into each release
 (`crates/penates-core/data/presets.json`). Point `catalog_url` at your own file (for example
-`file:///path/to/catalog.json`) to use a different catalog. (`manifest_url`, the name before 0.1.0, still works.)
+`file:///path/to/catalog.json`) to use a different catalog. (`manifest_url` is accepted as another name for `catalog_url`.)
 
 ## Catalog format (`schema: 1`)
 ```json

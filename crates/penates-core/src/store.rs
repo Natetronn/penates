@@ -105,7 +105,7 @@ pub fn list() -> Vec<WebApp> {
 }
 
 /// Remove config, icon and launcher; with `purge` the browsing profile too. Works for configs that
-/// no longer parse (the launcher is then found by id).
+/// do not parse (the launcher is then found by id).
 pub fn remove(id: &str, purge: bool) -> Result<()> {
     check_id(id)?;
     anyhow::ensure!(path_for(id).exists() || profile_dir(id).exists(), "no app with id '{id}'");

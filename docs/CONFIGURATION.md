@@ -1,6 +1,6 @@
 # Configuration
 
-Each app is one TOML file, `~/.config/penates/apps/<id>.toml` (other systems: see [Architecture](ARCHITECTURE.md#files)). Edit it by hand (`penates edit <id>`), in the manager (Edit), or create it with `penates create`. Changes apply the next time the app starts. Missing fields use the defaults below; fields Penates no longer uses are ignored.
+Each app is one TOML file, `~/.config/penates/apps/<id>.toml` (other systems: see [Architecture](ARCHITECTURE.md#files)). Edit it by hand (`penates edit <id>`), in the manager (Edit), or create it with `penates create`. Changes apply the next time the app starts. Missing fields use the defaults below; unknown fields are ignored.
 
 ## App fields
 | Field | Default | Meaning |
@@ -49,7 +49,7 @@ theme = "system"         # system | light | dark
 skin = "default"         # default | nord | solarized | mono
 accent = "violet"        # violet | blue | green | orange | rose | slate
 ```
-`catalog_url` was called `manifest_url` before 0.1.0; the old name is still read. Penates also keeps
+`manifest_url` is accepted as another name for `catalog_url`. Penates also keeps
 `launchers_version` and `launchers_bin` here, to know when launchers need rewriting.
 
 If the file stops parsing (a hand edit gone wrong), Penates moves it to `settings.toml.broken`, says so
