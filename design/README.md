@@ -10,6 +10,7 @@ The Penates logo: a house holding a flame, for the Roman household gods who kept
 | `lockup-light.svg` | The same for light backgrounds (dark text) |
 | `canvas/` | Source of the design canvas: app icon, lockup and the icon at desktop sizes. `.dc.html` files need the canvas editor to render; the SVG inside each is plain and can be copied out. |
 | `build-icons.sh` | Rebuilds every PNG, `icon.ico` and `icon.icns` in `src-tauri/icons/` from the SVGs |
+| `preview/penates-manager.html` | Clickable copy of the manager that runs in any browser: the real `ui/` files and app catalog with sample apps (`mock.js` stands in for the backend). Rebuild with `python3 design/preview/build.py` after changing the UI. |
 
 The drawings the app ships live in `src-tauri/icons/`:
 
