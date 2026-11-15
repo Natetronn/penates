@@ -43,7 +43,7 @@ pub struct Appearance {
 }
 impl Default for Appearance {
     fn default() -> Self {
-        Self { theme: "system".into(), skin: "default".into(), accent: "blue".into() }
+        Self { theme: "system".into(), skin: "default".into(), accent: "violet".into() }
     }
 }
 

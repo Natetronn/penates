@@ -14,20 +14,22 @@
   --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.18);
 
   /* surfaces and text (light) */
-  --bg: #fafbfc;
+  --bg: #f8f7fc;
   --card: #ffffff;
-  --line: #dfe2e8;
-  --chip: #eef1f6;
-  --fg: #1b1e26;
-  --muted: #667085;
+  --line: #e3e0f0;
+  --chip: #efedf8;
+  --fg: #17152a;
+  --muted: #625e7a;
 
   /* status */
   --danger: #c0392b;
   --ok: #1f8a4c;
 
-  /* accent (default: blue) */
-  --accent-light: #2f5bea;
-  --accent-dark: #7b96ff;
+  /* accent (default: violet, from the logo) */
+  --accent-light: #6d3fe0;
+  --accent-dark: #8b5cff;
+  /* the logo's cyan -> violet -> pink */
+  --brand-gradient: linear-gradient(90deg, #22e6ff, #8b5cff, #ff4fd8);
   --accent: var(--accent-light);
   --accent-fg: #ffffff;
   --swatch: var(--accent-light);
@@ -35,7 +37,7 @@
 
 /* accent palette: [data-accent] also works on any element, e.g. a swatch */
 [data-accent="blue"]   { --accent-light: #2f5bea; --accent-dark: #7b96ff; }
-[data-accent="violet"] { --accent-light: #6d3fe0; --accent-dark: #a78bfa; }
+[data-accent="violet"] { --accent-light: #6d3fe0; --accent-dark: #8b5cff; }
 [data-accent="green"]  { --accent-light: #1f8a4c; --accent-dark: #4fd08a; }
 [data-accent="orange"] { --accent-light: #d9640b; --accent-dark: #ffa04d; }
 [data-accent="rose"]   { --accent-light: #d6336c; --accent-dark: #ff7aa8; }
@@ -44,8 +46,8 @@
 /* dark: OS preference, unless the user forced light */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #171a21; --card: #1e222b; --line: #2b303b; --chip: #262b36;
-    --fg: #e8eaf0; --muted: #8b93a3;
+    --bg: #0c0b16; --card: #15132a; --line: #2a2647; --chip: #1e1b36;
+    --fg: #f4f2ff; --muted: #a9a5c4;
     --danger: #ff7b6b; --ok: #4fd08a;
     --accent: var(--accent-dark); --accent-fg: #0e1014;
     --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.5);
@@ -56,8 +58,8 @@
 
 /* dark: forced */
 :root[data-theme="dark"] {
-  --bg: #171a21; --card: #1e222b; --line: #2b303b; --chip: #262b36;
-  --fg: #e8eaf0; --muted: #8b93a3;
+  --bg: #0c0b16; --card: #15132a; --line: #2a2647; --chip: #1e1b36;
+  --fg: #f4f2ff; --muted: #a9a5c4;
   --danger: #ff7b6b; --ok: #4fd08a;
   --accent: var(--accent-dark); --accent-fg: #0e1014;
   --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.5);

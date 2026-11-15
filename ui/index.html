@@ -10,6 +10,8 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 var(--font)}
 header{display:flex;align-items:center;gap:16px;padding:10px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
+header{position:sticky}
+header::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--brand-gradient);opacity:.85}
 header h1{font-size:15px;margin:0}
 nav{display:flex;gap:4px}
 nav button{background:none;border:0;padding:6px 12px;border-radius:var(--radius);color:var(--muted);cursor:pointer;font:inherit}
@@ -433,9 +435,9 @@ async function renderUpdates() {
 }
 
 // ---- appearance (tokens live in tokens.css; this only sets two attributes) ----
-const ACCENTS = ["blue", "violet", "green", "orange", "rose", "slate"];
+const ACCENTS = ["violet", "blue", "green", "orange", "rose", "slate"];
 const SKINS = [["default", "Penates"], ["nord", "Nord"], ["solarized", "Solarized"], ["mono", "High contrast"]];
-let appearance = { theme: "system", skin: "default", accent: "blue" };
+let appearance = { theme: "system", skin: "default", accent: "violet" };
 function applyAppearance(a) {
   const root = document.documentElement;
   if (a.theme === "system") root.removeAttribute("data-theme"); else root.dataset.theme = a.theme;

@@ -4,13 +4,13 @@
 
 /* Penates (the default). Explicit values so a preview card can show it while another skin is active;
    the app itself just removes data-skin to use tokens.css. */
-[data-skin="default"] { --bg: #fafbfc; --card: #ffffff; --line: #dfe2e8; --chip: #eef1f6; --fg: #1b1e26; --muted: #667085; }
+[data-skin="default"] { --bg: #f8f7fc; --card: #ffffff; --line: #e3e0f0; --chip: #efedf8; --fg: #17152a; --muted: #625e7a; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"])[data-skin="default"],
-  :root:not([data-theme="light"]) [data-skin="default"] { --bg: #171a21; --card: #1e222b; --line: #2b303b; --chip: #262b36; --fg: #e8eaf0; --muted: #8b93a3; }
+  :root:not([data-theme="light"]) [data-skin="default"] { --bg: #0c0b16; --card: #15132a; --line: #2a2647; --chip: #1e1b36; --fg: #f4f2ff; --muted: #a9a5c4; }
 }
 :root[data-theme="dark"][data-skin="default"],
-:root[data-theme="dark"] [data-skin="default"] { --bg: #171a21; --card: #1e222b; --line: #2b303b; --chip: #262b36; --fg: #e8eaf0; --muted: #8b93a3; }
+:root[data-theme="dark"] [data-skin="default"] { --bg: #0c0b16; --card: #15132a; --line: #2a2647; --chip: #1e1b36; --fg: #f4f2ff; --muted: #a9a5c4; }
 
 /* Nord */
 [data-skin="nord"] { --bg: #eceff4; --card: #f8f9fb; --line: #d8dee9; --chip: #e5e9f0; --fg: #2e3440; --muted: #4c566a;
