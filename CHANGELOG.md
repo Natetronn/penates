@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
+### Added
+- A Keys button on the toolbar that shows the key list, and the app's keys work while the toolbar has the focus.
+- While a page loads, the toolbar's Reload becomes Stop and a progress line runs along its bottom.
+- Create has a Show a toolbar checkbox.
+
+### Changed
+- The toolbar is on by default, also for apps made before it existed (turn it off under Edit → Window). `penates create --no-toolbar` makes an app without it; `--toolbar` is gone.
+
 ## [0.1.2] - 2026-11-15
 An optional toolbar for any app, a list of keys on F1, a start-page key, a choice of export folder, 22 apps in the catalog, and the website.
 

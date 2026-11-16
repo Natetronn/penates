@@ -10,7 +10,7 @@ function mkIcon(letter, color) {
   x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(letter, 64, 68); return c.toDataURL('image/png');
 }
 const DEF = { width: 1200, height: 800, zoom: 1, user_agent: null, inject_css: null, inject_js: null, internal_hosts: [], single_instance: true,
-  start_maximized: true, start_fullscreen: false, start_as: 'window', resizable: true, always_on_top: false, decorations: true, toolbar: false, external_links_in_browser: true, devtools: false,
+  start_maximized: true, start_fullscreen: false, start_as: 'window', resizable: true, always_on_top: false, decorations: true, toolbar: true, external_links_in_browser: true, devtools: false,
   allow_notifications: true, allow_camera_microphone: false, tray: false, tray_grayscale: false, close_to_tray: false, theme: 'system', custom_icon: false,
   catalog_id: null, catalog_version: null, launcher: true };
 const icons = {};
@@ -69,13 +69,13 @@ const H = {
   get_appearance: () => ({ ...mockAppearance }),
   set_appearance({ appearance: a }) { mockAppearance = a; },
   async suggest_name({ url }) { await wait(400); return nameFor(normUrl(url)); },
-  async create_app({ url, name, openAfter, iconUrl, iconBytes }) {
+  async create_app({ url, name, openAfter, iconUrl, iconBytes, toolbar }) {
     await wait(700); url = normUrl(url);
     if (iconUrl && !/^https?:\/\//.test(iconUrl)) throw 'The icon address must start with https:// or http://';
     name = (name || '').trim() || nameFor(url);
     const base = slug(name) || slug(nameFor(url)) || 'app'; let id = base, n = 2; while (db.some((a) => a.id === id)) id = base + '-' + n++;
     icons[id] = mkIcon(name[0].toUpperCase(), COLORS[db.length % COLORS.length]);
-    const a = { ...DEF, id, name, url, icon: 'mock:' + id };
+    const a = { ...DEF, id, name, url, icon: 'mock:' + id, toolbar: toolbar !== false };
     if (iconBytes && iconBytes.length) { icons[id] = await new Promise((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(new Blob([new Uint8Array(iconBytes)])); }); a.custom_icon = true; }
     else if (iconUrl) { icons[id] = mkIcon('↗', '#0f8b9d'); a.custom_icon = true; }
     const preset = applyPreset(a); db.push(a); if (openAfter) say('Launching ' + name + ' (preview only)…');

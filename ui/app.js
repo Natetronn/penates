@@ -308,7 +308,7 @@ const FIELDS = {
     ["start_maximized", "Start maximized", "bool", "Open full-frame; width and height apply when restored"],
     ["start_fullscreen", "Start fullscreen", "bool"], ["resizable", "Resizable", "bool"],
     ["always_on_top", "Always on top", "bool"], ["decorations", "Show title bar and borders", "bool", "Turn off for a frameless window"],
-    ["toolbar", "Show a toolbar", "bool", "Back, forward, reload, start page, the address and Open in browser, above the site"]],
+    ["toolbar", "Show a toolbar", "bool", "Back, forward, reload, start page, the address, Open in browser and the key list, above the site"]],
   Behavior: [["single_instance", "Single window", "bool", "Launching again focuses the open window"],
     ["allow_notifications", "Allow notifications", "bool", "Let the site show desktop notifications"],
     ["allow_camera_microphone", "Allow camera and microphone", "bool", "For video calls. Off unless you turn it on"],
@@ -434,6 +434,7 @@ function renderCreate() {
     try { const n = await invoke("suggest_name", { url: url.value }); if (!nameTouched) name.value = n; } catch {}
   });
   const open = el("input", { type: "checkbox", id: "c-open", checked: true });
+  const toolbar = el("input", { type: "checkbox", id: "c-toolbar", checked: true });
   const iconUrl = el("input", { type: "text", id: "c-icon-url", placeholder: "https://example.com/logo.png" });
   const iconFile = el("input", { type: "file", id: "c-icon-file", accept: "image/png,image/jpeg,image/webp,image/gif,image/x-icon,image/vnd.microsoft.icon,.ico" });
   put($("tab-create"),
@@ -444,7 +445,7 @@ function renderCreate() {
       await busy(e.target.querySelector("button.primary"), "Creating…", async () => {
         const f = iconFile.files[0];
         const iconBytes = f ? Array.from(new Uint8Array(await f.arrayBuffer())) : null;
-        const c = await invoke("create_app", { url: url.value, name: name.value || null, openAfter: open.checked, iconUrl: iconUrl.value.trim() || null, iconBytes });
+        const c = await invoke("create_app", { url: url.value, name: name.value || null, openAfter: open.checked, iconUrl: iconUrl.value.trim() || null, iconBytes, toolbar: toolbar.checked });
         url.value = name.value = iconUrl.value = iconFile.value = "";
         checkApps(); show("apps");
         sayWith(`Created ${c.app.name}.` + (c.preset ? ` Preset ${c.preset} from the app catalog applied.` : ""), c.warnings);
@@ -454,6 +455,7 @@ function renderCreate() {
       el("fieldset", {}, el("legend", {}, "Icon (optional)"),
         el("p", { class: "hint" }, "Leave both empty to use the site's own icon."),
         el("div", { class: "grid" }, el("label", { class: "f" }, "Image address", iconUrl), el("label", { class: "f" }, "Or choose a file", iconFile))),
+      el("label", { class: "chk" }, toolbar, el("span", {}, "Show a toolbar", el("small", {}, "Back, forward, reload, start page, the address and the key list, above the site. Change it later under Edit."))),
       el("label", { class: "chk" }, open, el("span", {}, "Open after creating")),
       el("div", { class: "row" }, el("button", { class: "primary", textContent: "Create app" }))),
     popularApps());

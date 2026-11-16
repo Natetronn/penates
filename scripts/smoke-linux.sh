@@ -17,7 +17,7 @@ L="$XDG_DATA_HOME/applications/penates-smoke.desktop"
 
 shot() { command -v import >/dev/null && import -window root "$OUT/$1.png" 2>/dev/null || echo "screenshot $1 skipped"; }
 
-$A create https://example.com --name Smoke --id smoke --icon src-tauri/icons/icon.png
+$A create https://example.com --name Smoke --id smoke --icon src-tauri/icons/icon.png --no-toolbar
 test -f "$L"
 if command -v desktop-file-validate >/dev/null; then desktop-file-validate "$L"; fi
 grep -q '^StartupWMClass=penates-smoke$' "$L"
@@ -54,7 +54,7 @@ $A import "$OUT/smoke.penates" --yes
 test -f "$L" || { echo "import did not recreate the launcher"; exit 1; }
 
 # 5) an app with the toolbar: it starts, and the screenshot shows the toolbar above the site
-$A create https://example.com --name "Smoke toolbar" --id smoke-toolbar --toolbar --no-install
+$A create https://example.com --name "Smoke toolbar" --id smoke-toolbar --no-install
 "$PENATES_DESKTOP" --run smoke-toolbar >"$OUT/toolbar.log" 2>&1 & APP=$!
 sleep 12
 kill -0 "$APP" || { echo "toolbar app exited:"; cat "$OUT/toolbar.log"; exit 1; }

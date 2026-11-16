@@ -63,6 +63,7 @@ pub async fn create_app(
     open_after: bool,
     icon_url: Option<String>,
     icon_bytes: Option<Vec<u8>>,
+    toolbar: Option<bool>,
 ) -> CmdResult<ops::Created> {
     let icon = match (icon_bytes.filter(|b| !b.is_empty()), icon_url.map(|u| u.trim().to_string()).filter(|u| !u.is_empty())) {
         (Some(b), _) => ops::IconChoice::Bytes(b),
@@ -70,7 +71,7 @@ pub async fn create_app(
         (None, Some(_)) => return Err("The icon address must start with https:// or http://".into()),
         (None, None) => ops::IconChoice::Site,
     };
-    let created = blocking(move || ops::create(ops::NewApp { url, name, icon, ..Default::default() })).await?;
+    let created = blocking(move || ops::create(ops::NewApp { url, name, icon, toolbar: toolbar.unwrap_or(true), ..Default::default() })).await?;
     if open_after {
         run_app(created.app.id.clone())?;
     }

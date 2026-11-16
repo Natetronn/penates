@@ -20,7 +20,7 @@ Each app is one TOML file, `~/.config/penates/apps/<id>.toml` (other systems: se
 | `resizable` | `true` | |
 | `always_on_top` | `false` | |
 | `decorations` | `true` | native title bar and borders (`false` = frameless) |
-| `toolbar` | `false` | a toolbar above the site: back, forward, reload, start page, the address and open in browser |
+| `toolbar` | `true` | a toolbar above the site: back, forward, reload (stop while loading), start page, the address, open in browser and the key list |
 | `devtools` | `false` | enable the web inspector |
 | `single_instance` | `true` | launching again focuses the open window |
 | `external_links_in_browser` | `true` | links to other sites (not this one, its `www.` twin, or `internal_hosts`) open in your browser |

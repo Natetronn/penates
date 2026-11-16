@@ -15,7 +15,7 @@ function Shot($name) {
   } catch { "screenshot failed: $_" }
 }
 
-& $A create https://example.com --name Smoke --id smoke --icon src-tauri/icons/icon.png
+& $A create https://example.com --name Smoke --id smoke --icon src-tauri/icons/icon.png --no-toolbar
 if ($LASTEXITCODE) { throw 'create failed' }
 $lnk = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Penates\Smoke.lnk'
 if (-not (Test-Path $lnk)) { throw "no shortcut at $lnk" }
@@ -44,8 +44,8 @@ if (Test-Path $lnk) { throw 'shortcut not removed' }
 if (-not (Test-Path $lnk)) { throw 'import did not recreate the shortcut' }
 
 # an app with the toolbar: it starts, and the screenshot shows the toolbar above the site
-& $A create https://example.com --name 'Smoke toolbar' --id smoke-toolbar --toolbar --no-install
-if ($LASTEXITCODE) { throw 'create with --toolbar failed' }
+& $A create https://example.com --name 'Smoke toolbar' --id smoke-toolbar --no-install
+if ($LASTEXITCODE) { throw 'create (toolbar app) failed' }
 $tb = Start-Process $env:PENATES_DESKTOP -ArgumentList '--run', 'smoke-toolbar' -PassThru
 Start-Sleep 15
 if ($tb.HasExited) { throw 'toolbar app exited' }

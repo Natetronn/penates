@@ -8,7 +8,7 @@ export PENATES_DESKTOP="$PWD/target/debug/penates-desktop"
 A=target/debug/penates
 B="$HOME/Applications/Penates/Smoke.app"
 
-$A create https://example.com --name Smoke --id smoke --icon src-tauri/icons/icon.png
+$A create https://example.com --name Smoke --id smoke --icon src-tauri/icons/icon.png --no-toolbar
 test -x "$B/Contents/MacOS/launcher"
 test -f "$B/Contents/MacOS/penates-desktop"
 test -f "$B/Contents/Resources/icon.icns"
@@ -48,7 +48,7 @@ $A import "$OUT/smoke.penates" --yes
 test -d "$B" || { echo "import did not recreate the bundle"; exit 1; }
 
 # an app with the toolbar: it starts, and the screenshot shows the toolbar above the site
-$A create https://example.com --name "Smoke toolbar" --id smoke-toolbar --toolbar --no-install
+$A create https://example.com --name "Smoke toolbar" --id smoke-toolbar --no-install
 PENATES_DEBUG=1 "$PENATES_DESKTOP" --run smoke-toolbar >"$OUT/toolbar.log" 2>&1 & TB=$!
 sleep 12
 if kill -0 "$TB" 2>/dev/null; then echo "toolbar app OK"; screencapture -x "$OUT/toolbar.png" || echo "screenshot failed"; kill "$TB"

@@ -24,7 +24,7 @@ The `penates` command makes and manages apps from a terminal: `penates <command>
 | `remove <id> [--purge]` | Remove the app (also one whose config does not load). `--purge` also deletes its cookies and data, and is refused while the app runs. |
 
 ## `create` options
-`-n/--name`, `--id` (lowercase letters, digits, `-`, `_`), `-i/--icon <file-or-url>`, `--user-agent`, `--width`, `--height`, `--zoom`, `--internal-host <host>` (repeatable), `--inject-css <file>`, `--inject-js <file>`, `--devtools`, `--toolbar` (a toolbar above the site), `--no-install` (no menu launcher; the app also won't add one when run), `--force` (replace an existing app with the same id).
+`-n/--name`, `--id` (lowercase letters, digits, `-`, `_`), `-i/--icon <file-or-url>`, `--user-agent`, `--width`, `--height`, `--zoom`, `--internal-host <host>` (repeatable), `--inject-css <file>`, `--inject-js <file>`, `--devtools`, `--no-toolbar` (no toolbar above the site), `--no-install` (no menu launcher; the app also won't add one when run), `--force` (replace an existing app with the same id).
 
 Without `--id`, the id comes from the name (or, for names in other alphabets, from the address) and gets `-2`, `-3`... if it is taken.
 

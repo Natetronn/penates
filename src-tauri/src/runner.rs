@@ -239,6 +239,8 @@ small{display:block;color:#a9a5c4;font-size:12px}`;
     host.addEventListener("click", (e) => { if (e.composedPath()[0] === host) close(); });
     document.documentElement.append(host);
   };
+  // The toolbar's Keys button asks for the list through this event.
+  addEventListener("penates-keys", () => toggle());
   addEventListener("keydown", (e) => {
     if (e.defaultPrevented || e.repeat) return;
     const k = e.key.toLowerCase(), cmd = mac ? e.metaKey : e.ctrlKey;
@@ -352,7 +354,14 @@ macro_rules! site_view {
             w = w.initialization_script(js.clone());
         }
         let seen = $visited.clone();
-        w = with_rules!(w, cfg, $visited, $handle).on_page_load(move |_, payload| remember(&seen, payload.url()));
+        w = with_rules!(w, cfg, $visited, $handle).on_page_load(move |wv, payload| {
+            remember(&seen, payload.url());
+            // With the toolbar: Reload becomes Stop and a progress line runs while a page loads.
+            if let Some(bar) = wv.app_handle().get_webview("toolbar") {
+                let loading = matches!(payload.event(), tauri::webview::PageLoadEvent::Started);
+                let _ = bar.eval(format!("window.penatesLoading?.({loading})"));
+            }
+        });
         // Isolated profile per app. macOS WKWebView uses a data-store id instead of a directory.
         #[cfg(target_os = "macos")]
         {
@@ -526,6 +535,9 @@ fn toolbar_action(webview: tauri::Webview, app: tauri::AppHandle, cfg: tauri::St
         "back" => site.eval("history.back()"),
         "forward" => site.eval("history.forward()"),
         "reload" => site.reload(),
+        "stop" => site.eval("window.stop()"),
+        // The key list opens over the site, which then has the focus, so Esc closes it as usual.
+        "keys" => site.eval("dispatchEvent(new Event('penates-keys'))").and_then(|()| site.set_focus()),
         "home" => match cfg.url.parse() {
             Ok(u) => site.navigate(u),
             Err(e) => return Err(format!("start page: {e}")),

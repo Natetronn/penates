@@ -165,7 +165,7 @@ impl Default for NewApp {
             inject_css: None,
             inject_js: None,
             devtools: false,
-            toolbar: false,
+            toolbar: true,
             launcher: true,
             replace: false,
         }
