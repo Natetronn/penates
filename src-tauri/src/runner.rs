@@ -244,7 +244,7 @@ small{display:block;color:#a9a5c4;font-size:12px}`;
     try { const sheet = new CSSStyleSheet(); sheet.replaceSync(css); root.adoptedStyleSheets = [sheet]; }
     catch { const st = document.createElement("style"); st.textContent = css; root.append(st); }
     const box = document.createElement("div"); box.className = "box";
-    const h = document.createElement("h2"); h.textContent = "Keys in this app";
+    const h = document.createElement("h2"); h.textContent = "Keys in This App";
     const table = document.createElement("table");
     for (const [what, key, note] of keys) {
       const tr = table.insertRow(), a = tr.insertCell(), b = tr.insertCell();

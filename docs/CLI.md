@@ -1,4 +1,4 @@
-# CLI reference
+# CLI Reference
 
 The `penates` command makes and manages apps from a terminal: `penates <command>`. Run `penates <command> --help` for every flag.
 
@@ -15,7 +15,7 @@ The `penates` command makes and manages apps from a terminal: `penates <command>
 | `icon <id> [file-or-url]` | Set the icon from a file or URL; with no argument, re-fetch the site's own. |
 | `icons <url>` | List icons found for a site, best first (PWA manifest, apple-touch, favicon). |
 | `clear <id> [--data]` | Clear the cache (keeps logins). `--data` clears cookies and storage too. Refused while the app runs. |
-| `catalog` | List the apps in the app catalog: ready-made fixes for known sites, marked when you already have one. |
+| `catalog [words…]` | List the apps in the App Catalog, ready-made fixes for known sites, marked when you already have one. Popular picks come first. Words keep only apps whose name, address, category or tags contain them all; `--category <name>` keeps one category (e.g. `--category "developer tools"`). |
 | `submit <id> --notes "…"` | Propose one of your apps for the app catalog: prints the entry and opens GitHub with it filled in (`--no-open` prints the address instead). Custom JavaScript is never included. |
 | `check` | Check for a new Penates version and newer app presets (each reported separately). |
 | `update <id>` or `update --all` | Apply newer presets and refresh the site icon (never replaces a custom icon). `--all` updates four apps at a time and exits with an error if any failed. |
@@ -23,7 +23,7 @@ The `penates` command makes and manages apps from a terminal: `penates <command>
 | `import <file-or-url>` | Review a `.penates` file, then recreate its apps. `--on-conflict skip\|rename\|overwrite` (default rename), `--allow-js` keeps custom JavaScript (dropped by default), `--settings` applies its settings, `-y` skips the prompt. Camera/microphone access and developer tools are always switched off on import. |
 | `remove <id> [--purge]` | Remove the app (also one whose config does not load). `--purge` also deletes its cookies and data, and is refused while the app runs. |
 
-## `create` options
+## `create` Options
 `-n/--name`, `--id` (lowercase letters, digits, `-`, `_`), `-i/--icon <file-or-url>`, `--user-agent`, `--width`, `--height`, `--zoom`, `--internal-host <host>` (repeatable), `--inject-css <file>`, `--inject-js <file>`, `--devtools`, `--no-toolbar` (no toolbar above the site), `--no-install` (no menu launcher; the app also won't add one when run), `--force` (replace an existing app with the same id).
 
 Without `--id`, the id comes from the name (or, for names in other alphabets, from the address) and gets `-2`, `-3`... if it is taken.

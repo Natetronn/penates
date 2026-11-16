@@ -24,7 +24,7 @@
   - No arguments: the **manager** (`main.rs`, `commands.rs`). It loads `ui/` and calls Rust commands; anything that touches the network or disk runs on a blocking thread. One manager at a time: a second start focuses the open window.
   - `--run <id>`: the **runner** (`runner.rs`). It opens one site in a webview with that app's options. It registers no plugins, and one command for the optional toolbar.
 
-## The runner
+## The Runner
 - **Isolated profile**: each app's cookies and storage live in its own folder (see Files). macOS uses a per-app WKWebView data-store id instead of a folder.
 - **Identity**: the window's app ID / class is `penates-<id>`, which equals the launcher file name `penates-<id>.desktop`, so the desktop shows the right icon and groups windows. Windows sets a per-app AppUserModelID.
 - **Navigation**: web pages load in the window, including frames embedded from other sites.
@@ -39,7 +39,7 @@
 - **Permissions (Linux)**: notifications and camera/microphone are answered from the app's settings; screen capture, location and everything else are denied.
 - **Tray**: optional icon built from the app's stored icon, converted to grayscale on request. Close-to-tray is only switched on when the tray icon was created.
 
-## Launcher identity
+## Launcher Identity
 | OS | What is written | Matching rule |
 |---|---|---|
 | Linux | `~/.local/share/applications/penates-<id>.desktop`, then the desktop's app caches are refreshed (once per batch) | file name = window app ID |

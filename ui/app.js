@@ -50,7 +50,7 @@ async function busy(btn, label, work) {
 }
 
 // ---- sections ----
-const TABS = ["apps", "create", "updates", "settings"];
+const TABS = ["apps", "catalog", "create", "updates", "settings"];
 let tab = "apps", editing = null, importing = null, submitting = null;
 function show(t) {
   tab = t;
@@ -192,7 +192,7 @@ function renderSubmit(root) {
   const a = submitting.app;
   const notes = el("input", { type: "text", id: "sub-notes", placeholder: "e.g. Keep Google sign-in inside the window" });
   const preview = el("pre", { class: "preview", "aria-live": "polite" }, "Say what the preset fixes to see the entry.");
-  const title = el("h2", {}, `Share ${a.name} with the app catalog`);
+  const title = el("h2", {}, `Share ${a.name} with the App Catalog`);
   const how = el("span", {}, "GitHub opens in your browser with everything filled in, and you send it from there.");
   const go = el("button", { class: "primary", textContent: "Open GitHub", disabled: true });
   let current = null, timer;
@@ -225,7 +225,7 @@ function renderSubmit(root) {
   put(root, title,
     el("p", { class: "hint" }, how, " Penates sends nothing itself, and you need a GitHub account."),
     el("label", { class: "f" }, "What does it fix? (one line)", notes),
-    el("h3", {}, "What will be shared"),
+    el("h3", {}, "What Will Be Shared"),
     el("p", { class: "hint" }, "Check the extra sites before sharing: they can reveal addresses you use, such as a company sign-in page. Custom JavaScript is never included."),
     preview,
     el("div", { class: "formbar" }, go, el("button", { textContent: "Cancel", onclick: () => { submitting = null; renderApps(); } })));
@@ -253,11 +253,11 @@ function renderImportPick(root, cancel) {
     const f = await invoke("pick_file", { kind: "penates" });
     if (f) await load(new TextDecoder().decode(new Uint8Array(f.bytes)), false);
   }) });
-  put(root, el("h2", {}, "Import apps"),
-    el("fieldset", {}, el("legend", {}, "From a file"),
+  put(root, el("h2", {}, "Import Apps"),
+    el("fieldset", {}, el("legend", {}, "From a File"),
       el("p", { class: "hint" }, "A .penates file exported from Penates. You review it before anything is added."),
       el("div", { class: "row" }, choose)),
-    el("fieldset", {}, el("legend", {}, "From a link"),
+    el("fieldset", {}, el("legend", {}, "From a Link"),
       el("label", { class: "f", htmlFor: "imp-url" }, "Address of a .penates file"),
       el("div", { class: "row" }, url, el("button", { textContent: "Load", onclick: () => load(url.value, true) }))),
     el("div", { class: "row" }, el("button", { textContent: "Cancel", onclick: cancel })));
@@ -285,7 +285,7 @@ function renderImport(root) {
     el("div", { class: "meta" }, el("b", {}, s.name), el("span", { class: "url" }, s.url),
       !s.all_links_in_app && s.extra_hosts.length ? el("span", { class: "wrap" }, "Also keeps these sites in the app: " + s.extra_hosts.join(", ")) : null),
     importFlags(s)));
-  put(root, el("h2", {}, `Import ${plural(d.summary.length, "app")}`), rows,
+  put(root, el("h2", {}, `Import ${plural(d.summary.length, "App")}`), rows,
     anyJs ? el("div", { class: "banner" }, el("span", {}, "Some of these apps include custom JavaScript. It runs inside the site and could read what you type. It is removed unless you allow it below. Only allow it if you trust where this file came from.")) : null,
     el("fieldset", {}, el("legend", {}, "Options"),
       anyExists ? el("label", { class: "f" }, "If an app already exists", conflict) : null,
@@ -489,8 +489,9 @@ function renderCreate() {
     iconFile = f; put(iconName, f.name); clearIcon.hidden = false;
   }) });
   put($("tab-create"),
-    el("h2", {}, "Create an app"),
+    el("h2", {}, "Create an App"),
     el("p", { class: "hint" }, "Paste a site address. The name and icon are read from the site automatically. You can edit either one here or later under Edit."),
+    el("p", { class: "hint" }, "For a well-known site, the ", link("App Catalog", () => show("catalog")), " has it ready-made, with its fixes."),
     el("form", { onsubmit: async (e) => {
       e.preventDefault();
       await busy(e.target.querySelector("button.primary"), "Creating…", async () => {
@@ -503,13 +504,12 @@ function renderCreate() {
       });
     } },
       el("div", { class: "grid" }, el("label", { class: "f" }, "Website address", url), el("label", { class: "f" }, "Name", name)),
-      el("fieldset", {}, el("legend", {}, "Icon (optional)"),
+      el("fieldset", {}, el("legend", {}, "Icon (Optional)"),
         el("p", { class: "hint" }, "Leave both empty to use the site's own icon."),
         el("div", { class: "grid" }, el("label", { class: "f" }, "Image address", iconUrl), el("div", { class: "f" }, el("span", {}, "Or choose a file"), el("div", { class: "row tight" }, chooseIcon, iconName, clearIcon)))),
       el("label", { class: "chk" }, toolbar, el("span", {}, "Show a toolbar", el("small", {}, "Back, forward, reload, start page, the address, the key list and Open in browser, above the site. Change it later under Edit."))),
       el("label", { class: "chk" }, open, el("span", {}, "Open after creating")),
-      el("div", { class: "row" }, el("button", { class: "primary", textContent: "Create app" }))),
-    popularApps());
+      el("div", { class: "row" }, el("button", { class: "primary", textContent: "Create app" }))));
 }
 
 // ---- popular apps (the app catalog, browsable) ----
@@ -525,25 +525,73 @@ function catalogIcon(c) {
     .catch(() => {}); // no icon: keep the letter
   return tile;
 }
-function popularApps() {
-  const box = el("div", {}, el("p", { class: "hint" }, "Loading the app catalog…"));
-  const fill = async () => {
-    try {
-      const l = await invoke("catalog_apps");
-      put(box, el("p", { class: "hint" }, `Ready-made apps from ${l.source}. Adding one also applies its fixes, such as keeping sign-in inside the window.`),
-        l.apps.map((c) => el("div", { class: "app" }, catalogIcon(c),
-          el("div", { class: "meta" }, el("b", {}, c.name), el("span", { class: "url" }, hostOf(c.url)), el("span", { class: "wrap" }, c.notes)),
-          c.added
-            ? [el("span", { class: "chip" }, "added"), el("button", { textContent: "Open", onclick: () => invoke("run_app", { id: c.added }).catch(fail) })]
-            : el("button", { class: "primary", textContent: "Add", "aria-label": "Add " + c.name, onclick: (ev) => busy(ev.target, "Adding…", async () => {
-                const r = await invoke("create_app", { url: c.url, name: c.name, openAfter: false, iconUrl: null, iconBytes: null });
-                sayWith(`Added ${r.app.name}. Open it from the Apps tab or your app menu.`, r.warnings);
-                checkApps(); fill();
-              }) }))));
-    } catch (e) { put(box, el("p", { class: "hint" }, "Could not load the app catalog: " + e)); }
+// ---- App Catalog: Popular picks, then every app by search, category and page ----
+const CATALOG_PAGE = 24;
+const catalogView = { search: "", category: "", page: 0 }; // kept while the manager is open
+
+/** Twin of `CatalogApp::matches` (updates.rs): every word appears in the name, address, category or tags. */
+function catalogMatches(c, search) {
+  const hay = [c.name, c.url, c.category, ...c.tags].join(" ").toLowerCase();
+  return search.toLowerCase().split(/\s+/).filter(Boolean).every((w) => hay.includes(w));
+}
+
+function catalogCard(c, reload) {
+  const action = c.added
+    ? el("button", { textContent: "Open", "aria-label": "Open " + c.name, onclick: () => invoke("run_app", { id: c.added }).catch(fail) })
+    : el("button", { class: "primary", textContent: "Add", "aria-label": "Add " + c.name, onclick: (ev) => busy(ev.target, "Adding…", async () => {
+        const r = await invoke("create_app", { url: c.url, name: c.name, openAfter: false, iconUrl: null, iconBytes: null });
+        sayWith(`Added ${r.app.name}. Open it here, from the Apps tab or your app menu.`, r.warnings);
+        checkApps(); reload();
+      }) });
+  return el("div", { class: "card" },
+    el("div", { class: "card-head" }, catalogIcon(c), el("div", { class: "meta" }, el("b", {}, c.name), el("span", { class: "url" }, hostOf(c.url)))),
+    el("p", { class: "notes" }, c.notes),
+    el("div", { class: "card-foot" }, c.category ? el("span", { class: "chip" }, c.category) : el("span"),
+      el("span", { class: "row tight" }, c.added ? el("span", { class: "chip" }, "added") : null, action)));
+}
+
+async function renderCatalog() {
+  const root = $("tab-catalog");
+  if (!root.firstChild) put(root, el("h2", {}, "App Catalog"), el("p", { class: "hint" }, "Loading the app catalog…"));
+  let l;
+  try { l = await invoke("catalog_apps"); } catch (e) { return put(root, el("h2", {}, "App Catalog"), el("p", { class: "hint" }, "Could not load the app catalog: " + e)); }
+  const reload = () => renderCatalog();
+  const categories = [...new Set(l.apps.map((c) => c.category).filter(Boolean))].sort();
+  const uncategorized = l.apps.some((c) => !c.category);
+  if (catalogView.category && !categories.includes(catalogView.category) && catalogView.category !== "Other") catalogView.category = "";
+  const popular = el("div", {}), results = el("div", {});
+  const draw = () => {
+    const v = catalogView;
+    const shown = l.apps.filter((c) => (!v.category || (v.category === "Other" ? !c.category : c.category === v.category)) && catalogMatches(c, v.search));
+    const pages = Math.max(1, Math.ceil(shown.length / CATALOG_PAGE));
+    v.page = Math.min(v.page, pages - 1);
+    const picks = l.apps.filter((c) => c.popular);
+    put(popular, !v.search && !v.category && picks.length
+      ? [el("h3", {}, "Popular"), el("div", { class: "cards" }, picks.map((c) => catalogCard(c, reload)))] : []);
+    chips.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.category === v.category)));
+    put(results,
+      el("p", { class: "hint", role: "status" }, shown.length === l.apps.length ? plural(l.apps.length, "app") : `${shown.length} of ${plural(l.apps.length, "app")}`),
+      shown.length
+        ? el("div", { class: "cards" }, shown.slice(v.page * CATALOG_PAGE, (v.page + 1) * CATALOG_PAGE).map((c) => catalogCard(c, reload)))
+        : el("p", {}, "No apps match. Try another word or category."),
+      pages > 1 ? el("div", { class: "pager" },
+        el("button", { type: "button", textContent: "Previous", disabled: v.page === 0, onclick: () => { v.page--; draw(); } }),
+        el("span", { class: "hint" }, `Page ${v.page + 1} of ${pages}`),
+        el("button", { type: "button", textContent: "Next", disabled: v.page >= pages - 1, onclick: () => { v.page++; draw(); } })) : null);
   };
-  fill();
-  return [el("h2", {}, "Popular apps"), box];
+  const search = el("input", { type: "search", id: "catalog-search", class: "grow", value: catalogView.search, placeholder: "Search by name, address or tag", "aria-label": "Search the App Catalog",
+    oninput: () => { catalogView.search = search.value; catalogView.page = 0; draw(); } });
+  const chips = [["", "All"], ...categories.map((c) => [c, c]), ...(uncategorized ? [["Other", "Other"]] : [])].map(([value, label]) =>
+    el("button", { type: "button", textContent: label, "data-category": value, onclick: () => { catalogView.category = value; catalogView.page = 0; draw(); } }));
+  put(root, el("h2", {}, "App Catalog"),
+    el("p", { class: "hint" }, `Ready-made apps from ${l.source}. Adding one also applies its fixes, such as keeping sign-in inside the window.`,
+      l.problems.map((p) => el("span", { class: "warn-line" }, "Could not read " + p))),
+    popular,
+    el("h3", {}, "All Apps"),
+    el("div", { class: "row" }, search),
+    el("div", { class: "filters", role: "group", "aria-label": "Category" }, chips),
+    results);
+  draw();
 }
 
 // ---- updates ----
@@ -605,7 +653,7 @@ function appsStatus() {
   if (c.state === "checking") return el("p", { class: "hint" }, "Checking…");
   if (c.state === "error") return el("p", { class: "hint" }, "Could not check your apps: " + c.error);
   const r = c.report;
-  if (!r.app_count) return el("p", {}, `No apps yet. Ready-made apps from ${r.source} (${r.catalog_size}): see `, link("Popular apps", () => show("create")), " under Create.");
+  if (!r.app_count) return el("p", {}, "No apps yet. The ", link("App Catalog", () => show("catalog")), ` has ${plural(r.catalog_size, "ready-made app")} (from ${r.source}), or make your own under `, link("Create", () => show("create")), ".");
   if (!r.apps.length) return el("p", {}, `All apps are up to date (${r.source}, ${plural(r.catalog_size, "app")}).`);
   return [el("p", {}, `${plural(r.apps.length, "app has an update", "apps have updates")} (${r.source}):`), r.apps.map((u) => el("div", { class: "app" },
     el("div", { class: "meta" }, el("b", {}, u.name), el("span", { class: "wrap" }, `Preset ${u.from ?? "none"} → ${u.to}: ${u.notes}`)),
@@ -627,7 +675,7 @@ function renderUpdates() {
       el("p", { class: "hint" }, "New versions of Penates itself, signed and checked before they install."),
       penatesStatus(),
       el("div", { class: "row" }, checkButton(checks.penates, checkPenates))),
-    el("fieldset", {}, el("legend", {}, "Your apps"),
+    el("fieldset", {}, el("legend", {}, "Your Apps"),
       el("p", { class: "hint" }, "Fixes for known sites from the app catalog (presets, such as keeping sign-in in the window), and fresh site icons. An icon you picked yourself is never replaced."),
       appsStatus(),
       el("div", { class: "row" }, checkButton(checks.apps, checkApps),
@@ -663,13 +711,13 @@ function appearanceSection() {
         SKINS.map(([v, t]) => lookButton("skin", v, { class: "skin", "data-skin": v }, // the card shows its own skin
           el("span", { class: "dots" }, el("i", { style: "background:var(--card)" }), el("i", { style: "background:var(--chip)" }), el("i", { style: "background:var(--fg)" })),
           el("b", {}, t))))),
-    el("fieldset", {}, el("legend", {}, "Light or dark"),
+    el("fieldset", {}, el("legend", {}, "Light or Dark"),
       el("div", { class: "seg", role: "group", "aria-label": "Light or dark" },
         [["system", "System"], ["light", "Light"], ["dark", "Dark"]].map(([v, t]) => lookButton("theme", v, { textContent: t })))),
-    el("fieldset", {}, el("legend", {}, "Accent color"),
+    el("fieldset", {}, el("legend", {}, "Accent Color"),
       el("div", { class: "swatches", role: "group", "aria-label": "Accent color" },
         ACCENTS.map((n) => lookButton("accent", n, { class: "swatch", title: n, "aria-label": n, "data-accent": n })))),
-    el("fieldset", {}, el("legend", {}, "Toolbar color"),
+    el("fieldset", {}, el("legend", {}, "Toolbar Color"),
       el("div", { class: "seg", role: "group", "aria-label": "Toolbar color" },
         [["site", "Match each site"], ["penates", "Penates colors"]].map(([v, t]) => lookButton("toolbar_color", v, { textContent: t }))),
       el("p", { class: "hint" }, "For apps with a toolbar. Each app can choose its own under Edit → Window."))];
@@ -681,7 +729,7 @@ function updatesSection(us) {
     onchange: () => save({ check_on_start: onStart.checked }).then(() => say("Saved.")).catch(fail) });
   const catalogStatus = el("p", { class: "hint", role: "status" }, "Checking the app catalog…");
   const showCatalog = () => invoke("catalog_apps")
-    .then((l) => put(catalogStatus, `Using ${l.source}: ${plural(l.apps.length, "app")}. `, link("Browse them", () => show("create")),
+    .then((l) => put(catalogStatus, `Using ${l.source}: ${plural(l.apps.length, "app")}. `, link("Browse them", () => show("catalog")),
       l.problems.map((p) => el("span", { class: "warn-line" }, "Could not read " + p))))
     .catch((e) => put(catalogStatus, "Could not load the app catalog: " + e));
   const changed = (msg) => { say(msg); checkApps(); put(catalogStatus, "Checking the app catalog…"); showCatalog(); };
@@ -718,11 +766,11 @@ function updatesSection(us) {
       el("label", { class: "chk" }, onStart, el("span", {}, "Check for updates when Penates starts",
         el("small", {}, "Both kinds: a new Penates, and updates for your apps"))),
       el("p", { class: "hint" }, "To check now or install updates, go to ", link("Updates", () => show("updates")), ".")),
-    el("fieldset", {}, el("legend", {}, "App catalog"),
-      el("p", { class: "hint" }, "Where your apps' fixes and the Popular apps list come from."),
+    el("fieldset", {}, el("legend", {}, "App Catalog"),
+      el("p", { class: "hint" }, "Where your apps' fixes and the App Catalog come from."),
       el("label", { class: "chk" }, penates, el("span", {}, "Use the Penates app catalog",
         el("small", {}, "Ready-made apps for popular sites, kept up to date"))),
-      el("h3", {}, "Your catalogs"),
+      el("h3", {}, "Your Catalogs"),
       el("p", { class: "hint" }, "Used together with it, for sites of your own or presets you are trying out. Yours come first: an entry with the same id as one in the Penates catalog replaces it, and the first catalog listed wins."),
       list,
       el("div", { class: "row" }, source, addButton, choose),
@@ -742,7 +790,7 @@ function exportFolderSection(info) {
     show(await invoke("set_export_folder", { dir }));
     say("Exports go to " + dir + ".");
   }) });
-  return el("fieldset", {}, el("legend", {}, "Export folder"),
+  return el("fieldset", {}, el("legend", {}, "Export Folder"),
     el("p", { class: "hint" }, "Where Export, Export all and backups are saved. Existing files are never overwritten."),
     el("p", {}, shown, note),
     el("div", { class: "row" }, choose, reset));
@@ -751,9 +799,9 @@ function exportFolderSection(info) {
 async function renderSettings() {
   const [us, folder] = await Promise.all([invoke("get_update_settings"), invoke("get_export_folder")]);
   put($("tab-settings"), appearanceSection(), updatesSection(us),
-    el("h2", {}, "Backup and export"),
+    el("h2", {}, "Backup and Export"),
     exportFolderSection(folder),
-    el("fieldset", {}, el("legend", {}, "Back up everything"),
+    el("fieldset", {}, el("legend", {}, "Back Up Everything"),
       el("p", { class: "hint" }, "Saves every app plus these settings to one .penates file in your export folder. Restore it with Import on the Apps tab. It never includes logins or cookies."),
       el("div", { class: "row" }, el("button", { type: "button", textContent: "Back up apps and settings", onclick: async () => {
         try { say("Saved to " + (await invoke("export_apps", { ids: [], withSettings: true }))); } catch (e) { fail(e); } } }))),
@@ -785,7 +833,7 @@ async function showLicenseTexts() {
   const page = $("about-credits");
   const back = el("button", { type: "button", textContent: "← Credits", onclick: showCredits });
   const text = el("pre", { class: "preview license-text", tabIndex: 0 }, "Loading…");
-  put(page, el("div", { class: "about-head" }, el("h2", {}, "License texts"), back), text);
+  put(page, el("div", { class: "about-head" }, el("h2", {}, "License Texts"), back), text);
   $("about-main").hidden = true; page.hidden = false; back.focus();
   try { text.textContent = await loadGenerated("licenses.js", "PENATES_LICENSES"); } catch (e) { text.textContent = String(e); }
 }
@@ -807,7 +855,7 @@ async function showCredits() {
         ", and your system's web view: WebKitGTK, WebView2 or WKWebView"),
       el("dt", {}, "Typeface"), el("dd", {}, webLink("Space Grotesk", "https://fonts.google.com/specimen/Space+Grotesk"),
         " by Florian Karsten (SIL Open Font License), in the logo")),
-    el("h3", {}, "Open-source components"),
+    el("h3", {}, "Open-Source Components"),
     el("p", { class: "hint" }, "Penates is built from these projects, each under its own license. Thank you to everyone who makes them. ",
       el("a", { href: "#", textContent: "Full license texts", onclick: (e) => { e.preventDefault(); showLicenseTexts(); } })),
     list);
@@ -826,7 +874,7 @@ $("about-releases").onclick = (e) => { e.preventDefault(); invoke("open_url", { 
 $("about-site").onclick = (e) => { e.preventDefault(); invoke("open_url", { url: SITE_URL }).catch(fail); };
 
 function render() {
-  const r = { apps: renderApps, create: renderCreate, updates: renderUpdates, settings: renderSettings }[tab];
+  const r = { apps: renderApps, catalog: renderCatalog, create: renderCreate, updates: renderUpdates, settings: renderSettings }[tab];
   Promise.resolve(r()).catch(fail);
 }
 

@@ -117,8 +117,14 @@ enum Cmd {
         #[arg(long)]
         purge: bool,
     },
-    /// List the apps in the app catalog (ready-made fixes for known sites)
-    Catalog,
+    /// List the apps in the App Catalog (ready-made fixes for known sites), Popular first
+    Catalog {
+        /// Only apps whose name, address, category or tags contain every one of these words
+        search: Vec<String>,
+        /// Only apps in this category (e.g. "Developer Tools")
+        #[arg(long)]
+        category: Option<String>,
+    },
     /// Propose one of your apps for the app catalog (opens GitHub with the entry filled in)
     Submit {
         id: String,
@@ -395,15 +401,34 @@ fn cmd_check() -> Result<()> {
     Ok(())
 }
 
-fn cmd_catalog() -> Result<()> {
+fn cmd_catalog(search: &str, category: Option<&str>) -> Result<()> {
     let l = updates::catalog_listing()?;
     for p in &l.problems {
         eprintln!("warning: catalog not read: {p}");
     }
-    println!("{} apps from {}:", l.apps.len(), l.source);
-    for a in &l.apps {
+    let mut categories: Vec<&str> = l.apps.iter().map(|a| a.category.as_str()).filter(|c| !c.is_empty()).collect();
+    categories.sort();
+    categories.dedup();
+    if let Some(c) = category {
+        anyhow::ensure!(categories.iter().any(|x| x.eq_ignore_ascii_case(c)), "no category '{c}'; the categories are: {}", categories.join(", "));
+    }
+    let shown: Vec<_> = l
+        .apps
+        .iter()
+        .filter(|a| category.map_or(true, |c| a.category.eq_ignore_ascii_case(c)) && a.matches(search))
+        .collect();
+    if search.is_empty() && category.is_none() {
+        let popular: Vec<&str> = l.apps.iter().filter(|a| a.popular).map(|a| a.name.as_str()).collect();
+        if !popular.is_empty() {
+            println!("Popular: {}", popular.join(", "));
+        }
+        println!("{} apps from {} (categories: {}):", shown.len(), l.source, categories.join(", "));
+    } else {
+        println!("{} of {} apps from {}:", shown.len(), l.apps.len(), l.source);
+    }
+    for a in &shown {
         let mark = a.added.as_ref().map(|id| format!("  [added as {id}]")).unwrap_or_default();
-        println!("  {:<16} {:<34} {}{mark}", a.name, a.url, a.notes);
+        println!("  {:<16} {:<16} {:<34} {}{mark}", a.name, a.category, a.url, a.notes);
     }
     println!("add one with `penates create <url>`; its fixes apply automatically");
     Ok(())
@@ -533,7 +558,7 @@ fn main() -> Result<()> {
         Cmd::Export { ids, all: _, settings, output } => cmd_export(ids, settings, output),
         Cmd::Import { source, on_conflict, allow_js, settings, yes } => cmd_import(&source, on_conflict, allow_js, settings, yes),
         Cmd::Remove { id, purge } => cmd_remove(&id, purge),
-        Cmd::Catalog => cmd_catalog(),
+        Cmd::Catalog { search, category } => cmd_catalog(&search.join(" "), category.as_deref()),
         Cmd::Submit { id, notes, no_open } => cmd_submit(&id, &notes, no_open),
         Cmd::Check => cmd_check(),
         Cmd::Update { id, all: _ } => cmd_update(id),

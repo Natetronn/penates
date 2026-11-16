@@ -6,7 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 ## [Unreleased]
 
 ## [0.1.3] - 2026-11-15
-The toolbar on by default, with a Keys button, a loading indicator and each site's own colors; and app catalogs of your own.
+The App Catalog tab, the toolbar on by default (with a Keys button, a loading indicator and each site's own colors), and app catalogs of your own.
 
 ### Added
 - A Keys button on the toolbar that shows the key list, and the app's keys work while the toolbar has the focus.
@@ -14,10 +14,13 @@ The toolbar on by default, with a Keys button, a loading indicator and each site
 - Create has a Show a toolbar checkbox.
 - The toolbar takes on each site's own color (its `theme-color`, else its background), with readable icons and text. Settings → Appearance → Toolbar color chooses between that and Penates's colors; each app can override it, including with a custom color (a picker, or any CSS color).
 - Catalogs of your own, used together with the Penates app catalog: Settings → Updates → Your catalogs takes `https://` or `file://` addresses and paths (with a file picker), checks each before adding it, and reports one that cannot be read while still using the rest. Your entries replace Penates catalog entries with the same id. The Penates app catalog can be turned off.
+- The **Catalog** tab (the App Catalog): Popular picks, then every app with search (name, address, category and tags), category chips and pages of 24. `penates catalog` takes search words and `--category`. Catalog entries can carry `category`, `tags` and `popular`, which only place an app in the listing and never offer an update.
 
 ### Changed
 - `[updates] catalog_url` (one catalog instead of the Penates one) became `penates_catalog` and a `catalogs` list; an existing `catalog_url` is read as the only catalog, with the Penates one off.
 - The toolbar is on by default, also for apps made before it existed (turn it off under Edit → Window). `penates create --no-toolbar` makes an app without it; `--toolbar` is gone.
+- Popular apps moved from Create to the new Catalog tab; Create keeps its form and points there.
+- Titles of pages, sections and dialogs, in the manager and the docs, are in Title Case.
 - Every file picker (Import, an icon on Create or Edit, a catalog) is the system's file dialog. Icons and catalogs start in your home folder, Import in your export folder; before, the icon pickers opened in Recent, which is often empty.
 
 ### Fixed

@@ -198,7 +198,7 @@ pub async fn update_all() -> CmdResult<ops::UpdateAll> {
     blocking(|| Ok(ops::update_all())).await
 }
 
-/// The app catalog's apps, for browsing (Create → Popular apps).
+/// The app catalog's apps, for browsing (the Catalog tab).
 #[tauri::command]
 pub async fn catalog_apps() -> CmdResult<updates::CatalogListing> {
     blocking(updates::catalog_listing).await
@@ -216,7 +216,7 @@ pub async fn catalog_submission(id: String, notes: String) -> CmdResult<updates:
     blocking(move || updates::submission(&store::load(&id)?, &notes)).await
 }
 
-/// The icon of a catalog app, for the Popular apps list (cached; see `icon::catalog_icon`).
+/// The icon of a catalog app, for the Catalog tab (cached; see `icon::catalog_icon`).
 #[tauri::command]
 pub async fn catalog_icon(id: String, url: String, icon_url: Option<String>) -> CmdResult<String> {
     blocking(move || Ok(png_data_url(&icon::catalog_icon(&id, &url, icon_url.as_deref())?))).await
@@ -405,7 +405,7 @@ pub async fn pick_export_folder(app: tauri::AppHandle) -> CmdResult<Option<Strin
     use tauri_plugin_dialog::DialogExt;
     let start = settings::load().sharing.export_folder();
     blocking(move || {
-        Ok(app.dialog().file().set_title("Folder for exports and backups").set_directory(start).blocking_pick_folder()
+        Ok(app.dialog().file().set_title("Folder for Exports and Backups").set_directory(start).blocking_pick_folder()
             .and_then(|f| f.into_path().ok()).map(|p| p.display().to_string()))
     })
     .await
@@ -430,9 +430,9 @@ pub async fn pick_file(app: tauri::AppHandle, kind: String) -> CmdResult<Option<
     blocking(move || {
         let dialog = app.dialog().file();
         let dialog = match kind.as_str() {
-            "image" => dialog.set_title("Choose an icon image").add_filter("Images", &["png", "jpg", "jpeg", "webp", "gif", "ico"]),
+            "image" => dialog.set_title("Choose an Icon Image").add_filter("Images", &["png", "jpg", "jpeg", "webp", "gif", "ico"]),
             "penates" => dialog
-                .set_title("Choose a Penates file")
+                .set_title("Choose a Penates File")
                 .set_directory(settings::load().sharing.export_folder())
                 .add_filter("Penates files", &["penates"])
                 .add_filter("All files", &["*"]),
@@ -460,7 +460,7 @@ fn home_start<R: tauri::Runtime>(d: tauri_plugin_dialog::FileDialogBuilder<R>) -
 pub async fn pick_catalog_file(app: tauri::AppHandle) -> CmdResult<Option<String>> {
     use tauri_plugin_dialog::DialogExt;
     blocking(move || {
-        Ok(home_start(app.dialog().file()).set_title("Choose an app catalog").add_filter("App catalog", &["json"]).blocking_pick_file()
+        Ok(home_start(app.dialog().file()).set_title("Choose an App Catalog").add_filter("App catalogs", &["json"]).blocking_pick_file()
             .and_then(|f| f.into_path().ok()).map(|p| p.display().to_string()))
     })
     .await

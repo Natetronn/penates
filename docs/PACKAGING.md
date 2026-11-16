@@ -13,7 +13,7 @@
 Build tools: `cargo install tauri-cli --version "^2" --locked`. The first AppImage build downloads `linuxdeploy`.
 Signed builds need the updater key (`~/.tauri/penates.key`, or `TAURI_SIGNING_PRIVATE_KEY`); see [RELEASING](RELEASING.md).
 
-## How it fits together
+## How It Fits Together
 - `penates` (CLI) and `penates-desktop` must sit side by side; the CLI finds the GUI next to itself. The Tauri bundle ships the CLI as a **sidecar** (`bundle.externalBin`), and both `.deb` and `.rpm` install both binaries into `/usr/bin`.
 - Packaging-only settings live in `src-tauri/tauri.bundle.conf.json` (full icon list, sidecar, targets) so plain `cargo build` needs no prepared files. `scripts/build-packages.sh` stages the CLI as `src-tauri/binaries/penates-<target-triple>` and passes `--config` to `cargo tauri build`.
 - `src-tauri/tauri.linux.conf.json` (merged automatically on Linux) sets `productName: penates` and a desktop template so the launcher is `penates.desktop` with `StartupWMClass=penates`, matching the manager window's app ID.
@@ -22,7 +22,7 @@ Signed builds need the updater key (`~/.tauri/penates.key`, or `TAURI_SIGNING_PR
 - Plain `cargo build --release` (tarball, PKGBUILD) needs `--features penates-desktop/custom-protocol` so the manager's page is embedded.
 - The release profile optimizes for size (`opt-level = "s"`): about 10 MB for `penates-desktop` and 4 MB for `penates`.
 
-## License notices
+## License Notices
 `THIRD-PARTY-LICENSES.txt` (every Rust component's copyright notices and license text, generated with
 `scripts/gen-credits.py`) ships in every package: `/usr/share/doc/penates/` in the `.deb`, `.rpm` and AppImage,
 `/usr/share/licenses/<package>/` from the AUR packages, beside `LICENSE` in the tarball, and inside the program
@@ -30,18 +30,18 @@ Signed builds need the updater key (`~/.tauri/penates.key`, or `TAURI_SIGNING_PR
 what they load), so `scripts/build-packages.sh` runs `scripts/system-notices.sh` to add `SYSTEM-LIBRARIES.txt`:
 each bundled library's package, exact version, source package and license file.
 
-## The tarball's `install.sh`
+## The Tarball's `install.sh`
 Installs both binaries, the manager's launcher (pointing at `$PREFIX/bin/penates-desktop` by full path, so
 it works when that folder is not on the desktop session's `PATH`) and the icons, then refreshes the desktop's
 caches. If the icon theme folder is not writable (it is sometimes left owned by root), the launcher points at
 a copy of the icon in `$PREFIX/share/penates/` instead.
 
-## Checked here (Linux)
+## Checked Here (Linux)
 `.deb` and `.rpm` contents (both binaries, launcher, icons); the AppImage starts; the tarball installs into a
 scratch prefix and into `~/.local`, and its launcher passes `desktop-file-validate`; `makepkg` builds the Arch
 package.
 
-## Not checked
+## Not Checked
 Windows and macOS installers by hand (CI builds, tests and smoke-tests the apps on every push; the Release
 workflow builds and signs them), installing the `.deb`/`.rpm` on their target distros, Apple notarization and
 Windows code signing (the installers are not signed with a platform certificate; see the README).

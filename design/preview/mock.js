@@ -107,7 +107,7 @@ const H = {
   async catalog_apps() {
     await wait(300);
     const apps = catalogEntries().map((e) => { const mine = db.find((a) => { const f = entryFor(a); return f && f[0] === e.id; });
-      return { id: e.id, name: e.name || e.id, url: e.url, notes: e.notes, icon_url: e.icon_url || null, added: mine ? mine.id : null }; })
+      return { id: e.id, name: e.name || e.id, url: e.url, notes: e.notes, icon_url: e.icon_url || null, category: e.category || '', tags: e.tags || [], popular: !!e.popular, added: mine ? mine.id : null }; })
       .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
     return { source: catalogSource(), problems: [], apps };
   },

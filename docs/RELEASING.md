@@ -4,7 +4,7 @@ Releases live on `Natetronn/penates`: installers, the in-app update file (`lates
 tarball and an Arch package (`penates-bin-<ver>-1-x86_64.pkg.tar.zst`) are attached to each GitHub release. Builds sit in a draft (visible only to the repo's owners)
 until you publish them.
 
-## Before the first release (once)
+## Before the First Release (Once)
 - The repo secret `TAURI_SIGNING_PRIVATE_KEY` holds the updater key (`gh secret list` shows it).
 - `gh` is signed in with access to the repo.
 - For the AUR: an AUR account with your SSH key, and `~/.ssh/config` using that key for `aur.archlinux.org`.
@@ -40,7 +40,7 @@ pre-releases, never as "latest", so installed copies do not update to them, and 
 **A bad draft**: delete the draft release and the tag (`git push --delete origin v0.2.0 && git tag -d v0.2.0`),
 fix, and tag again.
 
-## In-app updates
+## In-App Updates
 The desktop app uses Tauri's updater. It reads
 `https://github.com/Natetronn/penates/releases/latest/download/latest.json`, verifies the
 signature of the download with the public key in `src-tauri/tauri.conf.json`, installs, and restarts.
@@ -51,14 +51,14 @@ signature of the download with the public key in `src-tauri/tauri.conf.json`, in
 | AUR (`penates-bin`, `penates`), other package managers | `git pull && makepkg -si` in the package's folder, or an AUR helper (`paru -Syu`, `yay -Syu`); the app says so |
 | Tarball, dev builds | the app links to the releases page |
 
-## Signing key
+## Signing Key
 - Private key: `~/.tauri/penates.key` on the release machine (no password), and the repo secret
   `TAURI_SIGNING_PRIVATE_KEY` used by the Release workflow.
 - Public key: `plugins.updater.pubkey` in `src-tauri/tauri.conf.json`.
 - **Back up `~/.tauri/penates.key`.** If it is lost, installed copies can never verify another update; a new
   key means users must reinstall by hand. Never commit it.
 
-## Download counts
+## Download Counts
 `python3 scripts/downloads.py` prints every release file's downloads by platform, and the repo's traffic
 for the last 14 days. GitHub keeps only running totals, so the **Stats** workflow appends dated counts to
 `downloads.csv` on the `stats` branch every Monday (or run it by hand: Actions → Stats → Run workflow).

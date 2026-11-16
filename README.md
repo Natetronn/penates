@@ -7,18 +7,18 @@ Built with Rust and [Tauri 2](https://v2.tauri.app/), with a command line tool a
 **[getpenates.com](https://getpenates.com)**: the website, with the docs and a clickable demo of the manager.
 
 **[Download the latest release](https://github.com/Natetronn/penates/releases/latest)**:
-on Arch from the AUR, `paru -S penates-bin` (or `yay`, or `makepkg -si`); elsewhere the AppImage, `.deb` or `.rpm`; Windows installer; macOS `.dmg`. Every way, including building from git: [Getting started](https://getpenates.com/getting-started/).
+on Arch from the AUR, `paru -S penates-bin` (or `yay`, or `makepkg -si`); elsewhere the AppImage, `.deb` or `.rpm`; Windows installer; macOS `.dmg`. Every way, including building from git: [Getting Started](https://getpenates.com/getting-started/).
 
 <p align="center"><img src="docs/images/manager-apps.png" width="640" alt="The Penates manager listing five apps: Discord, GitHub, Notion, Proton Mail and YouTube Music"></p>
 
 > **Status: 0.1.3.** Verified by hand on Linux (KDE Plasma, Wayland). Windows and macOS are built, launched
 > through their launchers and smoke-tested in CI on every push. See [docs/STATUS.md](docs/STATUS.md) for exactly what is verified.
 
-## What it does
+## What It Does
 - **One command or a few clicks:** `penates create github.com` finds the site's name and icon (PWA manifest, apple-touch, favicon) and adds it to your application menu.
 - **A real app window per site:** own taskbar entry and icon, separate cookies and storage per app, single-window mode, optional system tray icon (color or grayscale), and it can start as a window, minimized or only in the tray.
 - **Per-app options:** window size, zoom, maximized/fullscreen/frameless, always on top, user agent, extra in-app hosts, custom CSS/JS, devtools, notification and camera/microphone permissions.
-- **App catalog:** add known sites (GitHub, Notion, Discord, Proton Mail, YouTube and more) in one click from Create → Popular apps, with small fixes such as in-app sign-in from the shared [penates-apps](https://github.com/Natetronn/penates-apps) catalog. Add catalogs of your own (a file or an address) alongside it, or use only yours.
+- **App Catalog:** add known sites (GitHub, Notion, Discord, Proton Mail, YouTube and more) in one click from the **Catalog** tab, with Popular picks, categories and search, and small fixes such as in-app sign-in from the shared [penates-apps](https://github.com/Natetronn/penates-apps) catalog. Add catalogs of your own (a file or an address) alongside it, or use only yours.
 - **Smart links:** links to other sites open in your browser; same-site popups (sign-in flows) stay in the app; downloads go to your Downloads folder.
 - **Browser keys without a browser:** Alt+←/→ or the mouse's side buttons go back and forward, F5 or Ctrl+R reloads, Alt+Home goes to the app's start page, and F1 or Ctrl+/ lists these keys.
 - **A toolbar** per app (turn it off under Edit): back, forward, reload (stop while a page loads), start page, the page's address, the key list and Open in browser, in each site's own color, Penates's, or one you pick.
@@ -27,11 +27,13 @@ on Arch from the AUR, `paru -S penates-bin` (or `yay`, or `makepkg -si`); elsewh
 - **Themeable manager:** light/dark/system, six accents, four looks, all from plain CSS tokens.
 
 ## Screenshots
-| Your apps (light) | Edit an app |
+| Your Apps (Light) | App Catalog |
 |---|---|
-| <img src="docs/images/manager-apps-light.png" width="400" alt="The app list in light mode"> | <img src="docs/images/manager-edit.png" width="400" alt="Editing GitHub: name, URL, id, icon picker and window options"> |
-| **Settings** | **About** |
-| <img src="docs/images/manager-settings.png" width="400" alt="Settings: four looks, light or dark, accent colors, update checking and the app catalog"> | <img src="docs/images/manager-about.png" width="400" alt="About Penates: logo, version, links and Credits"> |
+| <img src="docs/images/manager-apps-light.png" width="400" alt="The app list in light mode"> | <img src="docs/images/manager-catalog.png" width="400" alt="The App Catalog: Popular picks, then every app with search and category chips"> |
+| **Edit an App** | **Settings** |
+| <img src="docs/images/manager-edit.png" width="400" alt="Editing GitHub: name, URL, id, icon picker and window options"> | <img src="docs/images/manager-settings.png" width="400" alt="Settings: four looks, light or dark, accent colors, update checking and the app catalog"> |
+| **About** | |
+| <img src="docs/images/manager-about.png" width="400" alt="About Penates: logo, version, links and Credits"> | |
 
 ## Install
 **Arch Linux and relatives (CachyOS, EndeavourOS, Manjaro…), from the AUR:** `penates-bin` is the prebuilt release
@@ -56,7 +58,7 @@ On Windows, SmartScreen may say it protected your PC: choose **More info → Run
 updates are signed and checked before they install.
 
 **From source, with git** (Arch shown; other distributions and the tarball installer:
-[Getting started](https://getpenates.com/getting-started/) and [docs/PACKAGING.md](docs/PACKAGING.md)):
+[Getting Started](https://getpenates.com/getting-started/) and [docs/PACKAGING.md](docs/PACKAGING.md)):
 
 ```sh
 sudo pacman -S --needed git base-devel rustup webkit2gtk-4.1 libayatana-appindicator
@@ -67,7 +69,7 @@ makepkg -si                         # builds your checkout and installs penates 
 
 Or just run it from the checkout: `cargo build --workspace`, then `target/debug/penates gui`.
 
-## Quick start
+## Quick Start
 ```sh
 penates create github.com            # name + icon found automatically
 penates create https://mail.proton.me --name "Proton Mail" --icon https://example.com/logo.png

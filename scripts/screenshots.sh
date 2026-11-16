@@ -38,6 +38,7 @@ shot() { # theme, --tab value, file name
   kill "$pid"; wait "$pid" 2>/dev/null || true; sleep 1
 }
 shot dark apps manager-apps
+shot dark catalog manager-catalog
 shot light apps manager-apps-light
 shot dark edit:github manager-edit
 shot dark settings manager-settings

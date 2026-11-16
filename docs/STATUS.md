@@ -9,7 +9,7 @@ What has actually been run, and where. Last updated 2026-11-15, version 0.1.3.
 | macOS (Apple Silicon) | CI | CI smoke test | no |
 | macOS (Intel) | release build only | no | no |
 
-## Automated (every push)
+## Automated (Every Push)
 - **Unit tests** (38): config and URL handling, the id rule, host patterns and matching, names from pages and
   addresses (including other alphabets), icon ranking, size limits, ICO files with grayscale PNG entries, grayscale tray icons, catalog parsing and presets
   (including "never JavaScript"), the catalog listing, catalog submissions, settings migration, export format and import safety, single-instance
@@ -21,11 +21,11 @@ What has actually been run, and where. Last updated 2026-11-15, version 0.1.3.
   import it. On Linux also: a second launch hands over to the first, a second manager exits, and removing a
   running app's data is refused.
 
-## Verified on Linux by hand
+## Verified on Linux by Hand
 | Area | How it was checked |
 |---|---|
 | CLI | create (name and icon from real sites, offline, non-Latin names), list (with a broken config), check, update, clear (refuses while running), icon from file and URL, `icons`, import with camera/devtools switched off, remove of a broken config |
-| Manager window | the release build launched and captured for Apps, Updates, Edit and Settings with the content security policy on; Create → Popular apps lists the live catalog; with no apps and no published release, Updates reads "No apps yet" and "up to date" |
+| Manager window | the release build launched and captured for Apps, Updates, Edit and Settings with the content security policy on; the Catalog tab lists the live catalog; with no apps and no published release, Updates reads "No apps yet" and "up to date" |
 | Icons | PWA manifest preferred; local file deleted after import still works; config copied to another path still resolves |
 | App window | launches, the site loads, title-bar icon is the site icon, registered under the launcher's name, shown in the taskbar |
 | Taskbar and tray | taskbar entry and tray icon show the app icon; tray icon read back in color and grayscale |
@@ -40,6 +40,7 @@ What has actually been run, and where. Last updated 2026-11-15, version 0.1.3.
 | Preset update in the manager (real clicks) | a test catalog with a newer GitHub preset: Updates listed 1.1.0 → 1.1.1, Update applied it (version and the new in-app host saved), nothing else in the app changed; with the live catalog, Cloudflare 1.0.0 → 1.0.1 applied and the icon the user had picked was kept |
 | Your own catalogs | the release build in a Linux container: a catalog of mine with its own GitHub entry replaced the Penates one in `penates catalog` (23 apps); a missing catalog was reported as a warning (CLI) and in red under Settings → Updates while the rest were used; with only a missing catalog, a clear error; an old `catalog_url` was read as the only catalog. In the manager, a path typed into Add and Enter was checked, saved to `settings.toml` and listed. Remove, the Penates switch, the duplicate and bad-address messages were checked in the demo. **Choose file…** opens the system file dialog and is not yet tried |
 | File pickers | the release build in a Linux container: Create → Choose file… opened the system dialog in the home folder, listing a folder and a PNG and hiding a text file. Import and Edit's Upload image… use the same command; in the demo, all three hand the chosen file on (Create shows its name, Edit sets the icon, Import goes to review) |
+| App Catalog | in the demo (the real `ui/` files in a browser, driven over the DevTools protocol): Popular shows the 8 picks and hides while searching or filtering; search found 6 apps for "chat" and 1 for "google mail", and none for "zzz" with a message; the Media chip showed 3; Add turned a card into Open; with 30 extra test entries, 52 apps made 3 pages of 24, Next and a category change worked, and entries without a category went under Other. `penates catalog` with a search word, `--category` and an unknown category, on the catalog with categories. In the real manager window: see the screenshot in `docs/images/manager-catalog.png` |
 | Export in the manager (real click) | saved a `.penates` file to Downloads |
 | Wrapped-site isolation | a page inside an app window cannot call Tauri commands |
 | Site permissions | notifications and camera/microphone granted by real clicks when allowed, denied when not |
@@ -47,15 +48,15 @@ What has actually been run, and where. Last updated 2026-11-15, version 0.1.3.
 | Export and import | CLI round trips in a scratch config: rename/skip/overwrite, custom JavaScript stripped unless allowed, camera/devtools switched off, no cookies in the file, bad ids and `javascript:` URLs refused or sanitized |
 | Packages | see [PACKAGING](PACKAGING.md); the tarball installs into `~/.local` and the installed manager runs; the Arch package (0.1.1, built from the release tarball in an `archlinux:base-devel` container) installs with `pacman -U` in a clean Arch container, pulls in its dependencies, `penates --version` runs and the desktop program's libraries all resolve |
 
-## To check by hand
-- Settings → Export folder: the folder picker (it needs real clicks), and Export, Export all and the backup saving into the chosen folder. Automated: a chosen folder is used while it exists; a deleted folder or a relative path falls back to Downloads.
+## To Check by Hand
+- Settings → Export Folder: the folder picker (it needs real clicks), and Export, Export all and the backup saving into the chosen folder. Automated: a chosen folder is used while it exists; a deleted folder or a relative path falls back to Downloads.
 - In the real manager window: Import (the file chooser was fixed to show `.penates` files), Save in Edit, and the icon file chooser.
 - The mouse's back and forward side buttons with a real mouse.
 
-## Not verified
+## Not Verified
 - Site permissions on Windows and macOS (not enforced there yet).
 - **Windows and macOS by hand.** Tray, popups, downloads and site permissions there are untested.
 - Per-app window theme on Windows and macOS.
 
-## Known limits
+## Known Limits
 See "Known limitations" in the [changelog](../CHANGELOG.md).

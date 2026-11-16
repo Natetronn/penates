@@ -47,6 +47,11 @@ pub struct CatalogEntry {
     pub user_agent: Option<String>,
     pub inject_css: Option<String>,
     pub icon_url: Option<String>,
+    /// Listing fields for the App Catalog (not part of the preset): one category, search tags, and whether it
+    /// shows under Popular.
+    pub category: Option<String>,
+    pub tags: Vec<String>,
+    pub popular: bool,
     // `inject_js` is deliberately not read: "Update all" would otherwise let whoever controls the
     // catalog address run script inside every matching app.
 }
@@ -244,7 +249,7 @@ pub fn check_apps() -> Result<AppsReport> {
     Ok(AppsReport { current: CURRENT_VERSION.into(), source, problems, catalog_size: c.catalog.len(), app_count, apps })
 }
 
-/// One app in the catalog, for browsing ("Popular apps").
+/// One app in the catalog, for browsing (the Catalog tab).
 #[derive(Debug, Clone, Serialize)]
 pub struct CatalogApp {
     pub id: String,
@@ -253,6 +258,10 @@ pub struct CatalogApp {
     pub notes: String,
     /// An icon address the catalog gives for this site, if any.
     pub icon_url: Option<String>,
+    /// Its App Catalog category ("" when it has none), tags and whether it is a Popular pick.
+    pub category: String,
+    pub tags: Vec<String>,
+    pub popular: bool,
     /// The id of an app already made for this site, if any.
     pub added: Option<String>,
 }
@@ -262,6 +271,14 @@ pub struct CatalogListing {
     pub source: String,
     pub problems: Vec<String>,
     pub apps: Vec<CatalogApp>,
+}
+
+impl CatalogApp {
+    /// Whether it matches a search: every word appears in its name, address, category or tags (any case).
+    pub fn matches(&self, search: &str) -> bool {
+        let hay = format!("{} {} {} {}", self.name, self.url, self.category, self.tags.join(" ")).to_lowercase();
+        search.to_lowercase().split_whitespace().all(|w| hay.contains(w))
+    }
 }
 
 /// Every app in the catalog, sorted by name, marking the ones already made here.
@@ -280,6 +297,9 @@ fn listing(c: &Catalog, source: String, problems: Vec<String>, mine: &[WebApp]) 
             url: e.url.clone(),
             notes: e.notes.clone(),
             icon_url: e.icon_url.clone(),
+            category: e.category.clone().unwrap_or_default(),
+            tags: e.tags.clone(),
+            popular: e.popular,
             added: mine.iter().find(|a| find_entry(c, a).is_some_and(|x| x.id == e.id)).map(|a| a.id.clone()),
         })
         .collect();
@@ -461,5 +481,21 @@ mod tests {
         assert_eq!((only.source.as_str(), only.catalog.catalog.len()), ("your catalog team", 2));
         assert!(merge_catalogs(false, &["gone".into()], read, || unreachable!()).is_err());
         assert!(merge_catalogs(false, &[], read, || unreachable!()).unwrap().catalog.catalog.is_empty());
+    }
+
+    #[test]
+    fn listing_fields_reach_the_listing_and_search() {
+        let mut c = cat(&[("slack", "1.0.0"), ("figma", "1.0.0")]);
+        c.catalog[0].category = Some("Communication".into());
+        c.catalog[0].tags = vec!["chat".into(), "work".into()];
+        c.catalog[0].popular = true;
+        let l = listing(&c, "test".into(), Vec::new(), &[]);
+        let slack = l.apps.iter().find(|a| a.id == "slack").unwrap();
+        assert!(slack.popular && slack.category == "Communication");
+        assert!(slack.matches("CHAT") && slack.matches("work slack") && !slack.matches("chat design"));
+        let figma = l.apps.iter().find(|a| a.id == "figma").unwrap();
+        assert!(!figma.popular && figma.category.is_empty() && figma.matches("") && figma.matches("figma"));
+        let parsed: Catalog = serde_json::from_str(r#"{"schema":1,"catalog":[{"id":"x","version":"1.0.0","url":"https://x.example/","category":"AI","tags":["chat"],"popular":true}]}"#).unwrap();
+        assert!(parsed.catalog[0].popular && parsed.catalog[0].tags == ["chat"]);
     }
 }

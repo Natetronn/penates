@@ -2,7 +2,7 @@
 
 Each app is one TOML file, `~/.config/penates/apps/<id>.toml` (other systems: see [Architecture](ARCHITECTURE.md#files)). Edit it by hand (`penates edit <id>`), in the manager (Edit), or create it with `penates create`. Changes apply the next time the app starts. Missing fields use the defaults below; unknown fields are ignored.
 
-## App fields
+## App Fields
 | Field | Default | Meaning |
 |---|---|---|
 | `id` | from name | file name and profile id: lowercase letters, digits, `-`, `_`; at most 64 |
@@ -35,11 +35,11 @@ Each app is one TOML file, `~/.config/penates/apps/<id>.toml` (other systems: se
 | `close_to_tray` | `false` | closing the window hides it; quit from the tray menu |
 | `launcher` | `true` | keep a launcher in the application menu (`false` for apps made with `--no-install`) |
 
-### Site permissions by platform
+### Site Permissions by Platform
 - **Linux (WebKitGTK):** enforced by Penates. Notification and camera/microphone requests are answered from these two settings; screen capture, location and everything else are denied. Camera/microphone also switches on WebKit's media-stream and WebRTC support, which are off by default. As in browsers, a site can only ask for notification permission after a click.
 - **Windows (WebView2)** and **macOS (WKWebView):** these settings are not applied yet. The webview shows its own prompts; desktop notifications from sites are not supported by these webviews. The generated macOS bundles include the camera and microphone usage descriptions macOS requires before a site may ask.
 
-## Global settings
+## Global Settings
 `~/.config/penates/settings.toml`:
 ```toml
 [updates]

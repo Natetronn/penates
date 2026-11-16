@@ -8,11 +8,11 @@ Two kinds of updates, kept apart in the manager's **Updates** tab, each with its
    reports it. See [RELEASING](RELEASING.md).
 2. **App presets** come from the app catalog: small per-site fixes (extra sign-in hosts, a user agent, CSS)
    synced into installed apps. The catalog's apps can also be browsed and added in one click under
-   **Create → Popular apps** (`penates catalog` on the command line).
+   the **Catalog** tab (`penates catalog` on the command line).
 
 The two are checked separately, so a catalog that cannot be read never hides whether a new Penates exists.
 
-## Where the catalog comes from
+## Where the Catalog Comes From
 `~/.config/penates/settings.toml`:
 ```toml
 [updates]
@@ -27,8 +27,8 @@ app). New or fixed presets reach everyone without a new Penates release. To add 
 the entry filled in. Or open a pull request there by hand. When the catalog cannot be reached, Penates uses the copy built into each release
 (`crates/penates-core/data/presets.json`).
 
-### Your own catalogs
-Add catalogs of your own under **Settings → Updates → Your catalogs** (Add takes an `https://` or `file://`
+### Your Own Catalogs
+Add catalogs of your own under **Settings → Updates → Your Catalogs** (Add takes an `https://` or `file://`
 address or a path, and reads the catalog first, so one that cannot be used is never added; **Choose file…**
 picks a `.json` file). They are used together with the Penates app catalog, for sites of your own or presets you
 are trying out before sharing them:
@@ -41,7 +41,7 @@ are trying out before sharing them:
 A single `catalog_url` (or `manifest_url`) address in `settings.toml` is read as the only entry of `catalogs`,
 with `penates_catalog` off.
 
-## Catalog format (`schema: 1`)
+## Catalog Format (`schema: 1`)
 ```json
 {
   "schema": 1,
@@ -53,14 +53,22 @@ with `penates_catalog` off.
       "url": "https://github.com/",
       "internal_hosts": ["*.github.com"],
       "user_agent": null, "inject_css": null, "icon_url": null,
-      "notes": "Keep gists and other github.com pages in the window"
+      "notes": "Keep gists and other github.com pages in the window",
+      "category": "Developer Tools",
+      "tags": ["code", "git", "pull requests"],
+      "popular": true
     }
   ]
 }
 ```
 Unknown fields are ignored.
 
-## How presets apply
+`category`, `tags` and `popular` place an app in the **Catalog** tab (and the App Catalog on the website): its
+category chip, the words search also looks in, and whether it shows under Popular. They are not part of the
+preset, so changing them never offers an app an update. Apps without a category are listed under Other. Your own
+catalogs can use them too.
+
+## How Presets Apply
 - An app links to a catalog entry by `catalog_id`, or automatically when its site matches (`www.` ignored). New apps link at create time.
 - A preset applies only when its `version` is newer than the app's `catalog_version`.
 - Hosts are added (never removed, and cleaned like hand-typed ones); `user_agent` and `inject_css` are replaced when the preset sets them. A user agent or CSS you gave at create time wins.
