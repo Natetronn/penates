@@ -1,6 +1,6 @@
 use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand, ValueEnum};
-use penates_core::{export, icon, integration, normalize_url, ops, store, updates};
+use penates_core::{export, icon, integration, log, normalize_url, ops, report, store, updates};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
@@ -135,6 +135,19 @@ enum Cmd {
         #[arg(long)]
         no_open: bool,
     },
+    /// Report a problem: shows the version, system and recent log lines (personal details removed) for you to
+    /// check; --open then opens a new GitHub issue with them filled in. Nothing is sent until you submit it there.
+    Report {
+        /// What happened, in your words (goes into the issue)
+        #[arg(long, default_value = "")]
+        what: String,
+        /// Open the filled-in GitHub issue in your browser
+        #[arg(long)]
+        open: bool,
+        /// Delete the log instead
+        #[arg(long, conflicts_with_all = ["open", "what"])]
+        clear_log: bool,
+    },
     /// Check for Penates and app-preset updates
     Check,
     /// Update one app (preset sync + icon refresh), or all with --all
@@ -192,6 +205,28 @@ fn read_opt(p: Option<PathBuf>) -> Result<Option<String>> {
 
 fn warn(w: impl std::fmt::Display) {
     eprintln!("warning: {w}");
+    log::write(log::Level::Warn, &w.to_string());
+}
+
+fn cmd_report(what: &str, open: bool, clear_log: bool) -> Result<()> {
+    if clear_log {
+        log::clear().with_context(|| format!("deleting {}", log::path().display()))?;
+        println!("deleted the log ({})", log::path().display());
+        return Ok(());
+    }
+    let r = report::build(what, None);
+    print!("{}", r.text);
+    println!("\nLog file: {}", r.log);
+    if r.left_out > 0 {
+        println!("The link leaves out the {} oldest log lines to stay short enough; paste them in if they matter.", r.left_out);
+    }
+    if open {
+        open::that(&r.link)?;
+        println!("Opened a new GitHub issue with this filled in. Check it, add what happened, then submit it there.");
+    } else {
+        println!("To send it: penates report --open --what \"what happened\" (opens GitHub with it filled in; nothing is sent until you submit it there).");
+    }
+    Ok(())
 }
 
 fn spawn_desktop(args: &[&str]) -> Result<()> {
@@ -357,7 +392,7 @@ fn cmd_import(source: &str, on_conflict: OnConflict, allow_js: bool, settings: b
     if r.settings_applied {
         println!("applied settings");
     }
-    r.errors.iter().for_each(|e| eprintln!("error: {e}"));
+    r.errors.iter().for_each(|e| log::error(e));
     if !r.errors.is_empty() {
         std::process::exit(1);
     }
@@ -466,7 +501,7 @@ fn cmd_update(id: Option<String>) -> Result<()> {
             let r = ops::update_all();
             r.updated.iter().for_each(print_outcome);
             for f in &r.failed {
-                eprintln!("error: {}: {}", f.id, f.error);
+                log::error(&format!("{}: {}", f.id, f.error));
             }
             if !r.failed.is_empty() {
                 std::process::exit(1);
@@ -518,7 +553,17 @@ fn quiet_on_closed_pipe() {
 
 fn main() -> Result<()> {
     quiet_on_closed_pipe();
-    match Cli::parse().cmd {
+    log::set_source("cli");
+    log::log_panics();
+    let result = run(Cli::parse().cmd);
+    if let Err(e) = &result {
+        log::write(log::Level::Error, &format!("{e:#}"));
+    }
+    result
+}
+
+fn run(cmd: Cmd) -> Result<()> {
+    match cmd {
         Cmd::Create {
             url, name, id, icon, user_agent, width, height, zoom, internal_hosts, inject_css, inject_js, devtools,
             no_toolbar, no_install, force,
@@ -560,6 +605,7 @@ fn main() -> Result<()> {
         Cmd::Remove { id, purge } => cmd_remove(&id, purge),
         Cmd::Catalog { search, category } => cmd_catalog(&search.join(" "), category.as_deref()),
         Cmd::Submit { id, notes, no_open } => cmd_submit(&id, &notes, no_open),
+        Cmd::Report { what, open, clear_log } => cmd_report(&what, open, clear_log),
         Cmd::Check => cmd_check(),
         Cmd::Update { id, all: _ } => cmd_update(id),
         Cmd::Edit { id } => cmd_edit(&id),

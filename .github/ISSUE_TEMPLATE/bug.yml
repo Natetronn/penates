@@ -27,3 +27,9 @@ body:
       placeholder: CachyOS, KDE Plasma 6 (Wayland)
     validations:
       required: true
+  - type: textarea
+    id: report
+    attributes:
+      label: Report from Penates
+      description: Filled in by About → Report a problem, or `penates report --open`. Recent log lines with personal details removed; check them before submitting.
+      render: text

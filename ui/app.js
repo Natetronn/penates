@@ -816,6 +816,14 @@ async function renderSettings() {
       el("div", { class: "row" }, el("button", { type: "button", textContent: "Back up apps and settings", onclick: async () => {
         try { say("Saved to " + (await invoke("export_apps", { ids: [], withSettings: true }))); } catch (e) { fail(e); } } }))),
     el("p", { class: "hint" }, "Each app's own window theme is under Edit → Window."),
+    el("h2", {}, "Problems"),
+    el("fieldset", {}, el("legend", {}, "Report a Problem"),
+      el("p", { class: "hint" }, "Penates keeps a log of its own warnings and errors on this computer. Nothing is sent anywhere unless you send a report yourself."),
+      el("div", { class: "row" },
+        el("button", { type: "button", textContent: "Report a problem…", onclick: openReport }),
+        el("button", { type: "button", textContent: "Open log folder", onclick: () => invoke("open_log_folder").catch(fail) }),
+        el("button", { type: "button", textContent: "Delete log", onclick: async () => {
+          try { await invoke("clear_log"); say("Deleted the log."); } catch (e) { fail(e); } } }))),
     el("p", {}, el("button", { type: "button", textContent: "About Penates", onclick: openAbout })));
 }
 
@@ -848,6 +856,41 @@ async function showLicenseTexts() {
   try { text.textContent = await loadGenerated("licenses.js", "PENATES_LICENSES"); } catch (e) { text.textContent = String(e); }
 }
 
+/** Report a Problem, inside the About dialog: what will be shared (personal details already removed), then a
+ *  new GitHub issue filled in with it. Nothing is sent until the user submits the issue on GitHub. */
+function openReport() { $("about").showModal(); showReport(); }
+
+async function showReport() {
+  const page = $("about-credits");
+  const back = el("button", { type: "button", textContent: "← Back", onclick: () => showAboutMain() });
+  const what = el("textarea", { id: "report-what", class: "prose", rows: 3, placeholder: "What you did, what you expected, and what happened instead" });
+  const text = el("textarea", { id: "report-text", readOnly: true, rows: 12, value: "Loading…" });
+  const note = el("p", { class: "hint" });
+  const copy = el("button", { type: "button", textContent: "Copy", onclick: async () => {
+    try { await navigator.clipboard.writeText(text.value); } catch { text.select(); document.execCommand("copy"); }
+    say("Copied the report.");
+  } });
+  const send = el("button", { type: "button", class: "primary", textContent: "Open on GitHub", onclick: (ev) => busy(ev.target, "Opening…", async () => {
+    const r = await invoke("problem_report", { what: what.value });
+    await invoke("open_url", { url: r.link });
+    say("Opened GitHub in your browser. Check the issue there, then submit it.");
+  }) });
+  put(page,
+    el("div", { class: "about-head" }, el("h2", {}, "Report a Problem"), back),
+    el("p", { class: "hint" }, "This opens a new issue on Penates's GitHub page in your browser, filled in with what's below. Nothing is sent until you submit it there (it needs a GitHub account)."),
+    el("label", { for: "report-what" }, "What happened?"), what,
+    el("label", { for: "report-text" }, "What will be shared"), text, note,
+    el("div", { class: "row about-close" },
+      el("button", { type: "button", textContent: "Open log folder", onclick: () => invoke("open_log_folder").catch(fail) }), copy, send));
+  $("about-main").hidden = true; page.hidden = false; what.focus();
+  try {
+    const r = await invoke("problem_report", { what: "" });
+    text.value = r.text;
+    note.textContent = "Folder paths, your user name, email and IP addresses, and everything after the site in web addresses are already removed. You can still change anything on GitHub before submitting."
+      + (r.left_out ? ` The link leaves out the ${r.left_out} oldest log lines to stay short enough; Copy has them all.` : "");
+  } catch (e) { text.value = String(e); }
+}
+
 function showAboutMain(focus = true) {
   $("about-credits").hidden = true; $("about-main").hidden = false;
   if (focus) $("about-credits-open").focus();
@@ -877,6 +920,10 @@ async function showCredits() {
   } catch (e) { put(list, el("span", { class: "hint" }, String(e))); }
 }
 $("about-credits-open").onclick = showCredits;
+$("about-report-open").onclick = showReport;
+// Errors in this page that nothing caught go to Penates's log, so a problem report includes them.
+window.addEventListener("error", (e) => { invoke("log_ui_error", { message: `${e.message} (${(e.filename || "").split("/").pop()}:${e.lineno})` }).catch(() => {}); });
+window.addEventListener("unhandledrejection", (e) => { invoke("log_ui_error", { message: "unhandled: " + String(e.reason) }).catch(() => {}); });
 $("ver").onclick = openAbout;
 $("about-close").onclick = () => $("about").close();
 $("about").addEventListener("click", (e) => { if (e.target === $("about")) $("about").close(); });
@@ -902,5 +949,6 @@ function render() {
   }
   show(TABS.includes(start) ? start : "apps");
   if (start === "about") openAbout();
+  if (start === "report") openReport();
   if ((await invoke("get_update_settings")).check_on_start) refreshReport();
 })();

@@ -25,6 +25,7 @@ on Arch from the AUR, `paru -S penates-bin` (or `yay`, or `makepkg -si`); elsewh
 - **Share and back up:** export one app or all of them to a `.penates` file and import it elsewhere; logins are never included. Propose an app's fixes for the shared catalog from its ⋮ menu. Exports go to Downloads, or a folder you choose in Settings. See [docs/SHARING.md](docs/SHARING.md).
 - **Housekeeping:** clear cache (keeps you signed in) or clear cookies and data, update checks with versioned presets, icons from a file or URL.
 - **Themeable manager:** light/dark/system, six accents, four looks, all from plain CSS tokens.
+- **Report a problem:** Penates keeps a small log of its own warnings and errors on your computer. **Report a problem** (in About and Settings, or `penates report`) shows the version, system and recent log lines with personal details removed, then opens a GitHub issue filled in with them; nothing is sent until you submit it.
 
 ## Screenshots
 | Your Apps (Light) | App Catalog |
@@ -32,8 +33,8 @@ on Arch from the AUR, `paru -S penates-bin` (or `yay`, or `makepkg -si`); elsewh
 | <img src="docs/images/manager-apps-light.png" width="400" alt="The app list in light mode"> | <img src="docs/images/manager-catalog.png" width="400" alt="The App Catalog: Popular picks, then every app with search and category chips"> |
 | **Edit an App** | **Settings** |
 | <img src="docs/images/manager-edit.png" width="400" alt="Editing GitHub: name, URL, id, icon picker and window options"> | <img src="docs/images/manager-settings.png" width="400" alt="Settings: four looks, light or dark, accent colors, update checking and the app catalog"> |
-| **About** | |
-| <img src="docs/images/manager-about.png" width="400" alt="About Penates: logo, version, links and Credits"> | |
+| **About** | **Report a Problem** |
+| <img src="docs/images/manager-about.png" width="400" alt="About Penates: logo, version, links and Credits"> | <img src="docs/images/manager-report.png" width="400" alt="Report a Problem: what happened, then the version, system and recent log lines that will be shared"> |
 
 ## Install
 **Arch Linux and relatives (CachyOS, EndeavourOS, Manjaro…), from the AUR:** `penates-bin` is the prebuilt release

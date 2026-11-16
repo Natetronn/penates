@@ -129,7 +129,7 @@ pub fn load() -> Settings {
         Err(e) => {
             let aside = p.with_extension("toml.broken");
             let _ = std::fs::rename(&p, &aside);
-            eprintln!("warning: {} could not be read ({e}); moved it to {} and used defaults", p.display(), aside.display());
+            crate::log::warn(&format!("{} could not be read ({e}); moved it to {} and used defaults", p.display(), aside.display()));
             Settings::default()
         }
     }

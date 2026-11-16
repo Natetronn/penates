@@ -6,6 +6,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 ## [Unreleased]
 
 ### Added
+- **Report a problem** (About, Settings → Problems, or `penates report`): shows the Penates version, how it was
+  installed, the system, the web view's version and the recent log lines, with folder paths, your user name,
+  email and IP addresses and everything after the site in web addresses removed, then opens a new GitHub issue
+  with them filled in. Nothing is sent until you submit that issue.
+- A log of Penates's own warnings, errors and crashes, kept on your computer (`penates.log` in Penates's data
+  folder, at most about half a megabyte). Open its folder or delete it from Settings, or `penates report --clear-log`.
 - App Catalog cards of apps you have: **Edit** next to **Open** (the same edit view as on Apps).
 
 ### Fixed

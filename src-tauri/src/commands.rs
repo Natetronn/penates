@@ -9,8 +9,11 @@ use tauri::Manager;
 
 type CmdResult<T> = Result<T, String>;
 
+/// A command's failure, as the manager shows it. Also logged, so a problem report has it.
 fn err<E: std::fmt::Display>(e: E) -> String {
-    format!("{e:#}")
+    let msg = format!("{e:#}");
+    penates_core::log::write(penates_core::log::Level::Error, &msg);
+    msg
 }
 
 /// Run blocking work off the async runtime's worker threads.
@@ -492,6 +495,39 @@ pub async fn import_apps(json: String, on_conflict: String, allow_js: bool, sett
         Ok(export::apply(&f, &export::ImportOptions { on_conflict: on_conflict.parse()?, allow_js, settings }))
     })
     .await
+}
+
+// ---- problem reports ----
+
+/// The web view's name and version, e.g. "WebKitGTK 2.48.3".
+fn webview() -> Option<String> {
+    let name = if cfg!(windows) { "WebView2" } else if cfg!(target_os = "macos") { "WKWebView" } else { "WebKitGTK" };
+    tauri::webview_version().ok().map(|v| format!("{name} {v}"))
+}
+
+/// A problem report to review: the version, system and recent log lines, personal details removed.
+#[tauri::command]
+pub async fn problem_report(what: String) -> CmdResult<penates_core::report::Report> {
+    blocking(move || Ok(penates_core::report::build(&what, webview().as_deref()))).await
+}
+
+/// An error in the manager's own page that nothing caught.
+#[tauri::command]
+pub fn log_ui_error(message: String) {
+    penates_core::log::write(penates_core::log::Level::Error, &format!("page: {}", message.chars().take(1000).collect::<String>()));
+}
+
+#[tauri::command]
+pub fn clear_log() -> CmdResult<()> {
+    penates_core::log::clear().map_err(|e| format!("{e:#}"))
+}
+
+/// Show the folder with the log in the file manager.
+#[tauri::command]
+pub fn open_log_folder() -> CmdResult<()> {
+    let dir = penates_core::log::dir();
+    std::fs::create_dir_all(&dir).map_err(err)?;
+    open::that_detached(&dir).map_err(err)
 }
 
 #[tauri::command]

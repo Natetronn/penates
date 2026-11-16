@@ -345,7 +345,11 @@ macro_rules! with_rules {
                     true
                 }
                 DownloadEvent::Finished { path, success, .. } => {
-                    eprintln!("download {}: {:?}", if success { "finished" } else { "failed" }, path);
+                    if success {
+                        eprintln!("download finished: {path:?}");
+                    } else {
+                        penates_core::log::warn(&format!("download failed: {path:?}"));
+                    }
                     true
                 }
                 _ => true,
@@ -410,7 +414,7 @@ fn open_popup(
     match with_rules!(b, cfg, visited, handle.clone()).build() {
         Ok(w) => Some(w),
         Err(e) => {
-            eprintln!("popup: {e}");
+            penates_core::log::warn(&format!("popup window: {e}"));
             None
         }
     }
@@ -623,7 +627,7 @@ pub fn run(cfg: WebApp, context: tauri::Context) -> tauri::Result<()> {
     // exists, unless the app was created without one.
     if cfg.launcher && !integration::is_installed(&cfg) {
         if let Err(e) = ops::reinstall(None, &cfg) {
-            eprintln!("launcher: {e:#}");
+            penates_core::log::warn(&format!("launcher: {e:#}"));
         }
     }
 
@@ -662,7 +666,7 @@ pub fn run(cfg: WebApp, context: tauri::Context) -> tauri::Result<()> {
                 && match build_tray(app, &cfg) {
                     Ok(()) => true,
                     Err(e) => {
-                        eprintln!("tray: {e}"); // no tray, so closing must really close
+                        penates_core::log::warn(&format!("tray: {e}")); // no tray, so closing must really close
                         false
                     }
                 };

@@ -56,6 +56,21 @@ The manager's own launcher is `penates.desktop` (app ID `penates`); packages shi
 | Settings | `~/.config/penates/settings.toml` | `…/penates/settings.toml` | `%APPDATA%\penates\settings.toml` |
 | Browsing profiles | `~/.local/share/penates/profiles/<id>/` | WKWebView data stores | `%LOCALAPPDATA%\penates\profiles\<id>\` |
 | Launchers | `~/.local/share/applications/` | `~/Applications/Penates/` | Start Menu `Programs\Penates\` |
-| Popular-apps icon cache (safe to delete) | `~/.cache/penates/catalog-icons/` | `~/Library/Caches/penates/catalog-icons/` | `%LOCALAPPDATA%\penates\catalog-icons\` |
+| App Catalog icon cache (safe to delete) | `~/.cache/penates/catalog-icons/` | `~/Library/Caches/penates/catalog-icons/` | `%LOCALAPPDATA%\penates\catalog-icons\` |
+| Log (warnings, errors, crashes; safe to delete) | `~/.local/share/penates/logs/penates.log` | `~/Library/Application Support/penates/logs/` | `%LOCALAPPDATA%\penates\logs\` |
 
 Config and settings files are written through a temporary file and a rename, so a crash never leaves half a file.
+
+## Log and Problem Reports
+`penates_core::log` appends one line per warning, error or crash (panic) to the log: the time (UTC), level,
+Penates version, where it came from (`manager`, `app <id>`, `cli`) and the message. The manager logs every
+failure it shows, and errors in its own page that nothing caught; app windows log failed popups, downloads,
+tray and launcher problems; the CLI logs the error it exits with. At 256 KB the log moves to `penates.log.1`
+(replacing the older one), so it never takes more than about half a megabyte. It is never sent anywhere.
+
+`penates_core::report` builds a problem report from it: the version and how Penates was installed (Arch
+package, AppImage, .deb, installer, own build…), the system and desktop, the web view's version (the manager
+only), the number of apps and the last 40 log lines. Before anything is shown, `report::redact` cuts web
+addresses down to their site and replaces the home folder with `~`, and the user name, email addresses and
+IPv4 addresses with placeholders. The report becomes a link to a new GitHub issue with the bug form filled in;
+it is sent only if the user submits that issue.

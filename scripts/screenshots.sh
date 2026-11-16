@@ -43,6 +43,7 @@ shot light apps manager-apps-light
 shot dark edit:github manager-edit
 shot dark settings manager-settings
 shot dark about manager-about
+shot dark report manager-report
 SHOTS
 dbus-run-session -- bash /tmp/shots.sh
 chown "$OWNER" /out/manager-*.png

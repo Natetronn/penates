@@ -149,6 +149,17 @@ const H = {
   },
   set_update_settings({ updates }) { settings = updates; },
   open_url({ url }) { say('Would open ' + url + ' in your browser (preview only).'); },
+  async problem_report({ what }) {
+    await wait(200);
+    const text = 'Penates 0.1.3 (Arch package penates-bin)\nSystem: CachyOS, KDE, wayland, x86_64\nWeb view: WebKitGTK 2.48.3\nApps: ' + db.length
+      + '\n\nRecent log (oldest first, 2 lines):\n2026-11-16T07:12:03Z WARN 0.1.3 app discord: popup window: the window could not be created'
+      + '\n2026-11-16T07:14:40Z ERROR 0.1.3 manager: could not reach https://example.org/… (timed out)\n';
+    return { text, left_out: 0, log: '/home/you/.local/share/penates/logs/penates.log',
+      link: 'https://github.com/Natetronn/penates/issues/new?template=bug.yml&what=' + encodeURIComponent(what || '') + '&report=' + encodeURIComponent(text) };
+  },
+  log_ui_error() {},
+  clear_log() {},
+  open_log_folder() { say('Would open the log folder (preview only).'); },
   remove_app({ id }) { const i = db.findIndex((a) => a.id === id); if (i < 0) throw 'no app with id \'' + id + '\''; db.splice(i, 1); },
   run_app({ id }) { say('Launching ' + find(id).name + ' (preview only)…'); },
   icon_data({ path }) { const id = path.replace('mock:', ''); if (!icons[id]) throw 'missing'; return icons[id]; },

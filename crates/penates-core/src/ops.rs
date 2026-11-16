@@ -53,7 +53,7 @@ pub fn refresh_launchers_if_needed() {
         return;
     }
     for f in reinstall_all(&store::list()) {
-        eprintln!("warning: launcher for '{}' not updated: {}", f.id, f.error);
+        crate::log::warn(&format!("launcher for '{}' not updated: {}", f.id, f.error));
     }
     // Re-read before saving, so a setting changed meanwhile is not reverted.
     let _ = settings::update(|s| {

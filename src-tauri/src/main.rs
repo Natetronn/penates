@@ -5,7 +5,7 @@
 mod commands;
 mod runner;
 
-use penates_core::{ops, settings, single, store};
+use penates_core::{log, ops, settings, single, store};
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
 /// The macro embeds the app's Info.plist as a global symbol, so it may only be expanded once
@@ -59,6 +59,7 @@ fn run_manager_window(start: Option<String>, listener: Option<std::net::TcpListe
             commands::get_update_settings, commands::set_update_settings, commands::get_appearance, commands::set_appearance,
             commands::export_apps, commands::inspect_import, commands::import_apps, commands::open_url,
             commands::get_export_folder, commands::set_export_folder, commands::pick_export_folder,
+            commands::problem_report, commands::log_ui_error, commands::clear_log, commands::open_log_folder,
         ])
         .setup(move |app| {
             if let Some(l) = listener {
@@ -90,23 +91,26 @@ fn arg_after<'a>(args: &'a [String], flag: &str) -> Option<&'a String> {
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
+    log::log_panics();
     let result = if args.iter().any(|a| a == "--run") {
         let Some(id) = arg_after(&args, "--run") else {
             eprintln!("usage: penates-desktop --run <id>");
             std::process::exit(2);
         };
+        log::set_source(&format!("app {id}"));
         match store::load(id).and_then(|mut cfg| ops::validate(&mut cfg).map(|_| cfg)) {
             Ok(cfg) => runner::run(cfg, app_context()),
             Err(e) => {
-                eprintln!("error: {e:#}");
+                log::error(&format!("{e:#}"));
                 std::process::exit(1);
             }
         }
     } else {
+        log::set_source("manager");
         run_manager(arg_after(&args, "--tab").cloned())
     };
     if let Err(e) = result {
-        eprintln!("error: {e}");
+        log::error(&format!("{e:#}"));
         std::process::exit(1);
     }
 }

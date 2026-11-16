@@ -29,6 +29,7 @@ button:disabled,input:disabled+span{opacity:.5;cursor:default}
 button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 input[type=text],input[type=number],textarea,select{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:7px 9px;width:100%;min-width:0}
 textarea{font-family:var(--mono);font-size:12px;min-height:80px;resize:vertical}
+textarea.prose{font-family:inherit;font-size:inherit;min-height:0}
 input[type=text][readonly]{color:var(--muted);background:var(--chip);font-family:var(--mono);font-size:12px}
 .toast{position:fixed;left:50%;bottom:72px;transform:translateX(-50%);z-index:20;display:flex;gap:10px;align-items:flex-start;max-width:min(680px,calc(100vw - 32px));background:var(--card);color:var(--fg);border:1px solid var(--line);border-left:4px solid var(--ok);border-radius:var(--radius-lg);box-shadow:var(--shadow-pop);padding:9px 10px 9px 14px;font-size:13px}
 .toast[hidden]{display:none}
@@ -160,7 +161,7 @@ input[type=search]{font:inherit;color:var(--fg);background:var(--card);border:1p
       <dt>License</dt><dd>MIT</dd>
       <dt>Built with</dt><dd>Rust, Tauri 2 and the system web view (WebKitGTK, WebView2, WKWebView)</dd>
     </dl>
-    <div class="row about-close"><button type="button" id="about-credits-open">Credits</button><button type="button" class="primary" id="about-close" autofocus>Close</button></div>
+    <div class="row about-close"><button type="button" id="about-report-open">Report a problem</button><button type="button" id="about-credits-open">Credits</button><button type="button" class="primary" id="about-close" autofocus>Close</button></div>
   </div>
   </div>
   <div id="about-credits" class="about-body" hidden></div>
