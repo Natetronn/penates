@@ -67,14 +67,36 @@ import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
     ```
   </TabItem>
   <TabItem label="Windows">
-    Run the installer from the [releases page](https://github.com/Natetronn/penates/releases/latest). If
-    SmartScreen says it protected your PC, choose **More info → Run anyway**: the installer is not signed with
-    a Microsoft certificate yet.
+    Download the installer from the [releases page](https://github.com/Natetronn/penates/releases/latest) and run it. It installs Penates for your user, and
+    Penates updates itself: new versions appear under **Updates**, signed and checked before they install.
+
+    | Windows | Download | Updates |
+    |---|---|---|
+    | Windows 11 | `Penates_<version>_x64-setup.exe` | in Penates |
+    | Windows 10 | the same installer; if Microsoft Edge WebView2 is missing, it downloads it | in Penates |
+
+    <Aside type="caution" title="First launch">
+      The installer is not signed with a Microsoft certificate yet, so SmartScreen may say it protected your PC.
+      Choose **More info → Run anyway**.
+    </Aside>
   </TabItem>
   <TabItem label="macOS">
-    Open the `.dmg` from the [releases page](https://github.com/Natetronn/penates/releases/latest) and drag
-    Penates to Applications (macOS 14 or later). The first time, allow it under **System Settings → Privacy &
-    Security → Open Anyway**: it is not signed with an Apple certificate yet.
+    Download the `.dmg` for your Mac from the [releases page](https://github.com/Natetronn/penates/releases/latest), open it and drag Penates to Applications.
+    It needs macOS 14 (Sonoma) or later, and updates itself: new versions appear under **Updates**, signed and
+    checked before they install.
+
+    | Mac | Download | Updates |
+    |---|---|---|
+    | Apple silicon (M1 and later) | `Penates_<version>_aarch64.dmg` | in Penates |
+    | Intel | `Penates_<version>_x64.dmg` | in Penates |
+
+    Not sure which Mac you have? Apple menu → **About This Mac**: "Chip: Apple M…" is Apple silicon,
+    "Processor: Intel…" is Intel.
+
+    <Aside type="caution" title="First launch">
+      Penates is not signed with an Apple certificate yet, so macOS stops it the first time. Open it once, then
+      go to **System Settings → Privacy & Security** and choose **Open Anyway**.
+    </Aside>
   </TabItem>
 </Tabs>
 
