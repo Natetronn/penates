@@ -31,7 +31,7 @@ What has actually been run, and where. Last updated 2026-11-15, version 0.1.1.
 | Taskbar and tray | taskbar entry and tray icon show the app icon; tray icon read back in color and grayscale |
 | Start modes (automated, KWin + tray registry) | "only in the tray" with a tray: no window, tray icon registered; "minimized": minimized window; "only in the tray" without a tray: starts minimized instead; launching a tray-started app again shows its window |
 | Downloads | saved to `~/Downloads`, a second download gets a new name |
-| Navigation keys | automated on a local test site: Alt+Left went back, the mouse's forward button went forward, F5 reloaded; Alt+Left also confirmed with a real keypress (real mouse side buttons still to be tried) |
+| Navigation keys | automated on a local test site: Alt+Left went back, the mouse's forward button went forward, F5 reloaded; Alt+Left also confirmed with a real keypress (real mouse side buttons still to be tried). Alt+Home and the key list (F1, Ctrl+/), automated in a real app window on a local test site: F1 and Ctrl+/ show and hide the list, Esc closes it, a page that handles Ctrl+/ itself keeps it, F1 still works there, and Alt+Home went to the start page |
 | Links (automated, 2026-11-15) | a local test site: an embedded frame from another site loads, a same-site link navigates in the app, and a link to another site does **not** load in the app |
 | Links (real clicks, 2026-11-15, current code) | on a local test site: a link to another site opened the browser; a same-site `target=_blank` link opened a Penates popup window, not the browser; a link to another site inside that popup opened the browser |
 | Sign-in | GitHub and Tailscale signed in inside their app windows (both redirect within the window) |

@@ -186,19 +186,65 @@ document.addEventListener("click", (e) => {{
     )
 }
 
-/// Browser-style navigation for windows that have no toolbar: Alt+Left/Right (Cmd+[ and ] on macOS) and
-/// the mouse's back/forward buttons go back and forward; F5 and Ctrl+R reload. A page that handles one
-/// of these itself (it calls preventDefault) keeps it.
-const NAVIGATION_SCRIPT: &str = r#"(() => {
+/// Browser keys for app windows: Alt+Left/Right (Cmd+[ and ] on macOS) and the mouse's back/forward
+/// buttons go back and forward, F5 and Ctrl+R reload, Alt+Home (Cmd+Shift+H) goes to the app's start
+/// page, and F1 or Ctrl+/ (Cmd+/) shows these keys. A page that handles one of these itself (it calls
+/// preventDefault) keeps it; for the key list, whose keys sites often use for their own help (Slack, Google
+/// Docs), the decision waits until the page's own handlers have run. The key list lives in a shadow root with constructed styles, so the site's
+/// CSS cannot restyle it and a strict content security policy cannot block it.
+fn navigation_script(home: &str) -> String {
+    const SCRIPT: &str = r#"(() => {
   if (window.top !== window) return;
+  const HOME = __HOME__;
+  const mac = /Mac/.test(navigator.platform);
+  const keys = [
+    ["Back", mac ? "⌘ [" : "Alt+←", "or the mouse's back button"],
+    ["Forward", mac ? "⌘ ]" : "Alt+→", "or the mouse's forward button"],
+    ["Reload", mac ? "⌘ R" : "F5 or Ctrl+R", ""],
+    ["Start page", mac ? "⌘ ⇧ H" : "Alt+Home", ""],
+    ["These keys", mac ? "⌘ /" : "F1 or Ctrl+/", "Esc closes"],
+  ];
+  let host = null;
+  const close = () => { host?.remove(); host = null; };
+  const toggle = () => {
+    if (host) return close();
+    host = document.createElement("penates-keys");
+    const root = host.attachShadow({ mode: "closed" });
+    const css = `:host{all:initial;position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;background:rgba(10,8,20,.45);font:14px/1.5 system-ui,sans-serif}
+.box{background:#191726;color:#f4f2ff;border:1px solid #2e2b45;border-radius:12px;padding:18px 22px;min-width:300px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+h2{margin:0 0 10px;font-size:15px;font-weight:600}table{border-collapse:collapse;width:100%}td{padding:5px 0;vertical-align:top}
+td+td{padding-left:18px;text-align:right;white-space:nowrap}kbd{font:12px ui-monospace,monospace;background:#29263d;border:1px solid #3a3658;border-radius:5px;padding:1px 6px}
+small{display:block;color:#a9a5c4;font-size:12px}`;
+    try { const sheet = new CSSStyleSheet(); sheet.replaceSync(css); root.adoptedStyleSheets = [sheet]; }
+    catch { const st = document.createElement("style"); st.textContent = css; root.append(st); }
+    const box = document.createElement("div"); box.className = "box";
+    const h = document.createElement("h2"); h.textContent = "Keys in this app";
+    const table = document.createElement("table");
+    for (const [what, key, note] of keys) {
+      const tr = table.insertRow(), a = tr.insertCell(), b = tr.insertCell();
+      a.textContent = what;
+      if (note) { const s = document.createElement("small"); s.textContent = note; a.append(s); }
+      const k = document.createElement("kbd"); k.textContent = key; b.append(k);
+    }
+    box.append(h, table); root.append(box);
+    host.addEventListener("click", (e) => { if (e.composedPath()[0] === host) close(); });
+    document.documentElement.append(host);
+  };
   addEventListener("keydown", (e) => {
     if (e.defaultPrevented || e.repeat) return;
-    const back = (e.altKey && e.key === "ArrowLeft") || (e.metaKey && e.key === "[");
-    const forward = (e.altKey && e.key === "ArrowRight") || (e.metaKey && e.key === "]");
-    const reload = e.key === "F5" || ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "r");
-    if (!back && !forward && !reload) return;
+    const k = e.key.toLowerCase(), cmd = mac ? e.metaKey : e.ctrlKey;
+    const back = (e.altKey && e.key === "ArrowLeft") || (mac && e.metaKey && e.key === "[");
+    const forward = (e.altKey && e.key === "ArrowRight") || (mac && e.metaKey && e.key === "]");
+    const reload = e.key === "F5" || (cmd && !e.shiftKey && k === "r");
+    const home = (e.altKey && e.key === "Home") || (mac && e.metaKey && e.shiftKey && k === "h");
+    const help = e.key === "F1" || (cmd && !e.altKey && e.key === "/");
+    if (host && e.key === "Escape") { e.preventDefault(); return close(); }
+    if (help) return void setTimeout(() => { if (!e.defaultPrevented) toggle(); });
+    if (!back && !forward && !reload && !home) return;
     e.preventDefault();
-    if (reload) location.reload(); else history.go(back ? -1 : 1);
+    if (home) location.assign(HOME);
+    else if (reload) location.reload();
+    else history.go(back ? -1 : 1);
   });
   addEventListener("mouseup", (e) => {
     if (e.defaultPrevented || (e.button !== 3 && e.button !== 4)) return;
@@ -206,6 +252,8 @@ const NAVIGATION_SCRIPT: &str = r#"(() => {
     history.go(e.button === 3 ? -1 : 1);
   });
 })();"#;
+    SCRIPT.replace("__HOME__", &serde_json::to_string(home).unwrap())
+}
 
 /// Hosts the app's main window has actually loaded (the site itself, redirect targets). Popups to
 /// these stay in the app, like popups to its own site.
@@ -227,7 +275,7 @@ fn with_rules<'a, M: Manager<tauri::Wry>>(
     visited: &Visited,
     handle: tauri::AppHandle,
 ) -> WebviewWindowBuilder<'a, tauri::Wry, M> {
-    b = b.initialization_script(NAVIGATION_SCRIPT);
+    b = b.initialization_script(navigation_script(&cfg.url));
     if cfg.external_links_in_browser {
         b = b.initialization_script(link_guard_script(cfg));
     }
