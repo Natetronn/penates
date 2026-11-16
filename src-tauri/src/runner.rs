@@ -473,20 +473,15 @@ fn build_toolbar_window(
 
 /// Place the toolbar (on top) and the site (the rest) in the window. Windows and macOS place child
 /// views by these bounds; on Linux the window's GTK box does the layout and the bounds have no effect.
-/// On macOS the views are positioned from the top of the window frame, title bar included, so they
-/// move down by the title bar's height (the outer height minus the inner height; 0 when frameless).
+/// On macOS the window's content spans the title bar too, so both views move down by its height.
 fn layout_toolbar_window(window: &tauri::Window, toolbar: &tauri::Webview, site: &tauri::Webview) {
     let Ok(scale) = window.scale_factor() else { return };
     let Ok(inner) = window.inner_size().map(|p| p.to_logical::<f64>(scale)) else { return };
-    let top = if cfg!(target_os = "macos") {
-        window.outer_size().map(|o| (o.to_logical::<f64>(scale).height - inner.height).max(0.0)).unwrap_or(0.0)
-    } else {
-        0.0
-    };
+    let top = title_bar_height(window);
     if std::env::var_os("PENATES_DEBUG").is_some() {
-        let outer = window.outer_size().map(|o| o.to_logical::<f64>(scale));
-        eprintln!("toolbar layout: inner {inner:?}, outer {outer:?}, scale {scale}, top {top}");
+        eprintln!("toolbar layout: inner {inner:?}, scale {scale}, title bar {top}");
     }
+    let inner = LogicalSize::new(inner.width, (inner.height - top).max(0.0));
     let _ = toolbar.set_bounds(tauri::Rect {
         position: LogicalPosition::new(0.0, top).into(),
         size: LogicalSize::new(inner.width, TOOLBAR_HEIGHT).into(),
@@ -495,6 +490,22 @@ fn layout_toolbar_window(window: &tauri::Window, toolbar: &tauri::Webview, site:
         position: LogicalPosition::new(0.0, top + TOOLBAR_HEIGHT).into(),
         size: LogicalSize::new(inner.width, (inner.height - TOOLBAR_HEIGHT).max(0.0)).into(),
     });
+}
+
+/// The height of the title bar over the window's content on macOS (the window frame minus the part the
+/// title bar leaves free), in points, which are logical pixels. 0 for a frameless or fullscreen window.
+#[cfg(target_os = "macos")]
+fn title_bar_height(window: &tauri::Window) -> f64 {
+    let Ok(ptr) = window.ns_window() else { return 0.0 };
+    // SAFETY: Tauri hands out this window's live NSWindow; it is only read, on the main thread (setup
+    // and window events run there).
+    let ns = unsafe { &*(ptr as *const objc2_app_kit::NSWindow) };
+    (ns.frame().size.height - ns.contentLayoutRect().size.height).max(0.0)
+}
+
+#[cfg(not(target_os = "macos"))]
+fn title_bar_height(_: &tauri::Window) -> f64 {
+    0.0
 }
 
 /// What the toolbar's buttons do, and the address it shows. Only the toolbar page may call it: the site's pages cannot reach

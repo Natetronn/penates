@@ -31,6 +31,10 @@ webkit2gtk = { version = "2.0", features = ["v2_40"] }
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.59", features = ["Win32_UI_Shell"] }
 
+[target.'cfg(target_os = "macos")'.dependencies]
+# The title bar's height, for placing the toolbar below it (already in the build through wry).
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSResponder", "NSWindow", "objc2-core-foundation"] }
+
 [features]
 # Production build: serve the embedded UI (set automatically by `cargo tauri build`).
 custom-protocol = ["tauri/custom-protocol"]
