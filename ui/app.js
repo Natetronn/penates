@@ -548,7 +548,16 @@ function catalogCard(c, reload) {
     el("div", { class: "card-head" }, catalogIcon(c), el("div", { class: "meta" }, el("b", {}, c.name), el("span", { class: "url" }, hostOf(c.url)))),
     el("p", { class: "notes" }, c.notes),
     el("div", { class: "card-foot" }, c.category ? el("span", { class: "chip" }, c.category) : el("span"),
-      action));
+      el("span", { class: "acts" }, c.added ? el("button", { textContent: "Edit", "aria-label": "Edit " + c.name, onclick: () => editAdded(c.added).catch(fail) }) : null, action)));
+}
+
+/** Edit an app you have from its catalog card: the same edit view as on Apps (Save or Cancel returns to Apps). */
+async function editAdded(id) {
+  const { apps } = await invoke("list_apps");
+  const a = apps.find((x) => x.id === id);
+  if (!a) return say("That app is no longer in your apps.");
+  editing = structuredClone(a);
+  show("apps");
 }
 
 async function renderCatalog() {

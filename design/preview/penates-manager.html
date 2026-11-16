@@ -248,7 +248,7 @@ div.f{display:grid;gap:4px;font-size:12px;color:var(--muted)}
 .card .notes{flex:1;margin:0;color:var(--muted);font-size:12px}
 .card-foot{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .card-foot .chip{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.card-foot button{flex:none}
+.card-foot .acts{display:flex;gap:6px;flex:none}
 .filters{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 12px}
 .filters button{border-radius:999px;padding:4px 12px;font-size:13px}
 .filters button[aria-pressed=true]{background:var(--accent);color:var(--accent-fg);border-color:transparent}
@@ -1607,7 +1607,16 @@ function catalogCard(c, reload) {
     el("div", { class: "card-head" }, catalogIcon(c), el("div", { class: "meta" }, el("b", {}, c.name), el("span", { class: "url" }, hostOf(c.url)))),
     el("p", { class: "notes" }, c.notes),
     el("div", { class: "card-foot" }, c.category ? el("span", { class: "chip" }, c.category) : el("span"),
-      action));
+      el("span", { class: "acts" }, c.added ? el("button", { textContent: "Edit", "aria-label": "Edit " + c.name, onclick: () => editAdded(c.added).catch(fail) }) : null, action)));
+}
+
+/** Edit an app you have from its catalog card: the same edit view as on Apps (Save or Cancel returns to Apps). */
+async function editAdded(id) {
+  const { apps } = await invoke("list_apps");
+  const a = apps.find((x) => x.id === id);
+  if (!a) return say("That app is no longer in your apps.");
+  editing = structuredClone(a);
+  show("apps");
 }
 
 async function renderCatalog() {

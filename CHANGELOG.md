@@ -5,6 +5,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
+### Added
+- App Catalog cards of apps you have: **Edit** next to **Open** (the same edit view as on Apps).
+
 ### Fixed
 - Site icons: Penates no longer picks a site's monochrome icon (a one-color silhouette meant for the system
   to tint, which came out flat white for YouTube), ranks maskable icons below the site's ordinary ones, and
