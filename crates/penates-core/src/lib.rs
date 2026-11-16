@@ -53,6 +53,9 @@ pub struct WebApp {
     /// Show a toolbar above the site: back, forward, reload, start page, the address, open in browser and the
     /// key list. On unless turned off (apps saved before it existed get it too).
     pub toolbar: bool,
+    /// The toolbar's color: "default" (Settings decides), "site" (the site's own color), "penates", or a
+    /// custom `#rrggbb`.
+    pub toolbar_color: String,
     /// Open links to other sites in the system browser (otherwise they load in-app).
     pub external_links_in_browser: bool,
     pub devtools: bool,
@@ -97,6 +100,7 @@ impl Default for WebApp {
             always_on_top: false,
             decorations: true,
             toolbar: true,
+            toolbar_color: "default".into(),
             external_links_in_browser: true,
             devtools: false,
             theme: "system".into(),

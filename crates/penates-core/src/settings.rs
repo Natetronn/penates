@@ -23,6 +23,8 @@ impl Default for UpdateSettings {
 pub const THEMES: [&str; 3] = ["system", "light", "dark"];
 pub const SKINS: [&str; 4] = ["default", "nord", "solarized", "mono"];
 pub const ACCENTS: [&str; 6] = ["violet", "blue", "green", "orange", "rose", "slate"];
+/// The default toolbar color for apps: each site's own color, or Penates's.
+pub const TOOLBAR_COLORS: [&str; 2] = ["site", "penates"];
 
 /// Look of the manager window.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -34,10 +36,12 @@ pub struct Appearance {
     pub skin: String,
     /// One of `ACCENTS` (ui/tokens.css).
     pub accent: String,
+    /// One of `TOOLBAR_COLORS`: the toolbar color of apps that use the default.
+    pub toolbar_color: String,
 }
 impl Default for Appearance {
     fn default() -> Self {
-        Self { theme: "system".into(), skin: "default".into(), accent: "violet".into() }
+        Self { theme: "system".into(), skin: "default".into(), accent: "violet".into(), toolbar_color: "site".into() }
     }
 }
 impl Appearance {
@@ -45,6 +49,7 @@ impl Appearance {
         anyhow::ensure!(THEMES.contains(&self.theme.as_str()), "unknown theme '{}'", self.theme);
         anyhow::ensure!(SKINS.contains(&self.skin.as_str()), "unknown look '{}'", self.skin);
         anyhow::ensure!(ACCENTS.contains(&self.accent.as_str()), "unknown accent '{}'", self.accent);
+        anyhow::ensure!(TOOLBAR_COLORS.contains(&self.toolbar_color.as_str()), "unknown toolbar color '{}'", self.toolbar_color);
         Ok(())
     }
 }

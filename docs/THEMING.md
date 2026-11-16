@@ -1,6 +1,6 @@
 # Theming
 
-How Penates looks comes from three independent layers: the manager's look, its tokens and skins, and each app window's theme.
+How Penates looks comes from four independent layers: the manager's look, its tokens and skins, each app window's theme, and the toolbar's color.
 
 ## 1. Manager look (Settings tab)
 Saved in `settings.toml` under `[appearance]` and applied by setting three attributes on `<html>`:
@@ -21,3 +21,14 @@ Saved in `settings.toml` under `[appearance]` and applied by setting three attri
 `theme = "system" | "light" | "dark"` in an app's config (Edit → Window). It sets the native window theme and what the site reports through `prefers-color-scheme`.
 
 **Platform note:** this works through Tauri's window theme API, which is honored on Windows and macOS. On Linux, WebKitGTK takes light or dark from the desktop (KDE reports it through the settings portal), so the setting does not change what a site sees. This was tested: a probe page reported dark with the app set to light, with and without a GTK theme override.
+
+## 4. Toolbar color
+Settings → Appearance → **Toolbar color** sets the default for every app with a toolbar: **Match each site** or
+**Penates colors**. Each app can choose its own under Edit → Window: the default, the site's, Penates's, or a
+custom color (a color picker, or any CSS color typed in: hex, `rgb()`, `hsl()`, a name, `oklch()`; it is saved
+as `#rrggbb`).
+
+Matching a site uses its `theme-color` (the one for light or dark mode, whichever applies), else the page's
+background, else Penates's colors, and follows changes while the app is open. Icons and text turn light or dark
+by contrast (WCAG), so the toolbar stays readable on any color.
+

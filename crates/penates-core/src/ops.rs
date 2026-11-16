@@ -82,6 +82,23 @@ pub const START_AS: [&str; 3] = ["window", "minimized", "tray"];
 
 /// Clean up user-edited values. Fails on an unusable URL, an empty name or an entry in
 /// `internal_hosts` that is not a host name.
+/// A toolbar color as stored: "default", "site", "penates" or a lowercase `#rrggbb` (`#rgb` is expanded).
+pub fn normalize_toolbar_color(c: &str) -> Result<String> {
+    let c = c.trim().to_ascii_lowercase();
+    if c.is_empty() {
+        return Ok("default".into());
+    }
+    if matches!(c.as_str(), "default" | "site" | "penates") {
+        return Ok(c);
+    }
+    let hex = c.strip_prefix('#').filter(|h| h.chars().all(|ch| ch.is_ascii_hexdigit()));
+    match hex {
+        Some(h) if h.len() == 6 => Ok(format!("#{h}")),
+        Some(h) if h.len() == 3 => Ok(format!("#{}", h.chars().flat_map(|ch| [ch, ch]).collect::<String>())),
+        _ => anyhow::bail!("toolbar color must be default, site, penates or a hex color like #5865f2 (got '{c}')"),
+    }
+}
+
 pub fn validate(app: &mut WebApp) -> Result<()> {
     app.url = normalize_url(&app.url)?;
     app.name = clean_name(&app.name);
@@ -107,6 +124,7 @@ pub fn validate(app: &mut WebApp) -> Result<()> {
     blank_to_none(&mut app.user_agent);
     blank_to_none(&mut app.inject_css);
     blank_to_none(&mut app.inject_js);
+    app.toolbar_color = normalize_toolbar_color(&app.toolbar_color)?;
     Ok(())
 }
 
@@ -468,5 +486,19 @@ mod tests {
         let page = |u: &str| Page::from_html(url::Url::parse(u).unwrap(), "", false);
         assert_eq!(redirect_host(&app, &page("https://mail.example.net/inbox")).as_deref(), Some("mail.example.net"));
         assert_eq!(redirect_host(&app, &page("https://www.example.com/")), None);
+    }
+}
+
+#[cfg(test)]
+mod toolbar_color_tests {
+    use super::normalize_toolbar_color as n;
+
+    #[test]
+    fn toolbar_colors_are_checked_and_normalized() {
+        assert_eq!(n("").unwrap(), "default");
+        assert_eq!(n(" Site ").unwrap(), "site");
+        assert_eq!(n("#5865F2").unwrap(), "#5865f2");
+        assert_eq!(n("#58f").unwrap(), "#5588ff");
+        assert!(n("red").is_err() && n("#12345").is_err() && n("#gg0000").is_err());
     }
 }

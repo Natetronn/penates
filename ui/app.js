@@ -308,7 +308,8 @@ const FIELDS = {
     ["start_maximized", "Start maximized", "bool", "Open full-frame; width and height apply when restored"],
     ["start_fullscreen", "Start fullscreen", "bool"], ["resizable", "Resizable", "bool"],
     ["always_on_top", "Always on top", "bool"], ["decorations", "Show title bar and borders", "bool", "Turn off for a frameless window"],
-    ["toolbar", "Show a toolbar", "bool", "Back, forward, reload, start page, the address, Open in browser and the key list, above the site"]],
+    ["toolbar", "Show a toolbar", "bool", "Back, forward, reload, start page, the address, Open in browser and the key list, above the site"],
+    ["toolbar_color", "Toolbar color", "toolbarcolor"]],
   Behavior: [["single_instance", "Single window", "bool", "Launching again focuses the open window"],
     ["allow_notifications", "Allow notifications", "bool", "Let the site show desktop notifications"],
     ["allow_camera_microphone", "Allow camera and microphone", "bool", "For video calls. Off unless you turn it on"],
@@ -324,7 +325,46 @@ const FIELDS = {
 /** Settings that only mean something when another one is on. */
 const NEEDS = { tray_grayscale: "tray", close_to_tray: "tray" };
 
+/** Any CSS color (hex, rgb(), hsl(), a name, oklch()...) as #rrggbb, or null if it is not a color. Drawing it on a
+ *  one-pixel canvas gives its sRGB value whatever the format; transparency is dropped. */
+function cssToHex(v) {
+  if (!v || !CSS.supports("color", v.trim())) return null;
+  const c = el("canvas", { width: 1, height: 1 }).getContext("2d");
+  c.fillStyle = v.trim();
+  c.fillRect(0, 0, 1, 1);
+  const [r, g, b, a] = c.getImageData(0, 0, 1, 1).data;
+  return a ? "#" + [r, g, b].map((x) => x.toString(16).padStart(2, "0")).join("") : null;
+}
+
+/** Edit → Window → Toolbar color: the default, the site's, Penates's, or a custom color (a picker plus a field
+ *  that takes any CSS color). The hidden input holds what is saved: default, site, penates or #rrggbb. */
+function toolbarColorInput(a, k, label) {
+  const value = el("input", { type: "hidden", id: "f-" + k, value: a[k] || "default" });
+  const custom = value.value.startsWith("#");
+  const mode = el("select", { "aria-label": label }, [["default", "Default (Settings)"], ["site", "Match the site"], ["penates", "Penates colors"], ["custom", "Custom…"]]
+    .map(([v, t]) => el("option", { value: v, textContent: t, selected: (custom ? "custom" : value.value) === v })));
+  const picker = el("input", { type: "color", value: custom ? value.value : "#6d3fe0", "aria-label": "Pick a color" });
+  const text = el("input", { type: "text", value: custom ? value.value : "#6d3fe0", placeholder: "#5865f2, rgb(…), teal…", "aria-label": "Color" });
+  const note = el("small", { class: "hint" });
+  const row = el("div", { class: "row" }, picker, text);
+  const sync = () => {
+    row.hidden = mode.value !== "custom";
+    value.value = mode.value === "custom" ? picker.value : mode.value;
+  };
+  mode.onchange = sync;
+  picker.oninput = () => { text.value = picker.value; note.textContent = ""; sync(); };
+  text.oninput = () => {
+    const hex = cssToHex(text.value);
+    note.textContent = text.value.trim() && !hex ? "Not a color. Try #5865f2, rgb(88 101 242) or a name like teal." : "";
+    if (hex) { picker.value = hex; sync(); }
+  };
+  text.onchange = () => { const hex = cssToHex(text.value); if (hex) text.value = hex; };
+  sync();
+  return { input: value, node: el("label", { class: "f" }, label, mode, row, note, value), check: false };
+}
+
 function fieldInput(a, k, label, type, extra) {
+  if (type === "toolbarcolor") return toolbarColorInput(a, k, label);
   if (type === "select") {
     const input = el("select", { id: "f-" + k }, extra.options.map(([v, t]) => el("option", { value: v, textContent: t, selected: (a[k] || extra.options[0][0]) === v })));
     return { input, node: el("label", { class: "f" }, label, input, extra.help ? el("small", { class: "hint" }, extra.help) : null), check: false };
@@ -588,7 +628,7 @@ function renderUpdates() {
 // ---- appearance (tokens live in tokens.css; boot.js sets the attributes) ----
 const ACCENTS = ["violet", "blue", "green", "orange", "rose", "slate"];
 const SKINS = [["default", "Penates"], ["nord", "Nord"], ["solarized", "Solarized"], ["mono", "High contrast"]];
-let appearance = window.__PENATES_APPEARANCE || { theme: "system", skin: "default", accent: "violet" };
+let appearance = window.__PENATES_APPEARANCE || { theme: "system", skin: "default", accent: "violet", toolbar_color: "site" };
 
 /** Change the look in place: no re-render, so keyboard focus stays on the button just pressed. */
 async function setAppearance(patch) {
@@ -617,7 +657,11 @@ function appearanceSection() {
         [["system", "System"], ["light", "Light"], ["dark", "Dark"]].map(([v, t]) => lookButton("theme", v, { textContent: t })))),
     el("fieldset", {}, el("legend", {}, "Accent color"),
       el("div", { class: "swatches", role: "group", "aria-label": "Accent color" },
-        ACCENTS.map((n) => lookButton("accent", n, { class: "swatch", title: n, "aria-label": n, "data-accent": n }))))];
+        ACCENTS.map((n) => lookButton("accent", n, { class: "swatch", title: n, "aria-label": n, "data-accent": n })))),
+    el("fieldset", {}, el("legend", {}, "Toolbar color"),
+      el("div", { class: "seg", role: "group", "aria-label": "Toolbar color" },
+        [["site", "Match each site"], ["penates", "Penates colors"]].map(([v, t]) => lookButton("toolbar_color", v, { textContent: t }))),
+      el("p", { class: "hint" }, "For apps with a toolbar. Each app can choose its own under Edit → Window."))];
 }
 
 function updatesSection(us) {

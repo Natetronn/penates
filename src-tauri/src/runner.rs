@@ -10,6 +10,23 @@ use tauri::{LogicalPosition, LogicalSize, Manager, WebviewUrl, WebviewWindowBuil
 /// Height of the optional toolbar, in logical pixels.
 const TOOLBAR_HEIGHT: f64 = 40.0;
 
+/// The toolbar's current color: a CSS color the site declared, a custom `#rrggbb`, or "" for Penates's.
+#[derive(Default)]
+struct ToolbarColor(Mutex<String>);
+
+/// Run in the site to find its color: its `theme-color` (the one whose media query matches, so a site's
+/// dark-mode color applies in dark mode), else the page's background, else "" (the toolbar keeps
+/// Penates's colors).
+const SITE_COLOR_SCRIPT: &str = r#"(() => {
+  const m = [...document.querySelectorAll('meta[name="theme-color"]')].find((x) => !x.media || matchMedia(x.media).matches);
+  if (m && m.content.trim()) return m.content.trim();
+  for (const el of [document.body, document.documentElement]) {
+    const bg = el && getComputedStyle(el).backgroundColor;
+    if (bg && bg !== "transparent" && !/^rgba\(.*,\s*0\)$/.test(bg)) return bg;
+  }
+  return "";
+})()"#;
+
 /// Save downloads to the user's Downloads folder, never overwriting an existing file.
 pub fn unique_download_path(suggested: &std::path::Path) -> std::path::PathBuf {
     unique_path_in(&dirs::download_dir().or_else(dirs::home_dir).unwrap_or_else(std::env::temp_dir), suggested)
@@ -470,6 +487,13 @@ fn build_toolbar_window(
             layout_toolbar_window(&w, &t, &s);
         }
     });
+    // The toolbar's color: the app's own choice, or Settings' default when it has none.
+    let mode = match cfg.toolbar_color.as_str() {
+        "default" => penates_core::settings::load().appearance.toolbar_color,
+        c => c.to_string(),
+    };
+    let color = Arc::new(ToolbarColor(Mutex::new(if mode.starts_with('#') { mode.clone() } else { String::new() })));
+    app.manage(color.clone());
     let (t, s) = (toolbar.clone(), site.clone());
     std::thread::spawn(move || {
         let mut shown = String::new();
@@ -477,6 +501,17 @@ fn build_toolbar_window(
             if u.as_str() != shown {
                 shown = u.to_string();
                 let _ = t.eval(format!("window.penatesAddress?.({})", serde_json::to_string(&shown).unwrap()));
+            }
+            if mode == "site" {
+                let (t, color) = (t.clone(), color.clone());
+                let _ = s.eval_with_callback(SITE_COLOR_SCRIPT, move |result| {
+                    let found: String = serde_json::from_str(&result).unwrap_or_default();
+                    let mut current = color.0.lock().unwrap_or_else(|e| e.into_inner());
+                    if *current != found {
+                        *current = found;
+                        let _ = t.eval(format!("window.penatesColor?.({})", serde_json::to_string(&*current).unwrap()));
+                    }
+                });
             }
             std::thread::sleep(std::time::Duration::from_millis(500));
         }
@@ -530,8 +565,12 @@ fn toolbar_action(webview: tauri::Webview, app: tauri::AppHandle, cfg: tauri::St
     }
     let site = app.get_webview("site").ok_or("the site is not open")?;
     let done = match action.as_str() {
-        // The address the site shows now; the toolbar asks once it has loaded, the runner sends changes.
+        // The address the site shows now, and the toolbar's color; the toolbar asks once it has loaded,
+        // the runner sends changes.
         "address" => return Ok(site.url().map(|u| u.to_string()).unwrap_or_default()),
+        "color" => {
+            return Ok(app.try_state::<Arc<ToolbarColor>>().map(|c| c.0.lock().unwrap_or_else(|e| e.into_inner()).clone()).unwrap_or_default())
+        }
         "back" => site.eval("history.back()"),
         "forward" => site.eval("history.forward()"),
         "reload" => site.reload(),
