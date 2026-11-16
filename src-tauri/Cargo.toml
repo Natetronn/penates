@@ -17,7 +17,8 @@ serde.workspace = true
 serde_json.workspace = true
 anyhow.workspace = true
 base64 = "0.22"
-tauri = { version = "2", features = ["image-png", "tray-icon"] }
+# "unstable": a window holding two web views (the optional toolbar above the site).
+tauri = { version = "2", features = ["image-png", "tray-icon", "unstable"] }
 open = "5"
 url = "2"
 dirs = "5"

@@ -6,6 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 ## [Unreleased]
 
 ### Added
+- An optional toolbar for any app (Edit → Window → Show a toolbar, or `penates create --toolbar`): back, forward, reload, start page, the page's address and Open in browser, above the site. Off by default.
 - In app windows, Alt+Home (Cmd+Shift+H on macOS) goes to the app's start page, and F1 or Ctrl+/ (Cmd+/) shows a list of the keys. A site that uses one of these keys itself keeps it.
 - The website, [getpenates.com](https://getpenates.com), with the docs, the app catalog and a clickable demo of the manager. About links to it.
 - 12 more apps in the app catalog, 22 in all: ChatGPT, Claude, Figma, Gmail, Google Calendar, Google Drive, Linear, Outlook, Slack, Telegram, Todoist and Trello. The catalog is live for every install; this release refreshes the built-in copy used when it cannot be reached.

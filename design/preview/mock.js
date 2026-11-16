@@ -10,7 +10,7 @@ function mkIcon(letter, color) {
   x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(letter, 64, 68); return c.toDataURL('image/png');
 }
 const DEF = { width: 1200, height: 800, zoom: 1, user_agent: null, inject_css: null, inject_js: null, internal_hosts: [], single_instance: true,
-  start_maximized: true, start_fullscreen: false, start_as: 'window', resizable: true, always_on_top: false, decorations: true, external_links_in_browser: true, devtools: false,
+  start_maximized: true, start_fullscreen: false, start_as: 'window', resizable: true, always_on_top: false, decorations: true, toolbar: false, external_links_in_browser: true, devtools: false,
   allow_notifications: true, allow_camera_microphone: false, tray: false, tray_grayscale: false, close_to_tray: false, theme: 'system', custom_icon: false,
   catalog_id: null, catalog_version: null, launcher: true };
 const icons = {};

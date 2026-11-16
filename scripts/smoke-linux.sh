@@ -52,4 +52,13 @@ $A remove smoke --purge
 test ! -e "$L" || { echo "launcher not removed"; exit 1; }
 $A import "$OUT/smoke.penates" --yes
 test -f "$L" || { echo "import did not recreate the launcher"; exit 1; }
+
+# 5) an app with the toolbar: it starts, and the screenshot shows the toolbar above the site
+$A create https://example.com --name "Smoke toolbar" --id smoke-toolbar --toolbar --no-install
+"$PENATES_DESKTOP" --run smoke-toolbar >"$OUT/toolbar.log" 2>&1 & APP=$!
+sleep 12
+kill -0 "$APP" || { echo "toolbar app exited:"; cat "$OUT/toolbar.log"; exit 1; }
+echo "toolbar app OK"
+shot toolbar
+kill "$APP" || true; APP=
 echo "smoke OK"

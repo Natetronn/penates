@@ -1,9 +1,14 @@
-//! The runner: one wrapped web app in its own window (`penates-desktop --run <id>`). It registers
-//! no IPC commands or plugins; the site gets nothing from Penates but a window.
+//! The runner: one wrapped web app in its own window (`penates-desktop --run <id>`). The site gets
+//! nothing from Penates but a window: no plugins, and its pages cannot call Penates. The only command,
+//! `toolbar_action`, serves the optional toolbar (a local page above the site) and refuses anyone else.
 
 use penates_core::{icon, integration, ops, single, WebApp};
 use std::sync::{Arc, Mutex};
-use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::webview::WebviewBuilder;
+use tauri::{LogicalPosition, LogicalSize, Manager, WebviewUrl, WebviewWindowBuilder};
+
+/// Height of the optional toolbar, in logical pixels.
+const TOOLBAR_HEIGHT: f64 = 40.0;
 
 /// Save downloads to the user's Downloads folder, never overwriting an existing file.
 pub fn unique_download_path(suggested: &std::path::Path) -> std::path::PathBuf {
@@ -65,7 +70,7 @@ fn open_external(u: &url::Url) {
 /// WebRTC switched off. Answer notification and camera/microphone requests from the app's settings;
 /// deny everything else (screen capture, location, pointer lock, etc.).
 #[cfg(target_os = "linux")]
-fn apply_site_permissions(win: &tauri::WebviewWindow, cfg: &WebApp) {
+fn apply_site_permissions(win: &tauri::Webview, cfg: &WebApp) {
     let (notify, media) = (cfg.allow_notifications, cfg.allow_camera_microphone);
     let _ = win.with_webview(move |wv| {
         use gtk::glib::prelude::*;
@@ -102,7 +107,7 @@ fn apply_site_permissions(win: &tauri::WebviewWindow, cfg: &WebApp) {
 }
 
 fn toggle_main(app: &tauri::AppHandle) {
-    if let Some(w) = app.get_webview_window("main") {
+    if let Some(w) = app.get_window("main") {
         if w.is_visible().unwrap_or(true) && !w.is_minimized().unwrap_or(false) {
             let _ = w.hide();
         } else {
@@ -268,62 +273,93 @@ fn remember(visited: &Visited, u: &url::Url) {
     }
 }
 
-/// The rules every window of a wrapped app gets: its main window and any popup it opens.
-fn with_rules<'a, M: Manager<tauri::Wry>>(
-    mut b: WebviewWindowBuilder<'a, tauri::Wry, M>,
-    cfg: &WebApp,
-    visited: &Visited,
-    handle: tauri::AppHandle,
-) -> WebviewWindowBuilder<'a, tauri::Wry, M> {
-    b = b.initialization_script(navigation_script(&cfg.url));
-    if cfg.external_links_in_browser {
-        b = b.initialization_script(link_guard_script(cfg));
-    }
-    if let Some(ua) = &cfg.user_agent {
-        b = b.user_agent(ua);
-    }
-    let (popup_cfg, visited) = (cfg.clone(), visited.clone());
-    b.on_navigation(|u| {
-        // Web pages (including embedded frames from other sites) load; anything else (mailto:,
-        // custom app schemes) is handed to the OS when safe, never loaded.
-        if matches!(u.scheme(), "http" | "https" | "about" | "blob" | "data") {
-            true
-        } else {
-            open_external(u);
-            false
+/// The rules every web view of a wrapped app gets: the site in its main window and any popup it opens.
+/// A macro because the plain window (`WebviewWindowBuilder`) and the site under the toolbar
+/// (`WebviewBuilder`) are different builders with the same methods.
+macro_rules! with_rules {
+    ($b:expr, $cfg:expr, $visited:expr, $handle:expr) => {{
+        let cfg: &WebApp = $cfg;
+        let mut b = $b.initialization_script(navigation_script(&cfg.url));
+        if cfg.external_links_in_browser {
+            b = b.initialization_script(link_guard_script(cfg));
         }
-    })
-    .on_new_window(move |u, features| {
-        // Popups to the app's own sites (sign-in flows) open as app windows with these same rules;
-        // anything else goes to the system browser.
-        let seen = u.host_str().is_some_and(|h| {
-            let h = penates_core::bare_host(h).to_ascii_lowercase();
-            visited.lock().unwrap_or_else(|e| e.into_inner()).contains(&h)
-        });
-        if popup_cfg.is_internal(&u) || seen {
-            match open_popup(&handle, &popup_cfg, &visited, features) {
-                Some(window) => tauri::webview::NewWindowResponse::Create { window },
-                None => tauri::webview::NewWindowResponse::Deny,
-            }
-        } else {
-            open_external(&u);
-            tauri::webview::NewWindowResponse::Deny
+        if let Some(ua) = &cfg.user_agent {
+            b = b.user_agent(ua);
         }
-    })
-    .on_download(|_wv, ev| {
-        use tauri::webview::DownloadEvent;
-        match ev {
-            DownloadEvent::Requested { destination, .. } => {
-                *destination = unique_download_path(destination);
+        let (popup_cfg, visited, handle): (WebApp, Visited, tauri::AppHandle) = (cfg.clone(), $visited.clone(), $handle);
+        b.on_navigation(|u| {
+            // Web pages (including embedded frames from other sites) load; anything else (mailto:,
+            // custom app schemes) is handed to the OS when safe, never loaded.
+            if matches!(u.scheme(), "http" | "https" | "about" | "blob" | "data") {
                 true
+            } else {
+                open_external(u);
+                false
             }
-            DownloadEvent::Finished { path, success, .. } => {
-                eprintln!("download {}: {:?}", if success { "finished" } else { "failed" }, path);
-                true
+        })
+        .on_new_window(move |u, features| {
+            // Popups to the app's own sites (sign-in flows) open as app windows with these same rules;
+            // anything else goes to the system browser.
+            let seen = u.host_str().is_some_and(|h| {
+                let h = penates_core::bare_host(h).to_ascii_lowercase();
+                visited.lock().unwrap_or_else(|e| e.into_inner()).contains(&h)
+            });
+            if popup_cfg.is_internal(&u) || seen {
+                match open_popup(&handle, &popup_cfg, &visited, features) {
+                    Some(window) => tauri::webview::NewWindowResponse::Create { window },
+                    None => tauri::webview::NewWindowResponse::Deny,
+                }
+            } else {
+                open_external(&u);
+                tauri::webview::NewWindowResponse::Deny
             }
-            _ => true,
+        })
+        .on_download(|_wv, ev| {
+            use tauri::webview::DownloadEvent;
+            match ev {
+                DownloadEvent::Requested { destination, .. } => {
+                    *destination = unique_download_path(destination);
+                    true
+                }
+                DownloadEvent::Finished { path, success, .. } => {
+                    eprintln!("download {}: {:?}", if success { "finished" } else { "failed" }, path);
+                    true
+                }
+                _ => true,
+            }
+        })
+    }};
+}
+
+/// The site's own web view settings on top of the rules: its profile, the custom CSS and JS, and
+/// remembering the hosts it loads.
+macro_rules! site_view {
+    ($b:expr, $cfg:expr, $visited:expr, $handle:expr) => {{
+        let cfg: &WebApp = $cfg;
+        let mut w = $b.devtools(cfg.devtools);
+        // Custom CSS and JS are separate scripts, so an error in the JS cannot stop the CSS.
+        if let Some(css) = &cfg.inject_css {
+            let lit = serde_json::to_string(css).unwrap();
+            w = w.initialization_script(format!(
+                "document.addEventListener('DOMContentLoaded',()=>{{const s=document.createElement('style');s.textContent={lit};document.head.appendChild(s);}});"
+            ));
         }
-    })
+        if let Some(js) = &cfg.inject_js {
+            w = w.initialization_script(js.clone());
+        }
+        let seen = $visited.clone();
+        w = with_rules!(w, cfg, $visited, $handle).on_page_load(move |_, payload| remember(&seen, payload.url()));
+        // Isolated profile per app. macOS WKWebView uses a data-store id instead of a directory.
+        #[cfg(target_os = "macos")]
+        {
+            w = w.data_store_identifier(id_bytes(&cfg.id));
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            w = w.data_directory(penates_core::store::profile_dir(&cfg.id));
+        }
+        w
+    }};
 }
 
 fn open_popup(
@@ -341,7 +377,7 @@ fn open_popup(
         .on_document_title_changed(|w, title| {
             let _ = w.set_title(&title);
         });
-    match with_rules(b, cfg, visited, handle.clone()).build() {
+    match with_rules!(b, cfg, visited, handle.clone()).build() {
         Ok(w) => Some(w),
         Err(e) => {
             eprintln!("popup: {e}");
@@ -350,10 +386,14 @@ fn open_popup(
     }
 }
 
-/// The app's main window, with its profile, injected CSS/JS and link rules.
-fn build_main_window(app: &tauri::App, cfg: &WebApp, visited: &Visited) -> tauri::Result<tauri::WebviewWindow> {
+/// The app's main window and the web view showing the site: a plain window, or with `toolbar` on, a
+/// window holding the toolbar page above the site.
+fn build_main_window(app: &tauri::App, cfg: &WebApp, visited: &Visited) -> tauri::Result<(tauri::Window, tauri::Webview)> {
     let url = cfg.url.parse::<url::Url>().map_err(|e| anyhow::anyhow!("invalid URL in config: {e}"))?;
-    let mut w = WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url))
+    if cfg.toolbar {
+        return build_toolbar_window(app, cfg, visited, url);
+    }
+    let w = WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url))
         .title(&cfg.name)
         .theme(theme_of(&cfg.theme))
         .inner_size(cfg.width, cfg.height)
@@ -362,35 +402,111 @@ fn build_main_window(app: &tauri::App, cfg: &WebApp, visited: &Visited) -> tauri
         .resizable(cfg.resizable)
         .always_on_top(cfg.always_on_top)
         .decorations(cfg.decorations)
-        .devtools(cfg.devtools)
         // "Only in the tray" starts hidden; `run` shows it (minimized) if the tray icon fails.
         .visible(cfg.start_as != "tray");
-    // Custom CSS and JS are separate scripts, so an error in the JS cannot stop the CSS.
-    if let Some(css) = &cfg.inject_css {
-        let lit = serde_json::to_string(css).unwrap();
-        w = w.initialization_script(format!(
-            "document.addEventListener('DOMContentLoaded',()=>{{const s=document.createElement('style');s.textContent={lit};document.head.appendChild(s);}});"
-        ));
+    let w = site_view!(w, cfg, visited, app.handle().clone()).build()?;
+    let site: &tauri::Webview = w.as_ref();
+    Ok((site.window(), site.clone()))
+}
+
+/// The window with the toolbar: the toolbar page (`ui/toolbar.html`) on top and the site below it,
+/// both resized with the window. The address on the toolbar follows the site, also on pages that
+/// change it without loading (single-page apps), so it is read from the site twice a second.
+fn build_toolbar_window(
+    app: &tauri::App,
+    cfg: &WebApp,
+    visited: &Visited,
+    url: url::Url,
+) -> tauri::Result<(tauri::Window, tauri::Webview)> {
+    let window = tauri::window::WindowBuilder::new(app, "main")
+        .title(&cfg.name)
+        .theme(theme_of(&cfg.theme))
+        .inner_size(cfg.width, cfg.height)
+        .maximized(cfg.start_maximized)
+        .fullscreen(cfg.start_fullscreen)
+        .resizable(cfg.resizable)
+        .always_on_top(cfg.always_on_top)
+        .decorations(cfg.decorations)
+        .visible(cfg.start_as != "tray")
+        .build()?;
+    let size = window.inner_size()?.to_logical::<f64>(window.scale_factor()?);
+    let bar = WebviewBuilder::new("toolbar", WebviewUrl::App("toolbar.html".into()));
+    let toolbar = window.add_child(bar, LogicalPosition::new(0.0, 0.0), LogicalSize::new(size.width, TOOLBAR_HEIGHT))?;
+    // On Linux both views are packed into the window's vertical box, which shares the height equally
+    // and ignores bounds: the toolbar keeps its own height and the site takes the rest. (Windows and
+    // macOS place the views by their bounds, kept up to date below.)
+    #[cfg(target_os = "linux")]
+    let _ = toolbar.with_webview(|wv| {
+        use gtk::prelude::*;
+        let view = wv.inner();
+        if let Some(column) = view.parent().and_then(|p| p.downcast::<gtk::Box>().ok()) {
+            column.set_child_packing(&view, false, true, 0, gtk::PackType::Start);
+        }
+        view.set_size_request(-1, TOOLBAR_HEIGHT as i32);
+    });
+    let site = site_view!(WebviewBuilder::new("site", WebviewUrl::External(url)), cfg, visited, app.handle().clone());
+    let site = window.add_child(
+        site,
+        LogicalPosition::new(0.0, TOOLBAR_HEIGHT),
+        LogicalSize::new(size.width, (size.height - TOOLBAR_HEIGHT).max(0.0)),
+    )?;
+    let (w, t, s) = (window.clone(), toolbar.clone(), site.clone());
+    window.on_window_event(move |ev| {
+        if matches!(ev, tauri::WindowEvent::Resized(_) | tauri::WindowEvent::ScaleFactorChanged { .. }) {
+            let Ok(size) = w.inner_size().and_then(|p| Ok(p.to_logical::<f64>(w.scale_factor()?))) else { return };
+            let _ = t.set_bounds(tauri::Rect {
+                position: LogicalPosition::new(0.0, 0.0).into(),
+                size: LogicalSize::new(size.width, TOOLBAR_HEIGHT).into(),
+            });
+            let _ = s.set_bounds(tauri::Rect {
+                position: LogicalPosition::new(0.0, TOOLBAR_HEIGHT).into(),
+                size: LogicalSize::new(size.width, (size.height - TOOLBAR_HEIGHT).max(0.0)).into(),
+            });
+        }
+    });
+    let (t, s) = (toolbar.clone(), site.clone());
+    std::thread::spawn(move || {
+        let mut shown = String::new();
+        while let Ok(u) = s.url() {
+            if u.as_str() != shown {
+                shown = u.to_string();
+                let _ = t.eval(format!("window.penatesAddress?.({})", serde_json::to_string(&shown).unwrap()));
+            }
+            std::thread::sleep(std::time::Duration::from_millis(500));
+        }
+    });
+    Ok((window, site))
+}
+
+/// What the toolbar's buttons do. Only the toolbar page may call it: the site's pages cannot reach
+/// Penates at all (no capability lets remote pages use IPC), and this check refuses any other caller.
+#[tauri::command]
+fn toolbar_action(webview: tauri::Webview, app: tauri::AppHandle, cfg: tauri::State<'_, WebApp>, action: String) -> Result<(), String> {
+    if webview.label() != "toolbar" {
+        return Err("only the toolbar can do this".into());
     }
-    if let Some(js) = &cfg.inject_js {
-        w = w.initialization_script(js.clone());
-    }
-    let seen = visited.clone();
-    w = with_rules(w, cfg, visited, app.handle().clone()).on_page_load(move |_, payload| remember(&seen, payload.url()));
-    // Isolated profile per app. macOS WKWebView uses a data-store id instead of a directory.
-    #[cfg(target_os = "macos")]
-    {
-        w = w.data_store_identifier(id_bytes(&cfg.id));
-    }
-    #[cfg(not(target_os = "macos"))]
-    {
-        w = w.data_directory(penates_core::store::profile_dir(&cfg.id));
-    }
-    w.build()
+    let site = app.get_webview("site").ok_or("the site is not open")?;
+    let done = match action.as_str() {
+        "back" => site.eval("history.back()"),
+        "forward" => site.eval("history.forward()"),
+        "reload" => site.reload(),
+        "home" => match cfg.url.parse() {
+            Ok(u) => site.navigate(u),
+            Err(e) => return Err(format!("start page: {e}")),
+        },
+        "browser" => {
+            if let Ok(u) = site.url() {
+                open_external(&u);
+            }
+            Ok(())
+        }
+        _ => return Err(format!("unknown toolbar action '{action}'")),
+    };
+    done.map_err(|e| e.to_string())
 }
 
 /// Closing the window hides it; the tray menu shows it again or quits.
-fn enable_close_to_tray(win: &tauri::WebviewWindow) {
+fn enable_close_to_tray(win: &tauri::Window) {
     let w2 = win.clone();
     win.on_window_event(move |ev| {
         if let tauri::WindowEvent::CloseRequested { api, .. } = ev {
@@ -430,7 +546,7 @@ pub fn run(cfg: WebApp, context: tauri::Context) -> tauri::Result<()> {
     static HANDLE: std::sync::OnceLock<tauri::AppHandle> = std::sync::OnceLock::new();
     match single::try_bind(&cfg.id) {
         Some(l) => single::serve(l, cfg.id.clone(), || {
-            if let Some(w) = HANDLE.get().and_then(|h| h.get_webview_window("main")) {
+            if let Some(w) = HANDLE.get().and_then(|h| h.get_window("main")) {
                 let _ = w.unminimize();
                 let _ = w.show();
                 let _ = w.set_focus();
@@ -441,14 +557,16 @@ pub fn run(cfg: WebApp, context: tauri::Context) -> tauri::Result<()> {
     }
 
     tauri::Builder::default()
+        .manage(cfg.clone())
+        .invoke_handler(tauri::generate_handler![toolbar_action])
         .setup(move |app| {
             let _ = HANDLE.set(app.handle().clone());
             let visited: Visited = Arc::default();
-            let win = build_main_window(app, &cfg, &visited)?;
+            let (win, site) = build_main_window(app, &cfg, &visited)?;
             #[cfg(target_os = "linux")]
-            apply_site_permissions(&win, &cfg);
+            apply_site_permissions(&site, &cfg);
             if (cfg.zoom - 1.0).abs() > f64::EPSILON {
-                let _ = win.set_zoom(cfg.zoom);
+                let _ = site.set_zoom(cfg.zoom);
             }
             if let Some(img) = cfg.icon_path().and_then(|p| tauri::image::Image::from_path(p).ok()) {
                 let _ = win.set_icon(img);

@@ -876,7 +876,7 @@ function mkIcon(letter, color) {
   x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(letter, 64, 68); return c.toDataURL('image/png');
 }
 const DEF = { width: 1200, height: 800, zoom: 1, user_agent: null, inject_css: null, inject_js: null, internal_hosts: [], single_instance: true,
-  start_maximized: true, start_fullscreen: false, start_as: 'window', resizable: true, always_on_top: false, decorations: true, external_links_in_browser: true, devtools: false,
+  start_maximized: true, start_fullscreen: false, start_as: 'window', resizable: true, always_on_top: false, decorations: true, toolbar: false, external_links_in_browser: true, devtools: false,
   allow_notifications: true, allow_camera_microphone: false, tray: false, tray_grayscale: false, close_to_tray: false, theme: 'system', custom_icon: false,
   catalog_id: null, catalog_version: null, launcher: true };
 const icons = {};
@@ -1314,7 +1314,8 @@ const FIELDS = {
     ["start_as", "When it starts", "select", { options: [["window", "Open the window"], ["minimized", "Minimized"], ["tray", "Only in the tray"]], help: "\"Only in the tray\" needs the tray icon (under Behavior); without it the app starts minimized. Launching it again shows the window." }],
     ["start_maximized", "Start maximized", "bool", "Open full-frame; width and height apply when restored"],
     ["start_fullscreen", "Start fullscreen", "bool"], ["resizable", "Resizable", "bool"],
-    ["always_on_top", "Always on top", "bool"], ["decorations", "Show title bar and borders", "bool", "Turn off for a frameless window"]],
+    ["always_on_top", "Always on top", "bool"], ["decorations", "Show title bar and borders", "bool", "Turn off for a frameless window"],
+    ["toolbar", "Show a toolbar", "bool", "Back, forward, reload, start page, the address and Open in browser, above the site"]],
   Behavior: [["single_instance", "Single window", "bool", "Launching again focuses the open window"],
     ["allow_notifications", "Allow notifications", "bool", "Let the site show desktop notifications"],
     ["allow_camera_microphone", "Allow camera and microphone", "bool", "For video calls. Off unless you turn it on"],

@@ -42,4 +42,13 @@ Start-Sleep 2
 if (Test-Path $lnk) { throw 'shortcut not removed' }
 & $A import "$out/smoke.penates" --yes; if ($LASTEXITCODE) { throw 'import failed' }
 if (-not (Test-Path $lnk)) { throw 'import did not recreate the shortcut' }
+
+# an app with the toolbar: it starts, and the screenshot shows the toolbar above the site
+& $A create https://example.com --name 'Smoke toolbar' --id smoke-toolbar --toolbar --no-install
+if ($LASTEXITCODE) { throw 'create with --toolbar failed' }
+$tb = Start-Process $env:PENATES_DESKTOP -ArgumentList '--run', 'smoke-toolbar' -PassThru
+Start-Sleep 15
+if ($tb.HasExited) { throw 'toolbar app exited' }
+Shot 'toolbar.png'
+Stop-Process -Id $tb.Id -Force
 'smoke OK'

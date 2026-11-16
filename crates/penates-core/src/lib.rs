@@ -50,6 +50,8 @@ pub struct WebApp {
     pub always_on_top: bool,
     /// Show the native title bar and borders.
     pub decorations: bool,
+    /// Show a toolbar above the site: back, forward, reload, start page, the address and open in browser.
+    pub toolbar: bool,
     /// Open links to other sites in the system browser (otherwise they load in-app).
     pub external_links_in_browser: bool,
     pub devtools: bool,
@@ -93,6 +95,7 @@ impl Default for WebApp {
             resizable: true,
             always_on_top: false,
             decorations: true,
+            toolbar: false,
             external_links_in_browser: true,
             devtools: false,
             theme: "system".into(),

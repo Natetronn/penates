@@ -22,7 +22,7 @@
 - **`penates-cli`**: a `clap` front end over `ops`, one small function per command. `run` and `gui` start the desktop binary, which it looks for in `$PENATES_DESKTOP`, `$APPIMAGE`, next to itself, or on `PATH`.
 - **`penates-desktop`** (`src-tauri`): one binary, two modes.
   - No arguments: the **manager** (`main.rs`, `commands.rs`). It loads `ui/` and calls Rust commands; anything that touches the network or disk runs on a blocking thread. One manager at a time: a second start focuses the open window.
-  - `--run <id>`: the **runner** (`runner.rs`). It opens one site in a webview with that app's options. It registers no commands or plugins.
+  - `--run <id>`: the **runner** (`runner.rs`). It opens one site in a webview with that app's options. It registers no plugins, and one command for the optional toolbar.
 
 ## The runner
 - **Isolated profile**: each app's cookies and storage live in its own folder (see Files). macOS uses a per-app WKWebView data-store id instead of a folder.
@@ -33,8 +33,9 @@
   - Popups to the app's own sites, or to a site the window has already loaded (a redirect target, a sign-in page), open as app windows with the same rules.
   - Other schemes such as `mailto:` go to the OS, at most one per second; `file:` and custom app schemes are dropped. `on_download` saves to the Downloads folder without overwriting.
 - **Navigation keys**: an injected script gives every window Alt+Left/Right (Cmd+[ and ] on macOS), the mouse's back/forward buttons, F5/Ctrl+R, Alt+Home (Cmd+Shift+H) for the app's start page, and F1 or Ctrl+/ (Cmd+/) for a list of these keys. It only acts when the page did not handle the key itself; for the key list it waits until the page's own handlers have run, since sites often use Ctrl+/ for their own help. The list sits in a closed shadow root with constructed styles, so the site's CSS cannot restyle it and its content security policy cannot block it.
+- **Toolbar** (optional, `toolbar = true`): the window holds two web views, the local page `ui/toolbar.html` (40 px) above the site. Its buttons call the runner's one command, `toolbar_action` (back, forward, reload, start page, open in browser), which refuses any caller but the toolbar. The address is read from the site twice a second, so it also follows pages that change it without loading. On Linux both views sit in the window's GTK box (the toolbar keeps its height, the site takes the rest); on Windows and macOS they are placed by their bounds, updated on resize. Two web views in one window need Tauri's `unstable` feature.
 - **Single window**: each running app owns a loopback port derived from its id. A second launch asks the first to focus and exits. The manager and CLI use the same port to tell whether an app is running (clearing data refuses when it is).
-- **Isolation of the host**: only the `manager` window has a capability and IPC commands. Wrapped sites get no Penates API at all (`withGlobalTauri` is off, and Tauri refuses IPC from remote origins). The manager page has a content security policy that allows only its own files.
+- **Isolation of the host**: only the `manager` window has a capability and the manager's IPC commands. Wrapped sites get no Penates API at all (`withGlobalTauri` is off, and Tauri refuses IPC from remote origins, including the toolbar's command: "not allowed by ACL"). The manager page has a content security policy that allows only its own files.
 - **Permissions (Linux)**: notifications and camera/microphone are answered from the app's settings; screen capture, location and everything else are denied.
 - **Tray**: optional icon built from the app's stored icon, converted to grayscale on request. Close-to-tray is only switched on when the tray icon was created.
 

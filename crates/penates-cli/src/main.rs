@@ -43,6 +43,9 @@ enum Cmd {
         inject_js: Option<PathBuf>,
         #[arg(long)]
         devtools: bool,
+        /// Show a toolbar above the site: back, forward, reload, start page, the address, open in browser
+        #[arg(long)]
+        toolbar: bool,
         /// Don't add a launcher to the application menu (`penates install` adds one later)
         #[arg(long)]
         no_install: bool,
@@ -194,7 +197,7 @@ fn spawn_desktop(args: &[&str]) -> Result<()> {
 fn cmd_create(
     url: String, name: Option<String>, id: Option<String>, icon: Option<String>, user_agent: Option<String>,
     width: f64, height: f64, zoom: f64, internal_hosts: Vec<String>, inject_css: Option<PathBuf>,
-    inject_js: Option<PathBuf>, devtools: bool, no_install: bool, force: bool,
+    inject_js: Option<PathBuf>, devtools: bool, toolbar: bool, no_install: bool, force: bool,
 ) -> Result<()> {
     let c = ops::create(ops::NewApp {
         url,
@@ -209,6 +212,7 @@ fn cmd_create(
         inject_css: read_opt(inject_css)?,
         inject_js: read_opt(inject_js)?,
         devtools,
+        toolbar,
         launcher: !no_install,
         replace: force,
     })?;
@@ -486,8 +490,8 @@ fn main() -> Result<()> {
     match Cli::parse().cmd {
         Cmd::Create {
             url, name, id, icon, user_agent, width, height, zoom, internal_hosts, inject_css, inject_js, devtools,
-            no_install, force,
-        } => cmd_create(url, name, id, icon, user_agent, width, height, zoom, internal_hosts, inject_css, inject_js, devtools, no_install, force),
+            toolbar, no_install, force,
+        } => cmd_create(url, name, id, icon, user_agent, width, height, zoom, internal_hosts, inject_css, inject_js, devtools, toolbar, no_install, force),
         Cmd::List { json } => cmd_list(json),
         Cmd::Show { id } => {
             store::load(&id)?;

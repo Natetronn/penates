@@ -46,4 +46,11 @@ $A remove smoke --purge
 test ! -e "$B" || { echo "bundle not removed"; exit 1; }
 $A import "$OUT/smoke.penates" --yes
 test -d "$B" || { echo "import did not recreate the bundle"; exit 1; }
+
+# an app with the toolbar: it starts, and the screenshot shows the toolbar above the site
+$A create https://example.com --name "Smoke toolbar" --id smoke-toolbar --toolbar --no-install
+"$PENATES_DESKTOP" --run smoke-toolbar >"$OUT/toolbar.log" 2>&1 & TB=$!
+sleep 12
+if kill -0 "$TB" 2>/dev/null; then echo "toolbar app OK"; screencapture -x "$OUT/toolbar.png" || echo "screenshot failed"; kill "$TB"
+else echo "toolbar app exited:"; cat "$OUT/toolbar.log"; exit 1; fi
 echo "smoke OK"

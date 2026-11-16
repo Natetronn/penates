@@ -141,6 +141,8 @@ pub struct NewApp {
     pub inject_css: Option<String>,
     pub inject_js: Option<String>,
     pub devtools: bool,
+    /// Show the toolbar above the site.
+    pub toolbar: bool,
     /// Add a launcher to the application menu.
     pub launcher: bool,
     /// Replace an existing app with the same id.
@@ -163,6 +165,7 @@ impl Default for NewApp {
             inject_css: None,
             inject_js: None,
             devtools: false,
+            toolbar: false,
             launcher: true,
             replace: false,
         }
@@ -232,6 +235,7 @@ pub fn create(n: NewApp) -> Result<Created> {
         inject_css: n.inject_css,
         inject_js: n.inject_js,
         devtools: n.devtools,
+        toolbar: n.toolbar,
         launcher: n.launcher,
         ..Default::default()
     };
