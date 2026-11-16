@@ -1,0 +1,72 @@
+---
+// Credits and licenses for the website, and where to find the app's. The package list comes from
+// scripts/licenses.mjs, so it always matches what the site is built from.
+import Site from '../layouts/Site.astro';
+import pkgs from '../data/site-licenses.json';
+
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const REPO = 'https://github.com/Natetronn/penates';
+const byLicense = Object.entries(
+  pkgs.reduce<Record<string, number>>((n, p) => ((n[p.license] = (n[p.license] ?? 0) + 1), n), {}),
+).sort((a, b) => b[1] - a[1]);
+---
+
+<Site title="Credits: Penates" description="Who made Penates, what it is built with, and the licenses of the software in the app and this website.">
+  <main class="wrap credits">
+    <h1>Credits</h1>
+
+    <dl>
+      <dt>Made by</dt>
+      <dd>Natetronn: the idea, direction, testing and the logo</dd>
+      <dt>With</dt>
+      <dd><a href="https://www.anthropic.com/claude">Claude</a> by Anthropic: code, docs and design, written in conversation with Natetronn</dd>
+      <dt>The app</dt>
+      <dd>Built on <a href="https://tauri.app/">Tauri</a> and <a href="https://www.rust-lang.org/">Rust</a>, with the system's own web view</dd>
+      <dt>This website</dt>
+      <dd>Built with <a href="https://astro.build/">Astro</a> and <a href="https://starlight.astro.build/">Starlight</a>, search by <a href="https://pagefind.app/">Pagefind</a>, hosted on <a href="https://www.cloudflare.com/">Cloudflare</a></dd>
+      <dt>Typeface</dt>
+      <dd><a href="https://fonts.google.com/specimen/Space+Grotesk">Space Grotesk</a> by Florian Karsten, under the SIL Open Font License 1.1: in the logo and this site's headings. Its license text is in the website's license file below.</dd>
+      <dt>App logos</dt>
+      <dd>The logos on the <a href={base + 'apps/'}>Popular apps</a> page belong to their owners and are shown only to identify each site. Penates is not affiliated with them.</dd>
+    </dl>
+
+    <h2>Licenses</h2>
+    <p>
+      Penates is free software under the <a href={`${REPO}/blob/main/LICENSE`}>MIT License</a>. It is built from
+      open-source components, each under its own license; their full texts come with every Penates package, appear
+      in the app under About → Credits, and are in <a href={`${REPO}/blob/main/THIRD-PARTY-LICENSES.txt`}>THIRD-PARTY-LICENSES.txt</a>.
+    </p>
+    <p>
+      This website is built from {pkgs.length} open-source packages ({byLicense.map(([l, n], i) => `${i ? ', ' : ''}${n} ${l}`).join('')}).
+      Most are build tools that never reach your browser; all of them are listed. Their full license texts, with each
+      package's copyright notices: <a href={base + 'THIRD-PARTY-LICENSES.txt'}>THIRD-PARTY-LICENSES.txt</a>.
+    </p>
+    <details>
+      <summary>All {pkgs.length} packages</summary>
+      <table>
+        <thead><tr><th>Package</th><th>Version</th><th>License</th></tr></thead>
+        <tbody>
+          {pkgs.map((p) => (
+            <tr><td>{p.source ? <a href={p.source.startsWith('http') ? p.source : `https://www.npmjs.com/package/${p.name}`}>{p.name}</a> : p.name}</td><td>{p.version}</td><td>{p.license}</td></tr>
+          ))}
+        </tbody>
+      </table>
+    </details>
+  </main>
+</Site>
+
+<style>
+  .credits { padding: clamp(2.5rem, 6vw, 4.5rem) 0 4rem; max-width: 52rem; }
+  .credits h1 { font-size: clamp(2.2rem, 1.6rem + 2.4vw, 3.2rem); margin: 0 0 1.6rem; }
+  .credits h2 { font-size: 1.6rem; margin-top: 2.6rem; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.7rem 1.6rem; margin: 0; }
+  dt { font-weight: 600; }
+  dd { margin: 0; color: var(--muted); }
+  @media (max-width: 600px) { dl { grid-template-columns: 1fr; gap: 0.2rem; } dd { margin-bottom: 0.8rem; } }
+  .credits p { color: var(--muted); }
+  details { margin-top: 1rem; border: 1px solid var(--line); border-radius: 12px; padding: 0.8rem 1.1rem; background: var(--card); }
+  summary { cursor: pointer; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; margin-top: 0.8rem; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--line); }
+  td:nth-child(2), td:nth-child(3) { color: var(--muted); white-space: nowrap; }
+</style>

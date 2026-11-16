@@ -53,3 +53,6 @@ mkdirSync(join(site, 'src/data'), { recursive: true });
 writeFileSync(join(site, 'src/data/catalog.json'), JSON.stringify(catalog.catalog.map(({ id, name, url, notes }) => ({ id, name, url, notes }))
   .sort((a, b) => a.name.localeCompare(b.name)), null, 2));
 console.log(`synced ${readdirSync(docsOut).length} docs, images, logos, demo and ${catalog.catalog.length} catalog apps`);
+
+// The website's own third-party licenses (src/data/site-licenses.json, public/THIRD-PARTY-LICENSES.txt).
+await import('./licenses.mjs');

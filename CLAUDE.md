@@ -45,3 +45,5 @@ cargo build --release --workspace --features penates-desktop/custom-protocol   #
   camera/microphone and devtools.
 - The manager page has a content security policy: no inline scripts or `innerHTML`; build DOM with `el()`.
 - Docs say what was actually verified; update `docs/STATUS.md` and `CHANGELOG.md` with behavior changes.
+- Code, docs, the website, the demo, the design boards and screenshots, credits and licenses always match: a change
+  updates all of them in the same commit (the demo: `design/preview/build.py`; app licenses: `scripts/gen-credits.py`).
