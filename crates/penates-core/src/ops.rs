@@ -239,13 +239,16 @@ pub fn create(n: NewApp) -> Result<Created> {
         app.internal_hosts.push(h);
     }
     validate(&mut app)?;
+    let (preset, preset_icon) = link_preset(&mut app).unzip();
 
-    // The icon is written only after validation, so a rejected app leaves nothing behind.
+    // The icon is written only after validation, so a rejected app leaves nothing behind. Like an
+    // update, the preset's icon address comes first: it is there for sites whose own icon is poor or
+    // that refuse to be fetched.
     let mut warnings = vec![];
     let (icon, custom) = match n.icon {
         IconChoice::Bytes(b) => (Some(icon::set_from_bytes(&b, &app.id).context("icon")?), true),
         IconChoice::Source(s) => (Some(icon::import_source(&s, &app.id).context("icon")?), true),
-        IconChoice::Site => match page.as_ref().map(icon::best_from) {
+        IconChoice::Site => match preset_icon.flatten().and_then(|u| icon::fetch_png(&u).ok()).map(Ok).or_else(|| page.as_ref().map(icon::best_from)) {
             Some(Ok(png)) => (Some(icon::save_png(&app.id, &png)?.0), false),
             Some(Err(e)) => {
                 warnings.push(format!("{e:#}"));
@@ -259,7 +262,6 @@ pub fn create(n: NewApp) -> Result<Created> {
     };
     app.icon = icon.map(|p| store::icon_ref(&p));
     app.custom_icon = custom;
-    let preset = link_preset(&mut app);
     store::save(&app)?;
     let launcher = match reinstall(old.as_ref(), &app) {
         Ok(p) => p,
@@ -271,19 +273,20 @@ pub fn create(n: NewApp) -> Result<Created> {
     Ok(Created { app, preset, launcher, warnings })
 }
 
-/// Link a new app to the catalog preset for its site, if there is one. A user agent or CSS the user
-/// chose already wins over the preset's. Best effort: no catalog means no preset.
-pub fn link_preset(app: &mut WebApp) -> Option<String> {
+/// Link a new app to the catalog preset for its site, if there is one, returning the preset's version and
+/// icon address. A user agent or CSS the user chose already wins over the preset's. Best effort: no
+/// catalog means no preset.
+pub fn link_preset(app: &mut WebApp) -> Option<(String, Option<String>)> {
     let (catalog, _) = updates::load_catalog().ok()?;
     let (ua, css) = (app.user_agent.clone(), app.inject_css.clone());
-    let (v, _) = updates::apply_preset(app, &catalog)?;
+    let (v, icon_url) = updates::apply_preset(app, &catalog)?;
     if ua.is_some() {
         app.user_agent = ua;
     }
     if css.is_some() {
         app.inject_css = css;
     }
-    Some(v)
+    Some((v, icon_url))
 }
 
 // ---------------------------------------------------------------- edit
