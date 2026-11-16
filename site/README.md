@@ -1,4 +1,4 @@
-# Penates site
+# Penates Site
 
 The website and docs for Penates, built with [Astro](https://astro.build) and
 [Starlight](https://starlight.astro.build).

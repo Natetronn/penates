@@ -4,18 +4,18 @@ import catalog from './data/catalog.json';
 
 export const sitePages = {
   index: {
-    title: 'Penates: turn websites into desktop apps',
-    ogTitle: 'Every site gets a home of its own',
+    title: 'Penates: Turn Websites into Desktop Apps',
+    ogTitle: 'Every Site Gets a Home of Its Own',
     description: 'Penates turns websites and web apps into desktop apps, each with its own window, icon, taskbar entry and separate login. Free and open source, for Linux, Windows and macOS.',
   },
   apps: {
-    title: 'Popular apps: Penates',
-    ogTitle: 'Popular apps',
+    title: 'App Catalog: Penates',
+    ogTitle: 'App Catalog',
     description: `${catalog.length} sites ready in one click in Penates, each set up to work well as an app.`,
   },
   demo: {
-    title: 'Try the Penates manager',
-    ogTitle: 'Try the manager',
+    title: 'Try the Penates Manager',
+    ogTitle: 'Try the Manager',
     description: 'The Penates manager with sample apps, running in your browser: create, edit and theme apps without installing anything.',
   },
   credits: {

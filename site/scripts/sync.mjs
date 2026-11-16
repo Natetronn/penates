@@ -81,7 +81,7 @@ try {
   catalog = JSON.parse(readFileSync(join(root, 'crates/penates-core/data/presets.json'), 'utf8'));
 }
 mkdirSync(join(site, 'src/data'), { recursive: true });
-writeFileSync(join(site, 'src/data/catalog.json'), JSON.stringify(catalog.catalog.map(({ id, name, url, notes }) => ({ id, name, url, notes }))
+writeFileSync(join(site, 'src/data/catalog.json'), JSON.stringify(catalog.catalog.map(({ id, name, url, notes, category = '', tags = [], popular = false }) => ({ id, name, url, notes, category, tags, popular }))
   .sort((a, b) => a.name.localeCompare(b.name)), null, 2));
 console.log(`synced ${readdirSync(docsOut).length} docs, images, logos, demo and ${catalog.catalog.length} catalog apps`);
 

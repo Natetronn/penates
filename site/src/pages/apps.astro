@@ -1,5 +1,6 @@
 ---
-// The app catalog as a gallery, like Create → Popular apps in the manager. The logos are fetched with
+// The App Catalog, like the Catalog tab in the manager: Popular picks, then every app with search, category
+// chips and pages (a small script; without it every card shows). The logos are fetched with
 // Penates's own icon finder (scripts/app-icons.sh) and served from this site.
 import Site from '../layouts/Site.astro';
 import { Image } from 'astro:assets';
@@ -10,43 +11,84 @@ const iconFor = (id: string) => icons[`../assets/app-icons/${id}.png`]?.default;
 const host = (url: string) => new URL(url).host.replace(/^www\./, '');
 const sentence = (s: string) => (/[.!?]$/.test(s) ? s : s + '.');
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const popular = catalog.filter((a) => a.popular);
+const categories = [...new Set(catalog.map((a) => a.category).filter(Boolean))].sort();
+const uncategorized = catalog.some((a) => !a.category);
 ---
 
 <Site page="apps">
   <main class="wrap apps-page">
     <header class="apps-head">
-      <h1>Popular apps</h1>
+      <h1>App Catalog</h1>
       <p class="lede">
         {catalog.length} sites ready in one click, each set up to work well as an app, for example by keeping sign-in
-        inside the window. Add one from <b>Create → Popular apps</b> in Penates; its setup applies by itself. Any other site works too: paste
-        its address.
+        inside the window. Add one from the <b>Catalog</b> tab in Penates; its setup applies by itself. Any other site
+        works too: paste its address under <b>Create</b>.
       </p>
     </header>
 
-    <div class="gallery">
-      {catalog.map((app) => {
-        const icon = iconFor(app.id);
-        return (
-          <article class="card app-card">
-            {icon
-              ? <Image src={icon} alt="" width={56} height={56} class="app-icon" />
-              : <span class="app-icon letter" aria-hidden="true">{app.name[0]}</span>}
-            <div class="app-meta">
-              <h2>{app.name}</h2>
-              <a class="app-host" href={app.url}>{host(app.url)}</a>
-              <p>{sentence(app.notes)}</p>
-            </div>
-          </article>
-        );
-      })}
-    </div>
+    {popular.length > 0 && (
+      <section class="popular" id="popular">
+        <h2>Popular</h2>
+        <div class="gallery">
+          {popular.map((app) => (
+            <article class="card app-card">
+              {iconFor(app.id)
+                ? <Image src={iconFor(app.id)!} alt="" width={56} height={56} class="app-icon" />
+                : <span class="app-icon letter" aria-hidden="true">{app.name[0]}</span>}
+              <div class="app-meta">
+                <h3>{app.name}</h3>
+                <a class="app-host" href={app.url}>{host(app.url)}</a>
+                <p>{sentence(app.notes)}</p>
+                {app.category && <span class="tag">{app.category}</span>}
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <section class="all-apps">
+      <h2>All Apps</h2>
+      <div class="filters" id="filters" hidden>
+        <input type="search" id="search" placeholder="Search by name, address or tag" aria-label="Search the App Catalog" />
+        <div class="chips" role="group" aria-label="Category">
+          <button type="button" data-category="" aria-pressed="true">All</button>
+          {categories.map((c) => <button type="button" data-category={c} aria-pressed="false">{c}</button>)}
+          {uncategorized && <button type="button" data-category="Other" aria-pressed="false">Other</button>}
+        </div>
+        <p class="count" id="count" role="status"></p>
+      </div>
+      <div class="gallery" id="gallery">
+        {catalog.map((app) => (
+            <article class="card app-card" data-category={app.category || 'Other'}
+              data-search={[app.name, app.url, app.category, ...app.tags].join(' ').toLowerCase()}>
+              {iconFor(app.id)
+                ? <Image src={iconFor(app.id)!} alt="" width={56} height={56} class="app-icon" />
+                : <span class="app-icon letter" aria-hidden="true">{app.name[0]}</span>}
+              <div class="app-meta">
+                <h3>{app.name}</h3>
+                <a class="app-host" href={app.url}>{host(app.url)}</a>
+                <p>{sentence(app.notes)}</p>
+                {app.category && <span class="tag">{app.category}</span>}
+              </div>
+            </article>
+        ))}
+      </div>
+      <p class="none" id="none" hidden>No apps match. Try another word or category.</p>
+      <nav class="pager" id="pager" aria-label="Pages" hidden>
+        <button type="button" id="prev">Previous</button>
+        <span id="page"></span>
+        <button type="button" id="next">Next</button>
+      </nav>
+    </section>
 
     <p class="logo-note">Logos belong to their owners and only identify each site; Penates is not affiliated with them.</p>
 
     <section class="add-site">
-      <h2>Missing a site?</h2>
+      <h2>Missing a Site?</h2>
       <p>
-        Make it in Penates, then use its <b>⋮ → Share with the app catalog…</b> (or
+        Make it in Penates, then use its <b>⋮ → Share with the App Catalog…</b> (or
         <code>penates submit &lt;id&gt;</code>): it shows the entry for review and opens GitHub with it filled in.
         Once it is merged, every Penates install gets it. See <a href={base + 'docs/sharing/'}>Sharing</a>.
       </p>
@@ -54,6 +96,41 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
     </section>
   </main>
 </Site>
+
+<script>
+  // Search, category and pages for All Apps, like the manager's Catalog tab (24 per page). Popular shows only
+  // while no search or category is chosen.
+  const PAGE = 24;
+  const cards = [...document.querySelectorAll<HTMLElement>('#gallery .app-card')];
+  const search = document.getElementById('search') as HTMLInputElement;
+  const chips = [...document.querySelectorAll<HTMLButtonElement>('#filters [data-category]')];
+  const el = (id: string) => document.getElementById(id)!;
+  let category = '';
+  let page = 0;
+  const draw = () => {
+    const words = search.value.toLowerCase().split(/\s+/).filter(Boolean);
+    const shown = cards.filter((c) => (!category || c.dataset.category === category) && words.every((w) => c.dataset.search!.includes(w)));
+    const pages = Math.max(1, Math.ceil(shown.length / PAGE));
+    page = Math.min(page, pages - 1);
+    cards.forEach((c) => (c.hidden = true));
+    shown.slice(page * PAGE, (page + 1) * PAGE).forEach((c) => (c.hidden = false));
+    el('count').textContent = shown.length === cards.length ? `${cards.length} apps` : `${shown.length} of ${cards.length} apps`;
+    el('none').hidden = shown.length > 0;
+    el('pager').hidden = pages < 2;
+    el('page').textContent = `Page ${page + 1} of ${pages}`;
+    (el('prev') as HTMLButtonElement).disabled = page === 0;
+    (el('next') as HTMLButtonElement).disabled = page >= pages - 1;
+    const popular = document.getElementById('popular');
+    if (popular) popular.hidden = Boolean(words.length || category);
+    chips.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.category === category)));
+  };
+  search.addEventListener('input', () => { page = 0; draw(); });
+  chips.forEach((b) => b.addEventListener('click', () => { category = b.dataset.category!; page = 0; draw(); }));
+  el('prev').addEventListener('click', () => { page--; draw(); });
+  el('next').addEventListener('click', () => { page++; draw(); });
+  el('filters').hidden = false;
+  draw();
+</script>
 
 <style>
   .apps-page { padding: clamp(2.5rem, 6vw, 4.5rem) 0 4rem; }
@@ -73,7 +150,19 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
     font: 700 1.6rem 'Space Grotesk Variable', system-ui, sans-serif;
   }
   .app-meta { min-width: 0; }
-  .app-meta h2 { font-size: 1.15rem; margin: 0.1rem 0 0.15rem; }
+  .app-meta h3 { font-size: 1.15rem; margin: 0.1rem 0 0.15rem; }
+  .popular, .all-apps { margin-bottom: 2.5rem; }
+  .popular h2, .all-apps h2 { font-size: 1.6rem; margin: 0 0 1rem; }
+  .tag { display: inline-block; margin-top: 0.6rem; padding: 0.15rem 0.6rem; border-radius: 999px; background: var(--bg-2); color: var(--muted); font-size: 0.8rem; }
+  .filters { display: grid; gap: 0.8rem; margin-bottom: 1.2rem; }
+  .filters input { font: inherit; padding: 0.6rem 0.9rem; border-radius: 10px; border: 1px solid var(--line); background: var(--bg-2); color: var(--fg); max-width: 28rem; }
+  .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .chips button, .pager button { font: inherit; font-size: 0.9rem; padding: 0.35rem 0.95rem; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--fg); cursor: pointer; }
+  .chips button[aria-pressed='true'] { background: var(--accent); border-color: transparent; color: var(--accent-fg); }
+  .count, .none { margin: 0; color: var(--muted); font-size: 0.9rem; }
+  .pager { display: flex; gap: 1rem; align-items: center; justify-content: center; margin-top: 1.5rem; }
+  .pager button:disabled { opacity: 0.45; cursor: default; }
+  [hidden] { display: none !important; }
   .app-host { font: 0.85rem ui-monospace, monospace; color: var(--muted); text-decoration: none; }
   .app-host:hover { color: var(--accent); }
   .app-meta p { margin: 0.45rem 0 0; font-size: 0.93rem; }
