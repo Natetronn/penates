@@ -9,21 +9,31 @@ import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 
 <Tabs syncKey="os">
   <TabItem label="Linux">
-    **Arch Linux and its relatives (CachyOS, EndeavourOS, Manjaro…): from the AUR.** Two packages, installed and
-    updated like the rest of your system:
+    Find your distribution. For the `.deb`, `.rpm` and AppImage, download the file from the
+    [releases page](https://github.com/Natetronn/penates/releases/latest) first. "In Penates" means it updates itself: new versions appear under **Updates**,
+    signed and checked before they install.
 
-    | Package | What it is |
-    |---|---|
-    | `penates-bin` | the prebuilt release; installs in seconds (recommended) |
-    | `penates` | built on your computer from the release's source; takes a few minutes |
+    | Distribution | Install | Updates |
+    |---|---|---|
+    | Arch Linux | `paru -S penates-bin` or `yay -S penates-bin`, or without a helper: see below | your AUR helper |
+    | CachyOS | `paru -S penates-bin` | `paru -Syu` |
+    | Debian | `sudo apt install ./penates_*_amd64.deb` | in Penates |
+    | elementary OS | `sudo apt install ./penates_*_amd64.deb` | in Penates |
+    | EndeavourOS | `yay -S penates-bin` | `yay -Syu` |
+    | Fedora | `sudo dnf install ./penates-*.x86_64.rpm` | in Penates |
+    | Garuda Linux | `paru -S penates-bin` | `paru -Syu` |
+    | Linux Mint | `sudo apt install ./penates_*_amd64.deb` | in Penates |
+    | Manjaro | `pamac build penates-bin` (AUR support on in Pamac) | `pamac upgrade -a` |
+    | openSUSE | `sudo zypper install --allow-unsigned-rpm ./penates-*.x86_64.rpm` | in Penates |
+    | Pop!_OS | `sudo apt install ./penates_*_amd64.deb` | in Penates |
+    | Ubuntu | `sudo apt install ./penates_*_amd64.deb` | in Penates |
+    | Zorin OS | `sudo apt install ./penates_*_amd64.deb` | in Penates |
+    | Any other | the AppImage: `chmod +x penates_*_amd64.AppImage && ./penates_*_amd64.AppImage` | in Penates |
 
-    With an AUR helper, one command (updates come with `paru -Syu` or `yay -Syu`):
-
-    ```sh
-    paru -S penates-bin        # or: yay -S penates-bin
-    ```
-
-    Without a helper, with the tools every Arch system has: clone the package, build it, and pacman installs it.
+    **On Arch and its relatives** the AUR has two packages, and they replace each other: `penates-bin` is the
+    prebuilt release (installs in seconds, recommended), `penates` builds on your computer from the release's
+    source (a few minutes). Without an AUR helper, use the tools every Arch system has; pacman installs what
+    makepkg builds, and `git pull && makepkg -si` in that folder updates it:
 
     ```sh
     sudo pacman -S --needed git base-devel   # once
@@ -32,26 +42,11 @@ import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
     makepkg -si
     ```
 
-    To update, run `git pull && makepkg -si` in that folder. To build from source instead, use `penates` in
-    place of `penates-bin`, either way. The two replace each other, so you only ever have one.
+    Each release also has an Arch package for pacman alone (it does not update by itself):
+    `sudo pacman -U ./penates-bin-*-x86_64.pkg.tar.zst`.
 
-    **Arch, without the AUR:** each release also has an Arch package. Download `penates-bin-…-x86_64.pkg.tar.zst`
-    from the [releases page](https://github.com/Natetronn/penates/releases/latest) and run
-    `sudo pacman -U ./penates-bin-*-x86_64.pkg.tar.zst`. It does not update by itself; install a newer one the
-    same way, or switch to the AUR.
-
-    **Other distributions:** from the [releases page](https://github.com/Natetronn/penates/releases/latest):
-
-    ```sh
-    sudo apt install ./penates_*_amd64.deb         # Debian, Ubuntu, Mint, Pop!_OS
-    sudo dnf install ./penates-*.x86_64.rpm        # Fedora, openSUSE (zypper install …)
-    chmod +x penates_*_amd64.AppImage && ./penates_*_amd64.AppImage   # anywhere
-    ```
-
-    These three update themselves: Penates offers new versions under **Updates**, signed and checked before they
-    install.
-
-    **From source, with git:** on Arch, the repo's own PKGBUILD builds and installs your checkout:
+    **From source, with git (any distribution).** On Arch, the repo's own PKGBUILD builds and installs your
+    checkout:
 
     ```sh
     sudo pacman -S --needed git base-devel rustup webkit2gtk-4.1 libayatana-appindicator
@@ -62,8 +57,8 @@ import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 
     Elsewhere, install Rust (from [rustup.rs](https://rustup.rs/)) and the WebKitGTK development files
     (Debian and Ubuntu: `libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev build-essential pkg-config`;
-    Fedora: `webkit2gtk4.1-devel libappindicator-gtk3-devel librsvg2-devel gcc`), then build a tarball and install it
-    for your user:
+    Fedora: `webkit2gtk4.1-devel libappindicator-gtk3-devel librsvg2-devel gcc`), then build a tarball and
+    install it for your user:
 
     ```sh
     git clone https://github.com/Natetronn/penates && cd penates
