@@ -4,7 +4,7 @@
 #   cd packaging/arch && makepkg -si
 # Before publishing (AUR), replace the build/package source with a release tarball or a git URL.
 pkgname=penates
-pkgver=0.1.3
+pkgver=0.1.4
 pkgrel=1
 pkgdesc="Turn websites into desktop apps with their own window, icon and login"
 arch=('x86_64' 'aarch64')

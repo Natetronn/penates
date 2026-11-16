@@ -5,6 +5,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-11-16
+Report a problem, with a log of Penates's own errors kept on your computer; better site icons; Edit on App Catalog cards.
+
 ### Added
 - **Report a problem** (About, Settings → Problems, or `penates report`): shows the Penates version, how it was
   installed, the system, the web view's version and the recent log lines, with folder paths, your user name,
@@ -128,7 +131,8 @@ First release. Verified by hand on Linux (KDE Plasma, Wayland); Linux, Windows a
 - A page's own script can still navigate the window to another site (only link clicks are sent to the browser).
 - Two apps whose ids hash to the same loopback port lose single-window mode and the "is it running" check (rare).
 
-[Unreleased]: https://github.com/Natetronn/penates/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/Natetronn/penates/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/Natetronn/penates/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/Natetronn/penates/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Natetronn/penates/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Natetronn/penates/compare/v0.1.0...v0.1.1
