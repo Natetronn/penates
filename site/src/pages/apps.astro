@@ -12,10 +12,7 @@ const sentence = (s: string) => (/[.!?]$/.test(s) ? s : s + '.');
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 ---
 
-<Site
-  title="Popular apps: Penates"
-  description={`${catalog.length} sites ready in one click in Penates, each set up to work well as an app.`}
->
+<Site page="apps">
   <main class="wrap apps-page">
     <header class="apps-head">
       <h1>Popular apps</h1>

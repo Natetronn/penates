@@ -5,7 +5,7 @@ import FinePrint from '../components/FinePrint.astro';
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 const REPO = 'https://github.com/Natetronn/penates';
 ---
-<Site title="Terms: Penates" description="The terms for using Penates and this website: the MIT License, no warranty, and other sites' own terms.">
+<Site page="terms">
   <FinePrint title="Terms" updated="2026-11-15">
     <h2>The software</h2>
     <p>Penates is free software under the <a href={`${REPO}/blob/main/LICENSE`}>MIT License</a>: you may use, copy, change and share it, as that license says. It is provided as is, without warranty of any kind. The components it is built from keep their own licenses (see <a href={base + 'credits/'}>Credits</a>).</p>

@@ -14,9 +14,6 @@ const FEATURED = ['figma', 'slack', 'gmail', 'notion', 'discord', 'spotify', 'ch
 const featured = FEATURED.flatMap((id) => catalog.filter((a) => a.id === id));
 const appIcons = import.meta.glob<{ default: ImageMetadata }>('../assets/app-icons/*.png', { eager: true });
 const iconFor = (id: string) => appIcons[`../assets/app-icons/${id}.png`]?.default;
-const title = 'Penates: turn websites into desktop apps';
-const description =
-  'Penates turns websites and web apps into desktop apps, each with its own window, icon, taskbar entry and separate login. Free and open source, for Linux, Windows and macOS.';
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 const href = (path: string) => base + path;
 
@@ -84,7 +81,7 @@ const platforms = [
 ];
 ---
 
-<Site title={title} description={description}>
+<Site page="index">
     <main>
       <section class="hero">
         <div class="glow" aria-hidden="true"></div>

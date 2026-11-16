@@ -23,6 +23,7 @@ export default defineConfig({
 					},
 				},
 			],
+			routeMiddleware: './src/routeData.ts',
 			customCss: ['@fontsource-variable/space-grotesk', './src/styles/penates.css'],
       lastUpdated: false,
       sidebar: [

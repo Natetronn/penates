@@ -5,11 +5,7 @@ import Site from '../layouts/Site.astro';
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 ---
 
-<Site
-  title="Try the Penates manager"
-  description="The Penates manager with sample apps, running in your browser: create, edit and theme apps without installing anything."
-  footer={false}
->
+<Site page="demo" footer={false}>
   <main class="demo">
     <iframe src={base + 'demo/manager.html'} title="Penates manager demo"></iframe>
   </main>

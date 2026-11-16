@@ -61,6 +61,12 @@ cpSync(join(src, 'docs/images'), join(site, 'src/assets/screens'), { recursive: 
 mkdirSync(join(site, 'src/assets'), { recursive: true });
 for (const f of ['lockup-dark.svg', 'lockup-light.svg']) cpSync(join(src, 'design', f), join(site, 'src/assets', f));
 cpSync(join(src, 'src-tauri/icons/icon.svg'), join(site, 'public/favicon.svg'));
+// Open Graph images: the background (src/og/background.svg) and the logo lockup as PNGs for astro-og-canvas.
+{
+  const sharp = (await import('sharp')).default;
+  await sharp(join(site, 'src/og/background.svg')).png().toFile(join(site, 'src/og/background.png'));
+  await sharp(join(src, 'design/lockup-dark.svg'), { density: 300 }).resize({ width: 660 }).png().toFile(join(site, 'src/og/logo.png'));
+}
 rmSync(join(site, 'public/demo'), { recursive: true, force: true });
 mkdirSync(join(site, 'public/demo'), { recursive: true });
 cpSync(join(src, 'design/preview/penates-manager.html'), join(site, 'public/demo/manager.html'));
