@@ -13,6 +13,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 - An Arch Linux package on each release, `penates-bin-<version>-1-x86_64.pkg.tar.zst`, installed with `sudo pacman -U` (no AUR helper needed). It was also added to the 0.1.1 release.
 
+### Fixed
+- The third-party license texts (`THIRD-PARTY-LICENSES.txt`, and Full license texts in Credits) were missing lines such as "COPYRIGHT HOLDERS BE LIABLE…" from some licenses, which were mistaken for copyright notices. They are complete again.
+
 ### Changed
 - Creating an app uses its catalog preset's icon address first, as updating already did, so sites that refuse to be fetched (such as Claude and Cloudflare) still get an icon.
 - The update notice for package-manager installs no longer assumes an AUR helper: it says to update the way Penates was installed (the package manager, or makepkg or an AUR helper for the AUR).

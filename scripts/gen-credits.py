@@ -19,7 +19,8 @@ OUT_LIST = ROOT / "ui" / "credits.js"
 OUT_TEXT = ROOT / "THIRD-PARTY-LICENSES.txt"
 OUT_TEXT_JS = ROOT / "ui" / "licenses.js"
 LICENSE_FILE = re.compile(r"^(licen[sc]e|copying|notice|copyright|unlicense)", re.I)
-COPYRIGHT_LINE = re.compile(r"^\s*(copyright\b|\(c\)|©)", re.I)
+# A copyright notice, not a disclaimer line that starts with "COPYRIGHT HOLDERS" or "COPYRIGHT OWNER".
+COPYRIGHT_LINE = re.compile(r"^\s*(copyright\b(?!\s+(holders?|owners?)\b)|\(c\)|©)", re.I)
 
 MIT = """Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction, including
