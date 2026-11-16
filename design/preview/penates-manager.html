@@ -245,6 +245,8 @@ div.f{display:grid;gap:4px;font-size:12px;color:var(--muted)}
 .card-head img,.card-head .ph{width:40px;height:40px;border-radius:9px;object-fit:contain;background:var(--chip);flex:none}
 .card .notes{flex:1;margin:0;color:var(--muted);font-size:12px}
 .card-foot{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card-foot .chip{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.card-foot button{flex:none}
 .filters{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 12px}
 .filters button{border-radius:999px;padding:4px 12px;font-size:13px}
 .filters button[aria-pressed=true]{background:var(--accent);color:var(--accent-fg);border-color:transparent}
@@ -1602,7 +1604,7 @@ function catalogCard(c, reload) {
     el("div", { class: "card-head" }, catalogIcon(c), el("div", { class: "meta" }, el("b", {}, c.name), el("span", { class: "url" }, hostOf(c.url)))),
     el("p", { class: "notes" }, c.notes),
     el("div", { class: "card-foot" }, c.category ? el("span", { class: "chip" }, c.category) : el("span"),
-      el("span", { class: "row tight" }, c.added ? el("span", { class: "chip" }, "added") : null, action)));
+      action));
 }
 
 async function renderCatalog() {

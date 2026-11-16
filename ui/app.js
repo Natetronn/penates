@@ -547,7 +547,7 @@ function catalogCard(c, reload) {
     el("div", { class: "card-head" }, catalogIcon(c), el("div", { class: "meta" }, el("b", {}, c.name), el("span", { class: "url" }, hostOf(c.url)))),
     el("p", { class: "notes" }, c.notes),
     el("div", { class: "card-foot" }, c.category ? el("span", { class: "chip" }, c.category) : el("span"),
-      el("span", { class: "row tight" }, c.added ? el("span", { class: "chip" }, "added") : null, action)));
+      action));
 }
 
 async function renderCatalog() {
