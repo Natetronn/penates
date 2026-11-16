@@ -12,7 +12,6 @@ export default defineConfig({
       favicon: '/favicon.svg',
       social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/Natetronn/penates' }],
       editLink: { baseUrl: 'https://github.com/Natetronn/penates/edit/main/site/' },
-			components: { Hero: './src/components/Hero.astro' },
 			customCss: ['./src/styles/penates.css'],
       lastUpdated: false,
       sidebar: [

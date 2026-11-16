@@ -15,7 +15,3 @@
 /* The header carries the logo's gradient underline, as in the app. */
 .header { border-bottom: 0; box-shadow: 0 1px 0 var(--sl-color-hairline); }
 .header::after { content: ''; position: absolute; inset: auto 0 0 0; height: 2px; background: var(--penates-gradient); opacity: 0.85; }
-.shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-block: 1.5rem; }
-.shots figure { margin: 0; }
-.shots img { border-radius: 0.6rem; border: 1px solid var(--sl-color-hairline); box-shadow: 0 8px 24px rgb(0 0 0 / 0.25); }
-.shots figcaption { font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); margin-top: 0.4rem; }
