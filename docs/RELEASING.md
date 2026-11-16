@@ -7,8 +7,8 @@ until you publish them.
 ## Before the first release (once)
 - The repo secret `TAURI_SIGNING_PRIVATE_KEY` holds the updater key (`gh secret list` shows it).
 - `gh` is signed in with access to the repo.
-- For the AUR: an AUR account with your SSH key, and the package repo created once with
-  `git clone ssh://aur@aur.archlinux.org/penates-bin.git` (an empty clone creates it on first push).
+- For the AUR: an AUR account with your SSH key, and `~/.ssh/config` using that key for `aur.archlinux.org`.
+  Both packages (`penates-bin`, `penates`) exist since 0.1.1.
 
 ## Steps
 1. Bump `version` in the root `Cargo.toml` (workspace) and `pkgver` in `packaging/arch/PKGBUILD`, then run
@@ -26,8 +26,10 @@ until you publish them.
    draft's files (refusing duplicates or files of another version), writes `latest.json`, uploads it to the draft,
    sets the notes from `CHANGELOG.md`, publishes the release, and updates both AUR packages in `packaging/aur/`
    (`penates-bin` from the release tarball, `penates` from the tag's source).
-6. AUR: for each of `penates-bin` and `penates`, copy `packaging/aur/<name>/{PKGBUILD,.SRCINFO}` into your
-   clone of that AUR package, commit and push (`git push origin HEAD:master`). Then commit the updated files here too.
+6. AUR: `scripts/push-aur.sh` clones each package into a temporary folder, copies in
+   `packaging/aur/<name>/{PKGBUILD,.SRCINFO}`, commits and pushes, then deletes the folder. It needs your AUR key
+   for `aur.archlinux.org` (in `~/.ssh/config`: `Host aur aur.archlinux.org` with its `IdentityFile`). Then commit
+   the updated files here too.
 
 **Pre-releases** (`v0.2.0-rc.1`): `scripts/publish-release.py v0.2.0-rc.1 --prerelease`. They are published as
 pre-releases, never as "latest", so installed copies do not update to them, and the AUR is left alone.

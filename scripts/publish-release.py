@@ -146,9 +146,7 @@ def main():
        "--draft=false", *(["--prerelease", "--latest=false"] if pre else ["--latest"]), capture=False)
     print(f"published https://github.com/{REPO}/releases/tag/{tag}")
     if not pre:
-        for name in ("penates-bin", "penates"):
-            print(f"AUR: copy packaging/aur/{name}/{{PKGBUILD,.SRCINFO}} into your {name} AUR clone, commit and push.")
-        print("Then commit the updated packaging/aur files here.")
+        print("AUR: run scripts/push-aur.sh (it asks for your AUR key's passphrase), then commit the updated packaging/aur files here.")
 
 
 if __name__ == "__main__":
