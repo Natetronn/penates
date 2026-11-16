@@ -7,7 +7,7 @@ Built with Rust and [Tauri 2](https://v2.tauri.app/), with a command line tool a
 **[getpenates.com](https://getpenates.com)**: the website, with the docs and a clickable demo of the manager.
 
 **[Download the latest release](https://github.com/Natetronn/penates/releases/latest)**:
-AppImage, .deb, .rpm, Windows installer, macOS .dmg, or on Arch `paru -S penates-bin` (prebuilt) or `paru -S penates` (built from source).
+AppImage, .deb, .rpm, Windows installer, macOS .dmg, or on Arch from the AUR: `penates-bin` (prebuilt) or `penates` (built from source), installed with `makepkg -si` or an AUR helper such as paru or yay ([how](https://getpenates.com/getting-started/)).
 
 <p align="center"><img src="docs/images/manager-apps.png" width="640" alt="The Penates manager listing five apps: Discord, GitHub, Notion, Proton Mail and YouTube Music"></p>
 

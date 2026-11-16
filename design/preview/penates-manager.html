@@ -1508,7 +1508,7 @@ function selfUpdateBlock(u) {
     await invoke("install_self_update");
   }) });
   const download = el("button", { class: u.can_install ? "" : "primary", textContent: u.can_install ? "Release notes" : "Download", onclick: () => invoke("open_url", { url: u.releases_page }).catch(fail) });
-  const how = u.can_install ? "" : u.package_manager ? " Update it with your package manager (for example paru -Syu)." : " This install can't update itself; download the new version.";
+  const how = u.can_install ? "" : u.package_manager ? " Update it the way you installed it: your package manager, or for the AUR, makepkg or an AUR helper." : " This install can't update itself; download the new version.";
   return el("div", { class: "banner" },
     el("span", {}, `Penates ${u.version} is available (you have ${u.current}).` + (u.notes ? " " + u.notes.split("\n")[0] : "") + how),
     u.can_install ? install : null, u.package_manager ? null : download);

@@ -42,7 +42,7 @@ signature of the download with the public key in `src-tauri/tauri.conf.json`, in
 | Install type | Updates |
 |---|---|
 | AppImage, `.deb`, `.rpm`, Windows installer, macOS `.app` | in the app: **Install and restart** |
-| AUR (`penates-bin`), other package managers | `paru -Syu` / `yay`; the app says so |
+| AUR (`penates-bin`, `penates`), other package managers | `git pull && makepkg -si` in the package's folder, or an AUR helper (`paru -Syu`, `yay -Syu`); the app says so |
 | Tarball, dev builds | the app links to the releases page |
 
 ## Signing key

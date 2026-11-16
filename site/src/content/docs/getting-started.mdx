@@ -10,12 +10,18 @@ import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 <Tabs syncKey="os">
   <TabItem label="Linux">
     Get the AppImage, `.deb` or `.rpm` from the [releases page](https://github.com/Natetronn/penates/releases/latest).
-    On Arch and its relatives, use the AUR:
+    On Arch and its relatives, install it from the AUR with the tools every Arch system has:
 
     ```sh
-    paru -S penates-bin   # prebuilt
-    paru -S penates       # built from source
+    sudo pacman -S --needed git base-devel   # once
+    git clone https://aur.archlinux.org/penates-bin.git
+    cd penates-bin
+    makepkg -si                               # builds the package and installs it with pacman
     ```
+
+    `penates-bin` is the prebuilt release; use `penates` instead to build it from source. To update, run
+    `git pull && makepkg -si` in that folder. With an AUR helper it is one command: `paru -S penates-bin` or
+    `yay -S penates-bin`.
   </TabItem>
   <TabItem label="Windows">
     Run the installer from the [releases page](https://github.com/Natetronn/penates/releases/latest). If

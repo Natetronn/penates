@@ -8,6 +8,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 ### Added
 - The website, [getpenates.com](https://getpenates.com), with the docs, the app catalog and a clickable demo of the manager. About links to it.
 
+### Changed
+- The update notice for package-manager installs no longer assumes an AUR helper: it says to update the way Penates was installed (the package manager, or makepkg or an AUR helper for the AUR).
+
 ## [0.1.1] - 2026-11-15
 Share apps with the catalog, start apps in the tray, browser keys in app windows, Credits with full license texts, and a round of fixes.
 
