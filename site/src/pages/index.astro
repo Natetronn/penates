@@ -44,7 +44,7 @@ const features = [
   {
     icon: 'star',
     title: 'An app catalog',
-    text: 'Known sites come with small fixes, like keeping sign-in inside the window. Share your own fixes back in a click.',
+    text: 'Known sites come set up to work well as apps, like keeping sign-in inside the window. Share yours with everyone in a click.',
   },
   {
     icon: 'shield',
@@ -110,7 +110,7 @@ const platforms = [
       </section>
 
       <section class="wrap strip" aria-label="Apps in the catalog">
-        <p>Ready-made fixes for</p>
+        <p>Ready in one click</p>
         <ul>
           {featured.map((app) => (
             <li>
@@ -122,7 +122,7 @@ const platforms = [
           ))}
           {catalog.length > featured.length && <li><a href={href('apps/')} class="more-apps">+{catalog.length - featured.length} more</a></li>}
         </ul>
-        <p class="more">and any other site you paste in.</p>
+        <p class="more">…or any other site you paste in.</p>
       </section>
 
       <section class="wrap features">
