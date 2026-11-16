@@ -19,7 +19,14 @@ const db = [['discord', 'Discord', 'https://discord.com/app', null], ['github', 
   .map(([id, name, url, cv], i) => { icons[id] = mkIcon(name[0], COLORS[i]); return { ...DEF, id, name, url, icon: 'mock:' + id, catalog_version: cv, catalog_id: cv ? id : null }; });
 const CAT = Object.fromEntries(CATALOG.catalog.map((e) => [e.id, { v: e.version, hosts: e.internal_hosts || [], ua: e.user_agent, css: e.inject_css, notes: e.notes, name: e.name, url: e.url }]));
 let mockAppearance = window.__PENATES_APPEARANCE;
-let settings = { catalog_url: '', check_on_start: true };
+let settings = { penates_catalog: true, catalogs: [], check_on_start: true };
+// The demo reads no catalogs of your own: one you add counts as read, with a few sample apps.
+const catalogSource = () => {
+  const n = settings.catalogs.length;
+  if (settings.penates_catalog) return n ? `the Penates app catalog and ${n} of your own` : 'the Penates app catalog';
+  return n === 1 ? `your catalog ${settings.catalogs[0]}` : n ? `${n} catalogs of your own` : 'no catalog (the Penates app catalog is off and none of your own is set)';
+};
+const catalogEntries = () => settings.penates_catalog ? CATALOG.catalog : [];
 let exportDir = '';
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const clone = (x) => JSON.parse(JSON.stringify(x));
@@ -95,14 +102,14 @@ const H = {
     await wait(500);
     const apps = db.map((a) => [a, entryFor(a)]).filter(([a, f]) => f && newer(f[1].v, a.catalog_version))
       .map(([a, [, e]]) => ({ id: a.id, name: a.name, from: a.catalog_version, to: e.v, notes: e.notes }));
-    return { current: VERSION, source: settings.catalog_url || 'Penates app catalog', catalog_size: CATALOG.catalog.length, app_count: db.length, apps };
+    return { current: VERSION, source: catalogSource(), problems: [], catalog_size: catalogEntries().length, app_count: db.length, apps };
   },
   async catalog_apps() {
     await wait(300);
-    const apps = CATALOG.catalog.map((e) => { const mine = db.find((a) => { const f = entryFor(a); return f && f[0] === e.id; });
+    const apps = catalogEntries().map((e) => { const mine = db.find((a) => { const f = entryFor(a); return f && f[0] === e.id; });
       return { id: e.id, name: e.name || e.id, url: e.url, notes: e.notes, icon_url: e.icon_url || null, added: mine ? mine.id : null }; })
       .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
-    return { source: settings.catalog_url || 'Penates app catalog', apps };
+    return { source: catalogSource(), problems: [], apps };
   },
   async catalog_icon({ id }) {
     await wait(200 + Math.random() * 600);
@@ -124,6 +131,12 @@ const H = {
   get_export_folder: () => ({ chosen: exportDir, folder: exportDir || '/home/you/Downloads' }),
   set_export_folder({ dir }) { exportDir = dir; return { chosen: exportDir, folder: exportDir || '/home/you/Downloads' }; },
   async pick_export_folder() { await wait(300); return '/home/you/Backups/Penates'; },
+  async pick_catalog_file() { await wait(300); return '/home/you/penates/my-catalog.json'; },
+  async check_catalog({ source }) {
+    await wait(400);
+    if (!/^(https:\/\/|file:\/\/)|^[^:]+$/.test(source)) throw 'a catalog must be an https:// or file:// address, or a path';
+    return 3;
+  },
   set_update_settings({ updates }) { settings = updates; },
   open_url({ url }) { say('Would open ' + url + ' in your browser (preview only).'); },
   remove_app({ id }) { const i = db.findIndex((a) => a.id === id); if (i < 0) throw 'no app with id \'' + id + '\''; db.splice(i, 1); },

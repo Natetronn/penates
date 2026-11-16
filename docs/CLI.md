@@ -19,7 +19,7 @@ The `penates` command makes and manages apps from a terminal: `penates <command>
 | `submit <id> --notes "…"` | Propose one of your apps for the app catalog: prints the entry and opens GitHub with it filled in (`--no-open` prints the address instead). Custom JavaScript is never included. |
 | `check` | Check for a new Penates version and newer app presets (each reported separately). |
 | `update <id>` or `update --all` | Apply newer presets and refresh the site icon (never replaces a custom icon). `--all` updates four apps at a time and exits with an error if any failed. |
-| `export <id>... \| --all` | Write a `.penates` file: configs and icons only, never logins. `--settings` adds look, accent and the app catalog address (for backups); `-o <file>` (`-` for stdout). |
+| `export <id>... \| --all` | Write a `.penates` file: configs and icons only, never logins. `--settings` adds look, accent and the app catalogs (for backups); `-o <file>` (`-` for stdout). |
 | `import <file-or-url>` | Review a `.penates` file, then recreate its apps. `--on-conflict skip\|rename\|overwrite` (default rename), `--allow-js` keeps custom JavaScript (dropped by default), `--settings` applies its settings, `-y` skips the prompt. Camera/microphone access and developer tools are always switched off on import. |
 | `remove <id> [--purge]` | Remove the app (also one whose config does not load). `--purge` also deletes its cookies and data, and is refused while the app runs. |
 

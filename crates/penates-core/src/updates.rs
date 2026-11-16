@@ -2,8 +2,9 @@
 //!  - Penates itself: the public `latest.json` published with each release (the same file Tauri's
 //!    updater reads; the desktop app installs from it, the CLI only reports).
 //!  - App presets: a catalog of per-site fixes synced into installed apps. By default the Penates
-//!    app catalog (github.com/Natetronn/penates-apps); the built-in copy (`data/presets.json`) when it
-//!    cannot be reached; or the address in settings (`[updates] catalog_url`).
+//!    app catalog (github.com/Natetronn/penates-apps), or the built-in copy (`data/presets.json`) when it
+//!    cannot be reached; plus your own catalogs from settings (`[updates] catalogs`), whose entries replace
+//!    the Penates catalog's entries with the same id.
 
 use crate::{http, settings, store, WebApp};
 use anyhow::{bail, Context, Result};
@@ -50,26 +51,82 @@ pub struct CatalogEntry {
     // catalog address run script inside every matching app.
 }
 
+/// The catalogs in use, merged into one.
+pub struct Loaded {
+    pub catalog: Catalog,
+    /// Where it came from, worded to fit in a sentence: "the Penates app catalog", "the Penates app catalog
+    /// and 2 of your own", "your catalog /path/to/catalog.json"...
+    pub source: String,
+    /// Your catalogs that could not be read, with why; the others are still used.
+    pub problems: Vec<String>,
+}
+
 /// The catalog and a label for where it came from.
 pub fn load_catalog() -> Result<(Catalog, String)> {
-    let url = settings::load().updates.catalog_url;
-    let url = url.trim();
-    if url.is_empty() {
-        return Ok(match http::get_text(DEFAULT_CATALOG).and_then(|t| parse_catalog(&t)) {
-            Ok(c) => (c, "Penates app catalog".into()),
-            Err(_) => (parse_catalog(BUILTIN)?, "built-in catalog (app catalog unreachable)".into()),
-        });
+    let l = load_catalogs()?;
+    Ok((l.catalog, l.source))
+}
+
+/// Every catalog in settings, merged: your catalogs first (the first one listed wins on an id), then the
+/// Penates catalog's entries whose id none of yours has. Fails only when every catalog in use fails.
+pub fn load_catalogs() -> Result<Loaded> {
+    let us = settings::load().updates;
+    merge_catalogs(us.penates_catalog, &us.catalogs, read_source, || {
+        match http::get_text(DEFAULT_CATALOG).and_then(|t| parse_catalog(&t)) {
+            Ok(c) => Ok((c, "the Penates app catalog".into())),
+            Err(_) => Ok((parse_catalog(BUILTIN)?, "the built-in catalog (the Penates app catalog is unreachable)".into())),
+        }
+    })
+}
+
+fn merge_catalogs(
+    penates: bool,
+    sources: &[String],
+    read: impl Fn(&str) -> Result<Catalog>,
+    penates_catalog: impl FnOnce() -> Result<(Catalog, String)>,
+) -> Result<Loaded> {
+    let mut entries: Vec<CatalogEntry> = Vec::new();
+    let (mut used, mut problems) = (Vec::new(), Vec::new());
+    for src in sources {
+        match read(src) {
+            Ok(c) => {
+                entries.extend(c.catalog.into_iter().filter(|e| !entries.iter().any(|x| x.id == e.id)).collect::<Vec<_>>());
+                used.push(src.as_str());
+            }
+            Err(e) => problems.push(format!("{src}: {e:#}")),
+        }
     }
-    let text = if let Some(p) = url.strip_prefix("file://") {
-        std::fs::read_to_string(p).with_context(|| format!("reading {p}"))?
-    } else if url.starts_with("https://") {
-        http::get_text(url)?
-    } else if !url.contains("://") {
-        std::fs::read_to_string(url).with_context(|| format!("reading {url}"))?
-    } else {
-        bail!("the catalog address must be https://, file:// or a path");
+    let mut label = None;
+    if penates {
+        let (c, l) = penates_catalog()?;
+        let new: Vec<CatalogEntry> = c.catalog.into_iter().filter(|e| !entries.iter().any(|x| x.id == e.id)).collect();
+        entries.extend(new);
+        label = Some(l);
+    }
+    let source = match (label, used.len()) {
+        (Some(l), 0) => l,
+        (Some(l), n) => format!("{l} and {n} of your own"),
+        (None, 1) => format!("your catalog {}", used[0]),
+        (None, 0) if !problems.is_empty() => bail!("no catalog could be read: {}", problems.join("; ")),
+        (None, 0) => "no catalog (the Penates app catalog is off and none of your own is set)".into(),
+        (None, n) => format!("{n} catalogs of your own"),
     };
-    Ok((parse_catalog(&text)?, url.to_string()))
+    Ok(Loaded { catalog: Catalog { schema: 1, catalog: entries }, source, problems })
+}
+
+/// Read one catalog: an https:// or file:// URL, or a local path.
+pub fn read_source(src: &str) -> Result<Catalog> {
+    let src = src.trim();
+    let text = if let Some(p) = src.strip_prefix("file://") {
+        std::fs::read_to_string(p).context("the file cannot be read")?
+    } else if src.starts_with("https://") {
+        http::get_text(src)?
+    } else if !src.contains("://") && !src.is_empty() {
+        std::fs::read_to_string(src).context("the file cannot be read")?
+    } else {
+        bail!("a catalog must be an https:// or file:// address, or a path");
+    };
+    parse_catalog(&text)
 }
 
 fn parse_catalog(text: &str) -> Result<Catalog> {
@@ -162,8 +219,10 @@ pub struct AppUpdate {
 #[derive(Debug, Clone, Serialize)]
 pub struct AppsReport {
     pub current: String,
-    /// "Penates app catalog", "built-in catalog (…)" or the catalog address used.
+    /// Where the catalog came from (see `Loaded::source`).
     pub source: String,
+    /// Your catalogs that could not be read.
+    pub problems: Vec<String>,
     /// Apps in the catalog, and apps installed here.
     pub catalog_size: usize,
     pub app_count: usize,
@@ -172,7 +231,7 @@ pub struct AppsReport {
 
 /// Apps whose catalog preset has a newer version.
 pub fn check_apps() -> Result<AppsReport> {
-    let (c, source) = load_catalog()?;
+    let Loaded { catalog: c, source, problems } = load_catalogs()?;
     let mine = store::list();
     let app_count = mine.len();
     let apps = mine
@@ -182,7 +241,7 @@ pub fn check_apps() -> Result<AppsReport> {
             Some(AppUpdate { to: e.version.clone(), notes: e.notes.clone(), from: a.catalog_version, id: a.id, name: a.name })
         })
         .collect();
-    Ok(AppsReport { current: CURRENT_VERSION.into(), source, catalog_size: c.catalog.len(), app_count, apps })
+    Ok(AppsReport { current: CURRENT_VERSION.into(), source, problems, catalog_size: c.catalog.len(), app_count, apps })
 }
 
 /// One app in the catalog, for browsing ("Popular apps").
@@ -201,16 +260,17 @@ pub struct CatalogApp {
 #[derive(Debug, Clone, Serialize)]
 pub struct CatalogListing {
     pub source: String,
+    pub problems: Vec<String>,
     pub apps: Vec<CatalogApp>,
 }
 
 /// Every app in the catalog, sorted by name, marking the ones already made here.
 pub fn catalog_listing() -> Result<CatalogListing> {
-    let (c, source) = load_catalog()?;
-    Ok(listing(&c, source, &store::list()))
+    let l = load_catalogs()?;
+    Ok(listing(&l.catalog, l.source, l.problems, &store::list()))
 }
 
-fn listing(c: &Catalog, source: String, mine: &[WebApp]) -> CatalogListing {
+fn listing(c: &Catalog, source: String, problems: Vec<String>, mine: &[WebApp]) -> CatalogListing {
     let mut apps: Vec<CatalogApp> = c
         .catalog
         .iter()
@@ -224,7 +284,7 @@ fn listing(c: &Catalog, source: String, mine: &[WebApp]) -> CatalogListing {
         })
         .collect();
     apps.sort_by_key(|a| a.name.to_lowercase());
-    CatalogListing { source, apps }
+    CatalogListing { source, problems, apps }
 }
 
 // ---- submitting an app to the catalog ----
@@ -358,7 +418,7 @@ mod tests {
     fn listing_marks_apps_already_made() {
         let c = parse_catalog(BUILTIN).unwrap();
         let mine = [WebApp { id: "my-gh".into(), url: "https://www.github.com/".into(), ..Default::default() }];
-        let l = listing(&c, "test".into(), &mine);
+        let l = listing(&c, "test".into(), Vec::new(), &mine);
         assert_eq!(l.apps.len(), c.catalog.len());
         assert!(l.apps.windows(2).all(|w| w[0].name.to_lowercase() <= w[1].name.to_lowercase()));
         let gh = l.apps.iter().find(|a| a.id == "github").unwrap();
@@ -370,5 +430,36 @@ mod tests {
     fn semver_order() {
         assert!(ver("0.10.0") > ver("0.9.9"));
         assert!(ver("v1.0.0") > ver("1.0.0-rc.1"));
+    }
+
+    fn cat(ids: &[(&str, &str)]) -> Catalog {
+        Catalog {
+            schema: 1,
+            catalog: ids
+                .iter()
+                .map(|(id, v)| CatalogEntry { id: id.to_string(), version: v.to_string(), url: format!("https://{id}.example/"), ..Default::default() })
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn catalogs_merge_with_yours_first() {
+        let read = |src: &str| match src {
+            "mine" => Ok(cat(&[("github", "9.0.0"), ("intranet", "1.0.0")])),
+            "team" => Ok(cat(&[("intranet", "2.0.0"), ("wiki", "1.0.0")])),
+            _ => bail!("not found"),
+        };
+        let penates = || Ok((cat(&[("github", "1.1.0"), ("discord", "1.0.0")]), "the Penates app catalog".to_string()));
+        let l = merge_catalogs(true, &["mine".into(), "gone".into(), "team".into()], read, penates).unwrap();
+        let got: Vec<_> = l.catalog.catalog.iter().map(|e| (e.id.as_str(), e.version.as_str())).collect();
+        assert_eq!(got, [("github", "9.0.0"), ("intranet", "1.0.0"), ("wiki", "1.0.0"), ("discord", "1.0.0")]);
+        assert_eq!(l.source, "the Penates app catalog and 2 of your own");
+        assert_eq!(l.problems.len(), 1);
+        assert!(l.problems[0].starts_with("gone: "));
+
+        let only = merge_catalogs(false, &["team".into()], read, || unreachable!()).unwrap();
+        assert_eq!((only.source.as_str(), only.catalog.catalog.len()), ("your catalog team", 2));
+        assert!(merge_catalogs(false, &["gone".into()], read, || unreachable!()).is_err());
+        assert!(merge_catalogs(false, &[], read, || unreachable!()).unwrap().catalog.catalog.is_empty());
     }
 }

@@ -1,7 +1,7 @@
 # Updates
 
 Two kinds of updates, kept apart in the manager's **Updates** tab, each with its own check
-(**Settings → Updates** only holds the settings: checking at startup, and the app catalog address):
+(**Settings → Updates** only holds the settings: checking at startup, and the app catalogs):
 
 1. **Penates itself** comes from `latest.json` attached to the latest GitHub release (Tauri updater format, signed).
    The desktop app offers **Install and restart** where the install type allows it; `penates check`
@@ -16,7 +16,8 @@ The two are checked separately, so a catalog that cannot be read never hides whe
 `~/.config/penates/settings.toml`:
 ```toml
 [updates]
-catalog_url = ""       # https:// or file:// URL, or a path; empty = the Penates app catalog
+penates_catalog = true   # use the Penates app catalog
+catalogs = []            # your own catalogs too: https:// or file:// URLs, or paths
 check_on_start = true
 ```
 By default Penates reads the shared app catalog from
@@ -24,8 +25,21 @@ By default Penates reads the shared app catalog from
 app). New or fixed presets reach everyone without a new Penates release. To add or fix an app, use
 **⋮ → Share with the app catalog…** in the manager (or `penates submit <id> --notes "…"`): it opens GitHub with
 the entry filled in. Or open a pull request there by hand. When the catalog cannot be reached, Penates uses the copy built into each release
-(`crates/penates-core/data/presets.json`). Point `catalog_url` at your own file (for example
-`file:///path/to/catalog.json`) to use a different catalog. (`manifest_url` is accepted as another name for `catalog_url`.)
+(`crates/penates-core/data/presets.json`).
+
+### Your own catalogs
+Add catalogs of your own under **Settings → Updates → Your catalogs** (Add takes an `https://` or `file://`
+address or a path, and reads the catalog first, so one that cannot be used is never added; **Choose file…**
+picks a `.json` file). They are used together with the Penates app catalog, for sites of your own or presets you
+are trying out before sharing them:
+- Your catalogs come first: an entry with the same `id` as one in the Penates catalog replaces it, and among
+  yours the first one listed wins.
+- A catalog of yours that cannot be read is reported (in Settings, and as a warning by `penates check` and
+  `penates catalog`) and the others are still used.
+- Turn off **Use the Penates app catalog** to use only your own.
+
+A single `catalog_url` (or `manifest_url`) address in `settings.toml` is read as the only entry of `catalogs`,
+with `penates_catalog` off.
 
 ## Catalog format (`schema: 1`)
 ```json
@@ -50,5 +64,5 @@ Unknown fields are ignored.
 - An app links to a catalog entry by `catalog_id`, or automatically when its site matches (`www.` ignored). New apps link at create time.
 - A preset applies only when its `version` is newer than the app's `catalog_version`.
 - Hosts are added (never removed, and cleaned like hand-typed ones); `user_agent` and `inject_css` are replaced when the preset sets them. A user agent or CSS you gave at create time wins.
-- **Presets never inject JavaScript.** An `inject_js` field in a catalog entry is ignored, so whoever controls the catalog address cannot run script inside your apps.
+- **Presets never inject JavaScript.** An `inject_js` field in a catalog entry is ignored, so whoever controls a catalog cannot run script inside your apps.
 - **A custom icon you chose is never replaced.** `update` re-downloads the site's own icon only for apps with `custom_icon = false`, and rewrites files and the launcher only when something actually changed.

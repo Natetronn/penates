@@ -378,7 +378,10 @@ fn cmd_check() -> Result<()> {
         Err(e) => println!("  could not check for a new Penates: {e:#}"),
     }
     let r = updates::check_apps().context("could not check your apps")?;
-    println!("apps (catalog: {})", r.source);
+    println!("apps (from {})", r.source);
+    for p in &r.problems {
+        eprintln!("warning: catalog not read: {p}");
+    }
     for a in &r.apps {
         println!("  {:<18} preset {} -> {}  {}", a.id, a.from.as_deref().unwrap_or("none"), a.to, a.notes);
     }
@@ -394,7 +397,10 @@ fn cmd_check() -> Result<()> {
 
 fn cmd_catalog() -> Result<()> {
     let l = updates::catalog_listing()?;
-    println!("{} ({} apps):", l.source, l.apps.len());
+    for p in &l.problems {
+        eprintln!("warning: catalog not read: {p}");
+    }
+    println!("{} apps from {}:", l.apps.len(), l.source);
     for a in &l.apps {
         let mark = a.added.as_ref().map(|id| format!("  [added as {id}]")).unwrap_or_default();
         println!("  {:<16} {:<34} {}{mark}", a.name, a.url, a.notes);

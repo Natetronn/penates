@@ -7,7 +7,7 @@ A Penates "app" is a small config, an icon and a launcher; it is not a standalon
 penates export github                    # -> github.penates
 penates export github notion -o pair.penates
 penates export --all                     # -> penates-backup.penates
-penates export --all --settings          # also look, accent and app catalog address (backups)
+penates export --all --settings          # also look, accent and app catalogs (backups)
 ```
 In the manager: **Export all** and each app's **⋮ → Export app…** save into your export folder, Downloads unless you choose another under **Settings → Backup and export**; **Back up apps and settings** there saves apps and settings. An existing file is never overwritten (the new one gets "(2)" and so on).
 
@@ -29,7 +29,7 @@ Treat a `.penates` file like a script from its sender.
 - **Custom JavaScript** runs inside the site and can read what you type there. It is **removed on import** unless you pass `--allow-js` or tick "Keep custom JavaScript".
 - **Camera, microphone and developer tools** are always **switched off** on import. Turn them back on under Edit if you want them.
 - **Extra in-app sites** are shown by name before you import: there is no address bar in an app window, so a page from one of them looks like part of the app.
-- **Settings** include the app catalog address, which decides which presets your apps get. They are applied only with `--settings` or the matching checkbox.
+- **Settings** include the app catalogs in use, which decide which presets your apps get. They are applied only with `--settings` or the matching checkbox.
 - Ids, URLs, hosts and sizes from the file are validated (a path-like id becomes a safe one; only http and https addresses are accepted). Files over 20 MB or with more than 500 apps are rejected.
 - A file made by a newer Penates is refused with a clear message.
 

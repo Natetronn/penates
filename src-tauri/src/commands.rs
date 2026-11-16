@@ -204,6 +204,12 @@ pub async fn catalog_apps() -> CmdResult<updates::CatalogListing> {
     blocking(updates::catalog_listing).await
 }
 
+/// Read one catalog before it is added to Settings: how many apps it has, or why it cannot be used.
+#[tauri::command]
+pub async fn check_catalog(source: String) -> CmdResult<usize> {
+    blocking(move || updates::read_source(&source).map(|c| c.catalog.len())).await
+}
+
 /// Prepare a catalog submission for one of your apps (shown for review before anything opens).
 #[tauri::command]
 pub async fn catalog_submission(id: String, notes: String) -> CmdResult<updates::Submission> {
@@ -400,6 +406,17 @@ pub async fn pick_export_folder(app: tauri::AppHandle) -> CmdResult<Option<Strin
     let start = settings::load().sharing.export_folder();
     blocking(move || {
         Ok(app.dialog().file().set_title("Folder for exports and backups").set_directory(start).blocking_pick_folder()
+            .and_then(|f| f.into_path().ok()).map(|p| p.display().to_string()))
+    })
+    .await
+}
+
+/// Choose a catalog file for Settings → Updates → Your catalogs (None when cancelled).
+#[tauri::command]
+pub async fn pick_catalog_file(app: tauri::AppHandle) -> CmdResult<Option<String>> {
+    use tauri_plugin_dialog::DialogExt;
+    blocking(move || {
+        Ok(app.dialog().file().set_title("Choose an app catalog").add_filter("App catalog", &["json"]).blocking_pick_file()
             .and_then(|f| f.into_path().ok()).map(|p| p.display().to_string()))
     })
     .await

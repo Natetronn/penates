@@ -289,7 +289,7 @@ function renderImport(root) {
     el("fieldset", {}, el("legend", {}, "Options"),
       anyExists ? el("label", { class: "f" }, "If an app already exists", conflict) : null,
       anyJs ? el("label", { class: "chk" }, allowJs, el("span", {}, "Keep custom JavaScript", el("small", {}, "Leave off unless you trust the source"))) : null,
-      d.has_settings ? el("label", { class: "chk" }, withSettings, el("span", {}, "Also apply the settings in this file", el("small", {}, "Look, accent and the app catalog address. A different catalog decides which presets your apps get."))) : null,
+      d.has_settings ? el("label", { class: "chk" }, withSettings, el("span", {}, "Also apply the settings in this file", el("small", {}, "Look, accent and the app catalogs in use. Other catalogs decide which presets your apps get."))) : null,
       el("p", { class: "hint" }, "Files contain configs and icons only, never logins or cookies. Camera, microphone and developer tools are always switched off on import.")),
     el("div", { class: "formbar" },
       el("button", { class: "primary", textContent: "Import", onclick: (ev) => busy(ev.target, "Importing…", async () => {
@@ -519,7 +519,7 @@ function popularApps() {
   const fill = async () => {
     try {
       const l = await invoke("catalog_apps");
-      put(box, el("p", { class: "hint" }, `Ready-made apps from the ${l.source}. Adding one also applies its fixes, such as keeping sign-in inside the window.`),
+      put(box, el("p", { class: "hint" }, `Ready-made apps from ${l.source}. Adding one also applies its fixes, such as keeping sign-in inside the window.`),
         l.apps.map((c) => el("div", { class: "app" }, catalogIcon(c),
           el("div", { class: "meta" }, el("b", {}, c.name), el("span", { class: "url" }, hostOf(c.url)), el("span", { class: "wrap" }, c.notes)),
           c.added
@@ -594,7 +594,7 @@ function appsStatus() {
   if (c.state === "checking") return el("p", { class: "hint" }, "Checking…");
   if (c.state === "error") return el("p", { class: "hint" }, "Could not check your apps: " + c.error);
   const r = c.report;
-  if (!r.app_count) return el("p", {}, `No apps yet. The ${r.source} has ${plural(r.catalog_size, "ready-made app")}: see `, link("Popular apps", () => show("create")), " under Create.");
+  if (!r.app_count) return el("p", {}, `No apps yet. Ready-made apps from ${r.source} (${r.catalog_size}): see `, link("Popular apps", () => show("create")), " under Create.");
   if (!r.apps.length) return el("p", {}, `All apps are up to date (${r.source}, ${plural(r.catalog_size, "app")}).`);
   return [el("p", {}, `${plural(r.apps.length, "app has an update", "apps have updates")} (${r.source}):`), r.apps.map((u) => el("div", { class: "app" },
     el("div", { class: "meta" }, el("b", {}, u.name), el("span", { class: "wrap" }, `Preset ${u.from ?? "none"} → ${u.to}: ${u.notes}`)),
@@ -668,12 +668,40 @@ function updatesSection(us) {
   const save = (patch) => invoke("set_update_settings", { updates: { ...us, ...patch } }).then(() => Object.assign(us, patch));
   const onStart = el("input", { type: "checkbox", id: "s-check-start", checked: us.check_on_start,
     onchange: () => save({ check_on_start: onStart.checked }).then(() => say("Saved.")).catch(fail) });
-  const url = el("input", { type: "text", id: "s-catalog-url", value: us.catalog_url, placeholder: "Empty = the Penates app catalog" });
   const catalogStatus = el("p", { class: "hint", role: "status" }, "Checking the app catalog…");
   const showCatalog = () => invoke("catalog_apps")
-    .then((l) => put(catalogStatus, `Using the ${l.source}: ${plural(l.apps.length, "app")}. `, link("Browse them", () => show("create"))))
+    .then((l) => put(catalogStatus, `Using ${l.source}: ${plural(l.apps.length, "app")}. `, link("Browse them", () => show("create")),
+      l.problems.map((p) => el("span", { class: "warn-line" }, "Could not read " + p))))
     .catch((e) => put(catalogStatus, "Could not load the app catalog: " + e));
+  const changed = (msg) => { say(msg); checkApps(); put(catalogStatus, "Checking the app catalog…"); showCatalog(); };
   showCatalog();
+  // The Penates app catalog on or off, and your own catalogs, used together.
+  const penates = el("input", { type: "checkbox", id: "s-penates-catalog", checked: us.penates_catalog,
+    onchange: () => save({ penates_catalog: penates.checked }).then(() => changed("Saved.")).catch(fail) });
+  const list = el("div", { class: "catalogs" });
+  const showList = () => put(list, us.catalogs.length
+    ? us.catalogs.map((src) => el("div", { class: "row catalog" }, el("code", { class: "url grow" }, src),
+      el("button", { type: "button", textContent: "Remove", "aria-label": "Remove " + src, onclick: () =>
+        save({ catalogs: us.catalogs.filter((c) => c !== src) }).then(() => { showList(); changed("Removed."); }).catch(fail) })))
+    : el("p", { class: "hint" }, "None yet."));
+  showList();
+  const source = el("input", { type: "text", id: "s-catalog-add", class: "grow", placeholder: "https://…, file://… or a path to a catalog .json", "aria-label": "Catalog to add" });
+  const add = async (src) => {
+    src = src.trim();
+    if (!src) return;
+    if (us.catalogs.includes(src)) return say("That catalog is already in the list.");
+    const n = await invoke("check_catalog", { source: src }).catch((e) => { throw "Could not use that catalog: " + e; });
+    await save({ catalogs: [...us.catalogs, src] });
+    source.value = "";
+    showList();
+    changed(`Added: ${plural(n, "app")}.`);
+  };
+  const addButton = el("button", { type: "button", textContent: "Add", onclick: (ev) => busy(ev.target, "Checking…", () => add(source.value).catch(fail)) });
+  source.addEventListener("keydown", (e) => { if (e.key === "Enter") addButton.click(); });
+  const choose = el("button", { type: "button", textContent: "Choose file…", onclick: (ev) => busy(ev.target, "Choosing…", async () => {
+    const file = await invoke("pick_catalog_file");
+    if (file) await add(file).catch(fail);
+  }) });
   return [el("h2", {}, "Updates"),
     el("fieldset", {}, el("legend", {}, "Checking"),
       el("label", { class: "chk" }, onStart, el("span", {}, "Check for updates when Penates starts",
@@ -681,9 +709,12 @@ function updatesSection(us) {
       el("p", { class: "hint" }, "To check now or install updates, go to ", link("Updates", () => show("updates")), ".")),
     el("fieldset", {}, el("legend", {}, "App catalog"),
       el("p", { class: "hint" }, "Where your apps' fixes and the Popular apps list come from."),
-      el("label", { class: "f" }, "Catalog address (https://, file:// or a path; leave empty for the Penates app catalog)", url),
-      el("div", { class: "row" }, el("button", { type: "button", textContent: "Save address", onclick: () =>
-        save({ catalog_url: url.value.trim() }).then(() => { say("Saved."); checkApps(); put(catalogStatus, "Checking the app catalog…"); showCatalog(); }).catch(fail) })),
+      el("label", { class: "chk" }, penates, el("span", {}, "Use the Penates app catalog",
+        el("small", {}, "Ready-made apps for popular sites, kept up to date"))),
+      el("h3", {}, "Your catalogs"),
+      el("p", { class: "hint" }, "Used together with it, for sites of your own or presets you are trying out. Yours come first: an entry with the same id as one in the Penates catalog replaces it, and the first catalog listed wins."),
+      list,
+      el("div", { class: "row" }, source, addButton, choose),
       catalogStatus)];
 }
 

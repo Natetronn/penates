@@ -43,7 +43,8 @@ Each app is one TOML file, `~/.config/penates/apps/<id>.toml` (other systems: se
 `~/.config/penates/settings.toml`:
 ```toml
 [updates]
-catalog_url = ""         # app catalog: https:// or file:// URL, or a path; empty = the Penates app catalog
+penates_catalog = true   # use the Penates app catalog
+catalogs = []            # your own catalogs too: https:// or file:// URLs, or paths (see UPDATES.md)
 check_on_start = true
 
 [appearance]
@@ -55,7 +56,8 @@ toolbar_color = "site"   # site | penates: the toolbar color of apps set to "def
 [sharing]
 export_dir = ""          # folder for exports and backups (an absolute path); empty = Downloads
 ```
-`manifest_url` is accepted as another name for `catalog_url`. Penates also keeps
+A single `catalog_url` (or `manifest_url`) address is read as the only entry of `catalogs`, with
+`penates_catalog` off. Penates also keeps
 `launchers_version` and `launchers_bin` here, to know when launchers need rewriting. If `export_dir` is gone
 (an unplugged drive, say), exports go to Downloads until it is back.
 

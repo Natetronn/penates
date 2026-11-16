@@ -1,22 +1,53 @@
-//! Penates's own settings (`~/.config/penates/settings.toml`): update checks, the preset catalog
-//! address, the manager's look and where it saves exports.
+//! Penates's own settings (`~/.config/penates/settings.toml`): update checks, the preset catalogs,
+//! the manager's look and where it saves exports.
 
 use crate::store;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(default)]
+#[serde(from = "RawUpdateSettings")]
 pub struct UpdateSettings {
-    /// Preset catalog: an https:// or file:// URL, or a local path. Empty = the Penates app catalog
-    /// (the built-in copy when it cannot be reached).
-    #[serde(alias = "manifest_url")]
-    pub catalog_url: String,
+    /// Whether the Penates app catalog is used (the built-in copy when it cannot be reached).
+    pub penates_catalog: bool,
+    /// Your own preset catalogs, used together with it: https:// or file:// URLs, or local paths. Their
+    /// entries replace the Penates catalog's entries with the same id; among them, the first one listed wins.
+    pub catalogs: Vec<String>,
     pub check_on_start: bool,
 }
 impl Default for UpdateSettings {
     fn default() -> Self {
-        Self { catalog_url: String::new(), check_on_start: true }
+        Self { penates_catalog: true, catalogs: Vec::new(), check_on_start: true }
+    }
+}
+
+/// `[updates]` as written, including the single `catalog_url` (or `manifest_url`) address, which meant
+/// "this catalog instead of the Penates one": read as the only entry of `catalogs`, with the Penates catalog off.
+#[derive(Deserialize)]
+#[serde(default)]
+struct RawUpdateSettings {
+    penates_catalog: Option<bool>,
+    catalogs: Vec<String>,
+    #[serde(alias = "manifest_url")]
+    catalog_url: String,
+    check_on_start: bool,
+}
+impl Default for RawUpdateSettings {
+    fn default() -> Self {
+        Self { penates_catalog: None, catalogs: Vec::new(), catalog_url: String::new(), check_on_start: true }
+    }
+}
+impl From<RawUpdateSettings> for UpdateSettings {
+    fn from(r: RawUpdateSettings) -> Self {
+        let mut catalogs: Vec<String> = Vec::new();
+        let single = r.catalog_url.trim().to_string();
+        for c in r.catalogs.into_iter().chain((!single.is_empty()).then(|| single.clone())) {
+            let c = c.trim().to_string();
+            if !c.is_empty() && !catalogs.contains(&c) {
+                catalogs.push(c);
+            }
+        }
+        Self { penates_catalog: r.penates_catalog.unwrap_or(single.is_empty()), catalogs, check_on_start: r.check_on_start }
     }
 }
 
@@ -121,10 +152,24 @@ mod tests {
     use super::*;
 
     #[test]
-    fn manifest_url_is_another_name_for_catalog_url() {
-        let s: Settings = toml::from_str("[updates]\nmanifest_url = \"file:///x.json\"\n").unwrap();
-        assert_eq!(s.updates.catalog_url, "file:///x.json");
-        assert!(s.updates.check_on_start);
+    fn a_single_catalog_address_becomes_the_only_catalog() {
+        for key in ["catalog_url", "manifest_url"] {
+            let s: Settings = toml::from_str(&format!("[updates]\n{key} = \"file:///x.json\"\n")).unwrap();
+            assert_eq!(s.updates.catalogs, ["file:///x.json"]);
+            assert!(!s.updates.penates_catalog && s.updates.check_on_start);
+        }
+        let s: Settings = toml::from_str("[updates]\ncatalog_url = \"\"\n").unwrap();
+        assert!(s.updates.penates_catalog && s.updates.catalogs.is_empty());
+    }
+
+    #[test]
+    fn catalog_list_round_trips() {
+        let mut s = Settings::default();
+        s.updates.catalogs = vec!["/home/me/mine.json".into(), "https://example.com/team.json".into()];
+        s.updates.penates_catalog = false;
+        let back: Settings = toml::from_str(&toml::to_string_pretty(&s).unwrap()).unwrap();
+        assert_eq!(back.updates, s.updates);
+        assert!(!toml::to_string_pretty(&s).unwrap().contains("catalog_url"));
     }
 
     #[test]

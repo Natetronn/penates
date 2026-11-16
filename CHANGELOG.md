@@ -10,8 +10,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - While a page loads, the toolbar's Reload becomes Stop and a progress line runs along its bottom.
 - Create has a Show a toolbar checkbox.
 - The toolbar takes on each site's own color (its `theme-color`, else its background), with readable icons and text. Settings → Appearance → Toolbar color chooses between that and Penates's colors; each app can override it, including with a custom color (a picker, or any CSS color).
+- Catalogs of your own, used together with the Penates app catalog: Settings → Updates → Your catalogs takes `https://` or `file://` addresses and paths (with a file picker), checks each before adding it, and reports one that cannot be read while still using the rest. Your entries replace Penates catalog entries with the same id. The Penates app catalog can be turned off.
 
 ### Changed
+- `[updates] catalog_url` (one catalog instead of the Penates one) became `penates_catalog` and a `catalogs` list; an existing `catalog_url` is read as the only catalog, with the Penates one off.
 - The toolbar is on by default, also for apps made before it existed (turn it off under Edit → Window). `penates create --no-toolbar` makes an app without it; `--toolbar` is gone.
 
 ## [0.1.2] - 2026-11-15
