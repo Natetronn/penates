@@ -35,7 +35,7 @@ frame_css = """
 body{padding-block:24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .frame{max-width:880px;margin:0 auto;border:1px solid var(--line);border-radius:10px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.14)}
 .pnote{max-width:880px;margin:0 auto 10px;color:var(--muted);font-size:12px}
-header{position:static}
+header{position:relative}
 .toast{position:fixed}
 main{min-height:520px}
 """
