@@ -4,6 +4,7 @@
 |---|---|---|
 | `.deb`, `.rpm`, `.AppImage` | `./scripts/build-packages.sh` | `target/release/bundle/{deb,rpm,appimage}/` |
 | AUR (`penates-bin`) | installs the release tarball's binaries; files in `packaging/aur/penates-bin` | see [RELEASING](RELEASING.md) |
+| Arch package (`penates-bin`, for `pacman -U`) | `scripts/make-arch-package.sh` on Arch (not as root): the AUR `penates-bin` PKGBUILD pointed at the local tarball; the Release workflow runs it in an `archlinux:base-devel` container | `dist/penates-bin-<ver>-1-x86_64.pkg.tar.zst`, attached to the release |
 | AUR (`penates`) | builds the tagged source with `cargo` (x86_64 and aarch64); files in `packaging/aur/penates` | both refreshed by `scripts/publish-release.py` |
 | Arch / CachyOS (local) | `cd packaging/arch && makepkg -si` | `penates-<ver>-1-x86_64.pkg.tar.zst` |
 | Portable tarball (any *nix) | `./scripts/make-tarball.sh` | `dist/penates-<ver>-<triple>.tar.gz` (contains `install.sh`; `PREFIX=$HOME/.local ./install.sh`) |

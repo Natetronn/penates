@@ -12,6 +12,7 @@ depends=('webkit2gtk-4.1' 'gtk3' 'libayatana-appindicator')
 optdepends=('xdg-utils: open links and downloads in your browser')
 provides=('penates')
 conflicts=('penates')
+options=('!debug')   # prebuilt binaries: a debug package would be empty
 source=("https://github.com/Natetronn/penates/releases/download/v${pkgver}/penates-${pkgver}-x86_64-unknown-linux-gnu.tar.gz")
 sha256sums=('55f67d83e6f1082dbd00536403d9066e1e8ef0c4a1f2d7d2ac90016f91b6c363')
 

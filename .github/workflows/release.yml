@@ -64,10 +64,17 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
         run: ./scripts/build-packages.sh
-      - name: Portable tarball (used by the AUR package)
+      - name: Portable tarball (used by the AUR and Arch packages)
         if: startsWith(matrix.os, 'ubuntu')
         shell: bash
         run: ./scripts/make-tarball.sh
+      - name: Keep the tarball for the Arch package
+        if: startsWith(matrix.os, 'ubuntu')
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-tarball
+          path: dist/penates-*-x86_64-unknown-linux-gnu.tar.gz
+          if-no-files-found: error
       - name: Collect the release files
         shell: bash
         env:
@@ -79,3 +86,34 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "$GITHUB_REF_NAME" release-files/* --clobber -R "$GITHUB_REPOSITORY"
+
+  arch:
+    # The Arch Linux package (sudo pacman -U), built from the tarball on Arch itself.
+    needs: package
+    if: ${{ !cancelled() && needs.package.result == 'success' }}
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-tarball
+          path: dist
+      - name: Build the package
+        run: |
+          useradd -m builder
+          chown -R builder: .
+          su builder -c ./scripts/make-arch-package.sh
+      - name: Attach to the draft release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pacman -Syu --noconfirm --needed github-cli
+          gh release upload "$GITHUB_REF_NAME" dist/penates-bin-[0-9]*-x86_64.pkg.tar.zst --clobber -R "$GITHUB_REPOSITORY"
+      - name: Keep it (rehearsal)
+        if: github.ref_type != 'tag'
+        uses: actions/upload-artifact@v4
+        with:
+          name: arch-package
+          path: dist/penates-bin-[0-9]*-x86_64.pkg.tar.zst

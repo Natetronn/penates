@@ -1,7 +1,7 @@
 # Releasing
 
-Releases live on `Natetronn/penates`: installers, the in-app update file (`latest.json`) and the AUR
-tarball are attached to each GitHub release. Builds sit in a draft (visible only to the repo's owners)
+Releases live on `Natetronn/penates`: installers, the in-app update file (`latest.json`), the AUR
+tarball and an Arch package (`penates-bin-<ver>-1-x86_64.pkg.tar.zst`) are attached to each GitHub release. Builds sit in a draft (visible only to the repo's owners)
 until you publish them.
 
 ## Before the first release (once)
@@ -20,7 +20,8 @@ until you publish them.
 2. Optional rehearsal: **Actions → Release → Run workflow** builds and signs every installer without uploading anything.
 3. Commit, then tag and push: `git tag v0.2.0 && git push origin v0.2.0`.
 4. The **Release** workflow checks that the tag matches `Cargo.toml`, builds and signs installers on Linux,
-   Windows and macOS (Apple Silicon and Intel) and attaches them to a **draft** release. Nothing is public yet.
+   Windows and macOS (Apple Silicon and Intel), builds the Arch package from the Linux tarball in an Arch container,
+   and attaches them to a **draft** release. Nothing is public yet.
 5. When it is green: `scripts/publish-release.py v0.2.0 --dry-run`, then without `--dry-run`. It downloads the
    draft's files (refusing duplicates or files of another version), writes `latest.json`, uploads it to the draft,
    sets the notes from `CHANGELOG.md`, publishes the release, and updates both AUR packages in `packaging/aur/`

@@ -100,6 +100,8 @@ def main():
     if p := one(".rpm"): updater(["linux-x86_64-rpm"], p)
     tarball = one("-x86_64-unknown-linux-gnu.tar.gz")
     if tarball: add(tarball)
+    if p := one("-x86_64.pkg.tar.zst"): add(p)
+    else: print("warning: no Arch package (penates-bin-*.pkg.tar.zst) in the draft")
     if p := one("-setup.exe"): updater(["windows-x86_64-nsis", "windows-x86_64"], p)
     for arch, label in [("aarch64", "aarch64"), ("x86_64", "x64")]:
         if p := one(f"_{label}.app.tar.gz"): updater([f"darwin-{arch}-app", f"darwin-{arch}"], p)

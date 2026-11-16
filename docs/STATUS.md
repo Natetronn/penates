@@ -41,7 +41,7 @@ What has actually been run, and where. Last updated 2026-11-15, version 0.1.1.
 | Site permissions | notifications and camera/microphone granted by real clicks when allowed, denied when not |
 | Cache | clearing frees the cache and keeps cookies and storage |
 | Export and import | CLI round trips in a scratch config: rename/skip/overwrite, custom JavaScript stripped unless allowed, camera/devtools switched off, no cookies in the file, bad ids and `javascript:` URLs refused or sanitized |
-| Packages | see [PACKAGING](PACKAGING.md); the tarball installs into `~/.local` and the installed manager runs |
+| Packages | see [PACKAGING](PACKAGING.md); the tarball installs into `~/.local` and the installed manager runs; the Arch package (0.1.1, built from the release tarball in an `archlinux:base-devel` container) installs with `pacman -U` in a clean Arch container, pulls in its dependencies, `penates --version` runs and the desktop program's libraries all resolve |
 
 ## To check by hand
 - In the real manager window: Import (the file chooser was fixed to show `.penates` files), Save in Edit, and the icon file chooser.

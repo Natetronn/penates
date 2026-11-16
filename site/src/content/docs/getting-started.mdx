@@ -10,7 +10,15 @@ import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 <Tabs syncKey="os">
   <TabItem label="Linux">
     Get the AppImage, `.deb` or `.rpm` from the [releases page](https://github.com/Natetronn/penates/releases/latest).
-    On Arch and its relatives, install it from the AUR with the tools every Arch system has:
+    On Arch and its relatives, download the Arch package (`penates-bin-…-x86_64.pkg.tar.zst`) from the
+    [releases page](https://github.com/Natetronn/penates/releases/latest) and install it with pacman:
+
+    ```sh
+    sudo pacman -U ./penates-bin-*-x86_64.pkg.tar.zst
+    ```
+
+    pacman does not update it by itself. To get updates with your other packages, install it from the AUR
+    instead, with the tools every Arch system has:
 
     ```sh
     sudo pacman -S --needed git base-devel   # once
