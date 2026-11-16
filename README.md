@@ -21,7 +21,7 @@ on Arch from the AUR, `paru -S penates-bin` (or `yay`, or `makepkg -si`); elsewh
 - **App catalog:** add known sites (GitHub, Notion, Discord, Proton Mail, YouTube and more) in one click from Create → Popular apps, with small fixes such as in-app sign-in from the shared [penates-apps](https://github.com/Natetronn/penates-apps) catalog. Add catalogs of your own (a file or an address) alongside it, or use only yours.
 - **Smart links:** links to other sites open in your browser; same-site popups (sign-in flows) stay in the app; downloads go to your Downloads folder.
 - **Browser keys without a browser:** Alt+←/→ or the mouse's side buttons go back and forward, F5 or Ctrl+R reloads, Alt+Home goes to the app's start page, and F1 or Ctrl+/ lists these keys.
-- **A toolbar** per app (turn it off under Edit): back, forward, reload (stop while a page loads), start page, the page's address, Open in browser and the key list, in each site's own color, Penates's, or one you pick.
+- **A toolbar** per app (turn it off under Edit): back, forward, reload (stop while a page loads), start page, the page's address, the key list and Open in browser, in each site's own color, Penates's, or one you pick.
 - **Share and back up:** export one app or all of them to a `.penates` file and import it elsewhere; logins are never included. Propose an app's fixes for the shared catalog from its ⋮ menu. Exports go to Downloads, or a folder you choose in Settings. See [docs/SHARING.md](docs/SHARING.md).
 - **Housekeeping:** clear cache (keeps you signed in) or clear cookies and data, update checks with versioned presets, icons from a file or URL.
 - **Themeable manager:** light/dark/system, six accents, four looks, all from plain CSS tokens.

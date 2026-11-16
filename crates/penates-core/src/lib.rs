@@ -50,8 +50,8 @@ pub struct WebApp {
     pub always_on_top: bool,
     /// Show the native title bar and borders.
     pub decorations: bool,
-    /// Show a toolbar above the site: back, forward, reload, start page, the address, open in browser and the
-    /// key list. On unless turned off (apps saved before it existed get it too).
+    /// Show a toolbar above the site: back, forward, reload, start page, the address, the key list and open in
+    /// browser. On unless turned off (apps saved before it existed get it too).
     pub toolbar: bool,
     /// The toolbar's color: "default" (Settings decides), "site" (the site's own color), "penates", or a
     /// custom `#rrggbb`.

@@ -43,7 +43,7 @@ enum Cmd {
         inject_js: Option<PathBuf>,
         #[arg(long)]
         devtools: bool,
-        /// No toolbar above the site (it has back, forward, reload, start page, the address, open in browser and the key list)
+        /// No toolbar above the site (it has back, forward, reload, start page, the address, the key list and open in browser)
         #[arg(long)]
         no_toolbar: bool,
         /// Don't add a launcher to the application menu (`penates install` adds one later)

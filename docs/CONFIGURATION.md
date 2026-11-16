@@ -20,7 +20,7 @@ Each app is one TOML file, `~/.config/penates/apps/<id>.toml` (other systems: se
 | `resizable` | `true` | |
 | `always_on_top` | `false` | |
 | `decorations` | `true` | native title bar and borders (`false` = frameless) |
-| `toolbar` | `true` | a toolbar above the site: back, forward, reload (stop while loading), start page, the address, open in browser and the key list |
+| `toolbar` | `true` | a toolbar above the site: back, forward, reload (stop while loading), start page, the address, the key list and open in browser |
 | `toolbar_color` | `"default"` | `"default"` (Settings decides), `"site"` (the site's own color), `"penates"`, or a hex color like `"#5865f2"` (in the manager, any CSS color) |
 | `devtools` | `false` | enable the web inspector |
 | `single_instance` | `true` | launching again focuses the open window |
