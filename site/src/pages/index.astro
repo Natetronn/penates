@@ -95,6 +95,7 @@ const platforms = [
               <a href="#download" class="button" data-download>Download</a>
               <a href={href('demo/')} class="button ghost">Try it in your browser</a>
             </div>
+            <p class="hero-meta" data-meta hidden></p>
           </div>
           <figure class="shot hero-shot">
             <Image src={appsDark} alt="The Penates manager listing five apps" class="on-dark" widths={[640, 1075]} sizes="(min-width: 900px) 560px, 100vw" loading="eager" />
@@ -162,12 +163,13 @@ launcher: ~/.local/share/applications/penates-github.desktop</span>
         <p class="sub">Version numbers, checksums and every file are on the <a href={RELEASES}>releases page</a>. Penates updates itself, with signed updates.</p>
         <div class="platforms">
           {platforms.map((p) => (
-            <a class="card platform" href={RELEASES} data-os={p.os}>
+            <div class="card platform" data-os={p.os}>
               <span class="pname">{p.name}</span>
               <span class="pformats">{p.formats}</span>
               <span class="pnote" set:html={p.note} />
-              <span class="pget">Get it →</span>
-            </a>
+              <a class="pget" href={RELEASES}>Get it →</a>
+              <p class="pfiles" data-files hidden></p>
+            </div>
           ))}
         </div>
         <p class="sub">New here? <a href={href('getting-started/')}>Getting started</a> walks through your first app.</p>
@@ -175,14 +177,53 @@ launcher: ~/.local/share/applications/penates-github.desktop</span>
     </main>
 
     <script>
-      // Point Download at this computer's system.
+      // Point Download at this computer's system, and at the latest release's files once GitHub says what they
+      // are. Without an answer from GitHub, every link stays on the releases page.
+      type Asset = { name: string; browser_download_url: string };
       const ua = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform || navigator.platform || navigator.userAgent;
       const os = /win/i.test(ua) ? 'windows' : /mac|iphone|ipad/i.test(ua) ? 'mac' : /linux|x11|cros/i.test(ua) ? 'linux' : '';
       const names: Record<string, string> = { windows: 'Windows', mac: 'macOS', linux: 'Linux' };
+      // [label of the small link, file pattern, text of the main button]; the first file found is the main one.
+      const FILES: Record<string, [string, RegExp, string][]> = {
+        linux: [['AppImage', /\.AppImage$/, 'Download the AppImage →'], ['.deb', /\.deb$/, ''], ['.rpm', /\.rpm$/, ''], ['Arch package', /-x86_64\.pkg\.tar\.zst$/, '']],
+        windows: [['Installer', /-setup\.exe$/, 'Download the installer →']],
+        mac: [['Apple silicon', /_aarch64\.dmg$/, 'Download for Apple silicon →'], ['Intel', /_x64\.dmg$/, 'Download for Intel →']],
+      };
+      const button = document.querySelector<HTMLAnchorElement>('[data-download]');
       if (os) {
         document.querySelector(`.platform[data-os="${os}"]`)?.classList.add('yours');
-        const button = document.querySelector<HTMLAnchorElement>('[data-download]');
         if (button) button.textContent = `Download for ${names[os]}`;
       }
+      const link = (text: string, url: string) => Object.assign(document.createElement('a'), { textContent: text, href: url });
+      fetch('https://api.github.com/repos/Natetronn/penates/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
+        .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+        .then((release: { tag_name?: string; assets?: Asset[] }) => {
+          const assets = release.assets ?? [];
+          const version = String(release.tag_name ?? '').replace(/^v/, '');
+          const found = (key: string) =>
+            (FILES[key] ?? []).flatMap(([label, re, main]) => {
+              const a = assets.find((x) => re.test(x.name));
+              return a ? [{ label, main, url: a.browser_download_url }] : [];
+            });
+          for (const card of document.querySelectorAll<HTMLElement>('.platform')) {
+            const files = found(card.dataset.os ?? '');
+            if (!files.length) continue;
+            const get = card.querySelector<HTMLAnchorElement>('.pget');
+            if (get) { get.href = files[0].url; get.textContent = files[0].main; }
+            const more = card.querySelector<HTMLElement>('[data-files]');
+            if (more && files.length > 1) {
+              more.append('Also: ');
+              files.slice(1).forEach((f, i) => { if (i) more.append(' · '); more.append(link(f.label, f.url)); });
+              more.hidden = false;
+            }
+          }
+          const meta = document.querySelector<HTMLElement>('[data-meta]');
+          if (!meta || !version) return;
+          const mine = os ? found(os) : [];
+          if (button && mine.length && os !== 'mac') button.href = mine[0].url;
+          meta.append(`Version ${version}${os === 'mac' ? ' · pick Apple silicon or Intel below' : ''} · `, link('All downloads', '#download'));
+          meta.hidden = false;
+        })
+        .catch(() => {});
     </script>
 </Site>

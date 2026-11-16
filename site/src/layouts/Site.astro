@@ -241,14 +241,17 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
   .download .sub { color: var(--muted); max-width: 40rem; margin: 0 auto 2rem; }
   .download .sub:last-child { margin: 2rem auto 0; }
   .platforms { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); text-align: left; }
-  .platform { display: flex; flex-direction: column; gap: 0.35rem; text-decoration: none; color: var(--fg); transition: border-color 0.15s ease, transform 0.15s ease; }
-  .platform:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .platform { display: flex; flex-direction: column; gap: 0.35rem; color: var(--fg); transition: border-color 0.15s ease; }
+  .platform:hover { border-color: var(--accent); }
   .platform.yours { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--shadow); }
   .pname { font-size: 1.4rem; font-weight: 700; }
   .pformats { font-weight: 600; }
   .pnote { color: var(--muted); font-size: 0.92rem; flex: 1; }
   .pnote code { background: var(--bg-2); padding: 0.1em 0.35em; border-radius: 4px; }
-  .pget { color: var(--accent); font-weight: 600; margin-top: 0.6rem; }
+  .pget { color: var(--accent); font-weight: 600; margin-top: 0.6rem; text-decoration: none; }
+  .pget:hover { text-decoration: underline; }
+  .pfiles { margin: 0.2rem 0 0; font-size: 0.88rem; color: var(--muted); }
+  .hero-meta { margin: 1rem 0 0; font-size: 0.9rem; color: var(--muted); }
 
   /* footer */
   .foot { border-top: 1px solid var(--line); background: var(--bg-2); padding: 2rem 0; font-size: 0.92rem; color: var(--muted); }
