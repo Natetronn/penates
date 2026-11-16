@@ -5,6 +5,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
+### Fixed
+- App Catalog icons: a catalog entry that changes its icon (or a Penates that chooses site icons differently)
+  shows the new one at once, instead of the cached old one for up to 30 days.
+
 ## [0.1.4] - 2026-11-16
 Report a problem, with a log of Penates's own errors kept on your computer; better site icons; Edit on App Catalog cards.
 

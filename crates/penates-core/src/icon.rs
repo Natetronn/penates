@@ -216,9 +216,27 @@ pub fn fetch_for(page_url: &str, id: &str) -> Result<PathBuf> {
 /// How long an icon shown in the catalog listing is reused before it is fetched again.
 const CATALOG_ICON_MAX_AGE: std::time::Duration = std::time::Duration::from_secs(30 * 24 * 3600);
 
-/// Cached icons for browsing the catalog. Separate from app icons, and safe to delete.
-fn catalog_icon_cache(id: &str) -> PathBuf {
-    dirs::cache_dir().unwrap_or_else(std::env::temp_dir).join("penates").join("catalog-icons").join(format!("{id}.png"))
+fn catalog_icon_dir() -> PathBuf {
+    dirs::cache_dir().unwrap_or_else(std::env::temp_dir).join("penates").join("catalog-icons")
+}
+
+/// The cached icon's file name: the app id and a hash of where the icon comes from (the entry's icon address,
+/// else the site) and this Penates version, so a catalog entry that changes its icon, or a Penates that chooses
+/// site icons differently, fetches it again instead of showing the old one for up to 30 days.
+fn catalog_icon_name(id: &str, url: &str, icon_url: Option<&str>) -> String {
+    let source = format!("{}\0{}", icon_url.unwrap_or(url), env!("CARGO_PKG_VERSION"));
+    let hash = source.bytes().fold(0xcbf2_9ce4_8422_2325u64, |h, b| (h ^ b as u64).wrapping_mul(0x0100_0000_01b3));
+    format!("{id}-{hash:016x}.png")
+}
+
+/// Whether `name` is a cached icon of app `id` (from any source, or the older `<id>.png`).
+fn is_catalog_icon_of(name: &str, id: &str) -> bool {
+    name == format!("{id}.png")
+        || name
+            .strip_prefix(id)
+            .and_then(|r| r.strip_prefix('-'))
+            .and_then(|r| r.strip_suffix(".png"))
+            .is_some_and(|h| h.len() == 16 && h.bytes().all(|b| b.is_ascii_hexdigit()))
 }
 
 /// The icon for a catalog app (for browsing, before it is added): the cached copy while it is fresh,
@@ -227,7 +245,7 @@ pub fn catalog_icon(id: &str, url: &str, icon_url: Option<&str>) -> Result<Vec<u
     store::check_id(id)?;
     let site = Url::parse(url)?;
     anyhow::ensure!(matches!(site.scheme(), "http" | "https"), "only http(s) sites");
-    let cached = catalog_icon_cache(id);
+    let cached = catalog_icon_dir().join(catalog_icon_name(id, url, icon_url));
     let fresh = std::fs::metadata(&cached)
         .and_then(|m| m.modified())
         .is_ok_and(|t| t.elapsed().is_ok_and(|age| age < CATALOG_ICON_MAX_AGE));
@@ -240,7 +258,15 @@ pub fn catalog_icon(id: &str, url: &str, icon_url: Option<&str>) -> Result<Vec<u
         Some(png) => png,
         None => best_from(&Page::fetch(url)?)?,
     };
-    let _ = store::write_atomic(&cached, &png); // a cache: failing to write it is not an error
+    // A cache: failing to write it is not an error. Older copies of this app's icon go.
+    if let Ok(entries) = std::fs::read_dir(catalog_icon_dir()) {
+        for e in entries.flatten() {
+            if is_catalog_icon_of(&e.file_name().to_string_lossy(), id) && e.path() != cached {
+                let _ = std::fs::remove_file(e.path());
+            }
+        }
+    }
+    let _ = store::write_atomic(&cached, &png);
     Ok(png)
 }
 
@@ -375,6 +401,19 @@ mod tests {
             }
         }
         assert!(!is_flat(&png_of(dark)));
+    }
+
+    #[test]
+    fn a_new_catalog_icon_source_gets_a_new_cache_file() {
+        let site = catalog_icon_name("gmail", "https://mail.google.com/", None);
+        let own = catalog_icon_name("gmail", "https://mail.google.com/", Some("https://www.gstatic.com/gmail.png"));
+        assert_ne!(site, own);
+        assert_eq!(own, catalog_icon_name("gmail", "https://mail.google.com/", Some("https://www.gstatic.com/gmail.png")));
+        assert!(is_catalog_icon_of(&site, "gmail") && is_catalog_icon_of("gmail.png", "gmail"));
+        // Another app whose id starts the same is not touched.
+        let calendar = catalog_icon_name("google-calendar", "https://calendar.google.com/", None);
+        assert!(!is_catalog_icon_of(&calendar, "google"));
+        assert!(!is_catalog_icon_of("gmail-old.png", "gmail"));
     }
 
     #[test]
