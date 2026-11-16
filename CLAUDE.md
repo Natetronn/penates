@@ -23,6 +23,7 @@ cargo test --workspace                                   # includes a Node check
 cargo clippy --workspace --all-targets -- -D warnings    # CI runs this on Linux, Windows and macOS
 python3 design/preview/build.py                          # after any ui/ change; keep design/preview/mock.js in step with commands.rs
 python3 scripts/gen-credits.py                           # after dependency changes: credits and license texts (CI checks them)
+python3 scripts/downloads.py                             # release download counts by platform
 (cd site && npm ci && npm run build)                     # the website; npm run dev serves it at localhost:4321/
 xvfb-run -a dbus-run-session -- ./scripts/smoke-linux.sh # CI smoke test (opens real windows without Xvfb)
 cargo build --release --workspace --features penates-desktop/custom-protocol   # embeds the UI

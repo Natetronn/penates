@@ -52,3 +52,10 @@ signature of the download with the public key in `src-tauri/tauri.conf.json`, in
 - Public key: `plugins.updater.pubkey` in `src-tauri/tauri.conf.json`.
 - **Back up `~/.tauri/penates.key`.** If it is lost, installed copies can never verify another update; a new
   key means users must reinstall by hand. Never commit it.
+
+## Download counts
+`python3 scripts/downloads.py` prints every release file's downloads by platform, and the repo's traffic
+for the last 14 days. GitHub keeps only running totals, so the **Stats** workflow appends dated counts to
+`downloads.csv` on the `stats` branch every Monday (or run it by hand: Actions → Stats → Run workflow).
+`latest.json` counts update checks, not people. Downloading a whole release adds one to every file, so
+checks should fetch only the files they need.
