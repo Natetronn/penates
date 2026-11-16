@@ -7,6 +7,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ### Added
 - The website, [getpenates.com](https://getpenates.com), with the docs, the app catalog and a clickable demo of the manager. About links to it.
+- 12 more apps in the app catalog, 22 in all: ChatGPT, Claude, Figma, Gmail, Google Calendar, Google Drive, Linear, Outlook, Slack, Telegram, Todoist and Trello. The catalog is live for every install; this release refreshes the built-in copy used when it cannot be reached.
 
 ### Changed
 - The update notice for package-manager installs no longer assumes an AUR helper: it says to update the way Penates was installed (the package manager, or makepkg or an AUR helper for the AUR).
