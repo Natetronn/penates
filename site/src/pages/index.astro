@@ -9,6 +9,11 @@ import settings from '../assets/screens/manager-settings.png';
 import catalog from '../data/catalog.json';
 
 const RELEASES = 'https://github.com/Natetronn/penates/releases/latest';
+// The chips under the hero: these first (when the catalog has them), then a link to all of them.
+const FEATURED = ['figma', 'slack', 'gmail', 'notion', 'discord', 'spotify', 'chatgpt', 'claude', 'github'];
+const featured = FEATURED.flatMap((id) => catalog.filter((a) => a.id === id));
+const appIcons = import.meta.glob<{ default: ImageMetadata }>('../assets/app-icons/*.png', { eager: true });
+const iconFor = (id: string) => appIcons[`../assets/app-icons/${id}.png`]?.default;
 const title = 'Penates: turn websites into desktop apps';
 const description =
   'Penates turns websites and web apps into desktop apps, each with its own window, icon, taskbar entry and separate login. Free and open source, for Linux, Windows and macOS.';
@@ -107,7 +112,15 @@ const platforms = [
       <section class="wrap strip" aria-label="Apps in the catalog">
         <p>Ready-made fixes for</p>
         <ul>
-          {catalog.map((app) => <li><a href={href('apps/')}>{app.name}</a></li>)}
+          {featured.map((app) => (
+            <li>
+              <a href={href('apps/')}>
+                {iconFor(app.id) && <Image src={iconFor(app.id)!} alt="" width={20} height={20} />}
+                {app.name}
+              </a>
+            </li>
+          ))}
+          {catalog.length > featured.length && <li><a href={href('apps/')} class="more-apps">+{catalog.length - featured.length} more</a></li>}
         </ul>
         <p class="more">and any other site you paste in.</p>
       </section>

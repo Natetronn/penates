@@ -201,10 +201,12 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
   .strip p { margin: 0; }
   .strip ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; list-style: none; margin: 0; padding: 0; }
   .strip li a {
-    display: block; padding: 0.3rem 0.8rem; border-radius: 999px; border: 1px solid var(--line);
+    display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.3rem 0.8rem; border-radius: 999px; border: 1px solid var(--line);
     background: var(--card); color: var(--fg); text-decoration: none; font-weight: 500; font-size: 0.9rem;
   }
   .strip li a:hover { border-color: var(--accent); }
+  .strip li img { width: 20px; height: 20px; border-radius: 5px; }
+  .strip .more-apps { color: var(--accent); border-style: dashed; }
 
   /* features */
   .features { padding: 3rem 0; }
