@@ -411,12 +411,56 @@ pub async fn pick_export_folder(app: tauri::AppHandle) -> CmdResult<Option<Strin
     .await
 }
 
-/// Choose a catalog file for Settings → Updates → Your catalogs (None when cancelled).
+/// A file chosen in the system's file dialog: its name and contents.
+#[derive(serde::Serialize)]
+pub struct PickedFile {
+    name: String,
+    bytes: Vec<u8>,
+}
+
+/// Choose a file with the system's file dialog and read it: `kind` "image" (an icon, starting in your home
+/// folder) or "penates" (an export to import, starting in your export folder). Every file picker in Penates is
+/// the system dialog, so each starts in a useful folder (a web page's file input cannot choose one, and GTK
+/// opens it in Recent, often empty) and filters by file name (a web page's input on Linux filters by MIME
+/// type only, which hides `.penates` files). None when cancelled.
+#[tauri::command]
+pub async fn pick_file(app: tauri::AppHandle, kind: String) -> CmdResult<Option<PickedFile>> {
+    use tauri_plugin_dialog::DialogExt;
+    const MAX: u64 = 20 * 1024 * 1024;
+    blocking(move || {
+        let dialog = app.dialog().file();
+        let dialog = match kind.as_str() {
+            "image" => dialog.set_title("Choose an icon image").add_filter("Images", &["png", "jpg", "jpeg", "webp", "gif", "ico"]),
+            "penates" => dialog
+                .set_title("Choose a Penates file")
+                .set_directory(settings::load().sharing.export_folder())
+                .add_filter("Penates files", &["penates"])
+                .add_filter("All files", &["*"]),
+            _ => anyhow::bail!("unknown kind of file '{kind}'"),
+        };
+        let dialog = if kind == "image" { home_start(dialog) } else { dialog };
+        let Some(path) = dialog.blocking_pick_file().and_then(|f| f.into_path().ok()) else { return Ok(None) };
+        anyhow::ensure!(std::fs::metadata(&path)?.len() <= MAX, "that file is over 20 MB");
+        let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        Ok(Some(PickedFile { name, bytes: std::fs::read(&path)? }))
+    })
+    .await
+}
+
+/// Start a file dialog in the home folder.
+fn home_start<R: tauri::Runtime>(d: tauri_plugin_dialog::FileDialogBuilder<R>) -> tauri_plugin_dialog::FileDialogBuilder<R> {
+    match dirs::home_dir() {
+        Some(h) => d.set_directory(h),
+        None => d,
+    }
+}
+
+/// Choose a catalog file for Settings → Updates → Your catalogs (None when cancelled; starts in your home folder).
 #[tauri::command]
 pub async fn pick_catalog_file(app: tauri::AppHandle) -> CmdResult<Option<String>> {
     use tauri_plugin_dialog::DialogExt;
     blocking(move || {
-        Ok(app.dialog().file().set_title("Choose an app catalog").add_filter("App catalog", &["json"]).blocking_pick_file()
+        Ok(home_start(app.dialog().file()).set_title("Choose an app catalog").add_filter("App catalog", &["json"]).blocking_pick_file()
             .and_then(|f| f.into_path().ok()).map(|p| p.display().to_string()))
     })
     .await

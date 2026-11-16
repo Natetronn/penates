@@ -18,6 +18,7 @@ The toolbar on by default, with a Keys button, a loading indicator and each site
 ### Changed
 - `[updates] catalog_url` (one catalog instead of the Penates one) became `penates_catalog` and a `catalogs` list; an existing `catalog_url` is read as the only catalog, with the Penates one off.
 - The toolbar is on by default, also for apps made before it existed (turn it off under Edit → Window). `penates create --no-toolbar` makes an app without it; `--toolbar` is gone.
+- Every file picker (Import, an icon on Create or Edit, a catalog) is the system's file dialog. Icons and catalogs start in your home folder, Import in your export folder; before, the icon pickers opened in Recent, which is often empty.
 
 ### Fixed
 - Two people signed in on one computer no longer share single-window ports (the second person's apps lost single-window mode). A Penates run with its own folders (another `XDG_CONFIG_HOME`) also keeps apart from the installed one.

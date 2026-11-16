@@ -131,6 +131,16 @@ const H = {
   get_export_folder: () => ({ chosen: exportDir, folder: exportDir || '/home/you/Downloads' }),
   set_export_folder({ dir }) { exportDir = dir; return { chosen: exportDir, folder: exportDir || '/home/you/Downloads' }; },
   async pick_export_folder() { await wait(300); return '/home/you/Backups/Penates'; },
+  // The demo has no file dialog: it "chooses" the Penates logo as an icon, or a sample export to import.
+  async pick_file({ kind }) {
+    await wait(300);
+    if (kind === 'image') {
+      const svg = document.querySelector('.hlogo')?.src || '';
+      const png = await new Promise((r) => { const i = new Image(); i.onload = () => { const c = document.createElement('canvas'); c.width = c.height = 128; c.getContext('2d').drawImage(i, 0, 0, 128, 128); c.toBlob((b) => r(b)); }; i.onerror = () => r(null); i.src = svg; });
+      return png ? { name: 'logo.png', bytes: Array.from(new Uint8Array(await png.arrayBuffer())) } : null;
+    }
+    return { name: 'sample.penates', bytes: Array.from(new TextEncoder().encode('sample')) };
+  },
   async pick_catalog_file() { await wait(300); return '/home/you/penates/my-catalog.json'; },
   async check_catalog({ source }) {
     await wait(400);

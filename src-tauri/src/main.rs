@@ -54,7 +54,7 @@ fn run_manager_window(start: Option<String>, listener: Option<std::net::TcpListe
             commands::cache_info, commands::clear_cache, commands::clear_data,
             commands::icon_data, commands::icon_candidates, commands::set_icon_from_url,
             commands::set_icon_from_bytes, commands::reset_icon,
-            commands::update_app, commands::update_all, commands::check_apps, commands::catalog_apps, commands::check_catalog, commands::pick_catalog_file, commands::catalog_icon, commands::catalog_submission,
+            commands::update_app, commands::update_all, commands::check_apps, commands::catalog_apps, commands::check_catalog, commands::pick_catalog_file, commands::pick_file, commands::catalog_icon, commands::catalog_submission,
             commands::check_self_update, commands::install_self_update,
             commands::get_update_settings, commands::set_update_settings, commands::get_appearance, commands::set_appearance,
             commands::export_apps, commands::inspect_import, commands::import_apps, commands::open_url,

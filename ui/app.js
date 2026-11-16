@@ -245,17 +245,18 @@ function importFlags(s) {
 }
 
 function renderImportPick(root, cancel) {
-  // No `accept` filter: WebKitGTK turns it into a file-dialog filter of MIME types only, and .penates has
-  // none, so exported files would be hidden. The contents are checked on load instead.
-  const file = el("input", { type: "file", id: "imp-file" });
   const url = el("input", { type: "text", id: "imp-url", class: "grow", placeholder: "https://example.com/github.penates" });
   const load = async (source, isUrl) => {
     try { importing = { stage: "review", data: await invoke("inspect_import", { source, isUrl }) }; renderApps(); } catch (e) { fail(e); }
   };
-  file.onchange = async () => { const f = file.files[0]; if (f) load(await f.text(), false); };
+  const choose = el("button", { type: "button", id: "imp-file", textContent: "Choose file…", onclick: (ev) => busy(ev.target, "Choosing…", async () => {
+    const f = await invoke("pick_file", { kind: "penates" });
+    if (f) await load(new TextDecoder().decode(new Uint8Array(f.bytes)), false);
+  }) });
   put(root, el("h2", {}, "Import apps"),
     el("fieldset", {}, el("legend", {}, "From a file"),
-      el("label", { class: "f" }, "Choose a .penates file exported from Penates. You review it before anything is added.", file)),
+      el("p", { class: "hint" }, "A .penates file exported from Penates. You review it before anything is added."),
+      el("div", { class: "row" }, choose)),
     el("fieldset", {}, el("legend", {}, "From a link"),
       el("label", { class: "f", htmlFor: "imp-url" }, "Address of a .penates file"),
       el("div", { class: "row" }, url, el("button", { textContent: "Load", onclick: () => load(url.value, true) }))),
@@ -403,8 +404,10 @@ function iconSection(a, inputs, keepEdits) {
   const candBox = el("div", { class: "icons" });
   const urlIn = el("input", { type: "text", id: "icon-url", class: "grow", placeholder: "https://example.com/logo.png", "aria-label": "Icon image address" });
   const pick = (call) => async () => { try { const s = await call(); keepEdits(s.app); sayWith("Icon updated.", s.warning); } catch (e) { fail(e); } };
-  const file = el("input", { type: "file", accept: "image/png,image/jpeg,image/webp,image/gif,image/x-icon,image/vnd.microsoft.icon,.ico", hidden: true,
-    onchange: () => { const f = file.files[0]; if (f) pick(async () => invoke("set_icon_from_bytes", { id: a.id, bytes: Array.from(new Uint8Array(await f.arrayBuffer())) }))(); } });
+  const upload = (ev) => busy(ev.target, "Choosing…", async () => {
+    const f = await invoke("pick_file", { kind: "image" });
+    if (f) await pick(() => invoke("set_icon_from_bytes", { id: a.id, bytes: f.bytes }))();
+  });
   const find = (ev) => busy(ev.target, null, async () => {
     candBox.textContent = "Searching…";
     try {
@@ -421,12 +424,12 @@ function iconSection(a, inputs, keepEdits) {
     candBox,
     el("div", { class: "row" },
       el("button", { type: "button", textContent: "Find icons on site", onclick: find }),
-      el("button", { type: "button", textContent: "Upload image…", onclick: () => file.click() }),
+      el("button", { type: "button", textContent: "Upload image…", onclick: upload }),
       el("button", { type: "button", textContent: "Use site default", onclick: pick(() => invoke("reset_icon", { id: a.id })) })),
     el("div", { class: "row" }, urlIn, el("button", { type: "button", textContent: "Use address", onclick: () => {
       if (!urlIn.value.trim()) return say("Paste an image address first.", "err");
       pick(() => invoke("set_icon_from_url", { id: a.id, url: urlIn.value }))();
-    } }))), file];
+    } })))];
 }
 
 async function renderEdit(root) {
@@ -476,17 +479,25 @@ function renderCreate() {
   const open = el("input", { type: "checkbox", id: "c-open", checked: true });
   const toolbar = el("input", { type: "checkbox", id: "c-toolbar", checked: true });
   const iconUrl = el("input", { type: "text", id: "c-icon-url", placeholder: "https://example.com/logo.png" });
-  const iconFile = el("input", { type: "file", id: "c-icon-file", accept: "image/png,image/jpeg,image/webp,image/gif,image/x-icon,image/vnd.microsoft.icon,.ico" });
+  // An icon file chosen with the system dialog: { name, bytes } until the app is created or it is cleared.
+  let iconFile = null;
+  const iconName = el("span", { class: "hint", id: "c-icon-name" }, "No file chosen");
+  const clearIcon = el("button", { type: "button", textContent: "Clear", hidden: true, onclick: () => { iconFile = null; put(iconName, "No file chosen"); clearIcon.hidden = true; } });
+  const chooseIcon = el("button", { type: "button", id: "c-icon-file", textContent: "Choose file…", onclick: (ev) => busy(ev.target, "Choosing…", async () => {
+    const f = await invoke("pick_file", { kind: "image" });
+    if (!f) return;
+    iconFile = f; put(iconName, f.name); clearIcon.hidden = false;
+  }) });
   put($("tab-create"),
     el("h2", {}, "Create an app"),
     el("p", { class: "hint" }, "Paste a site address. The name and icon are read from the site automatically. You can edit either one here or later under Edit."),
     el("form", { onsubmit: async (e) => {
       e.preventDefault();
       await busy(e.target.querySelector("button.primary"), "Creating…", async () => {
-        const f = iconFile.files[0];
-        const iconBytes = f ? Array.from(new Uint8Array(await f.arrayBuffer())) : null;
+        const iconBytes = iconFile ? iconFile.bytes : null;
         const c = await invoke("create_app", { url: url.value, name: name.value || null, openAfter: open.checked, iconUrl: iconUrl.value.trim() || null, iconBytes, toolbar: toolbar.checked });
-        url.value = name.value = iconUrl.value = iconFile.value = "";
+        url.value = name.value = iconUrl.value = "";
+        clearIcon.click();
         checkApps(); show("apps");
         sayWith(`Created ${c.app.name}.` + (c.preset ? ` Preset ${c.preset} from the app catalog applied.` : ""), c.warnings);
       });
@@ -494,8 +505,8 @@ function renderCreate() {
       el("div", { class: "grid" }, el("label", { class: "f" }, "Website address", url), el("label", { class: "f" }, "Name", name)),
       el("fieldset", {}, el("legend", {}, "Icon (optional)"),
         el("p", { class: "hint" }, "Leave both empty to use the site's own icon."),
-        el("div", { class: "grid" }, el("label", { class: "f" }, "Image address", iconUrl), el("label", { class: "f" }, "Or choose a file", iconFile))),
-      el("label", { class: "chk" }, toolbar, el("span", {}, "Show a toolbar", el("small", {}, "Back, forward, reload, start page, the address and the key list, above the site. Change it later under Edit."))),
+        el("div", { class: "grid" }, el("label", { class: "f" }, "Image address", iconUrl), el("div", { class: "f" }, el("span", {}, "Or choose a file"), el("div", { class: "row tight" }, chooseIcon, iconName, clearIcon)))),
+      el("label", { class: "chk" }, toolbar, el("span", {}, "Show a toolbar", el("small", {}, "Back, forward, reload, start page, the address, the key list and Open in browser, above the site. Change it later under Edit."))),
       el("label", { class: "chk" }, open, el("span", {}, "Open after creating")),
       el("div", { class: "row" }, el("button", { class: "primary", textContent: "Create app" }))),
     popularApps());
