@@ -1,6 +1,8 @@
 // In-memory stand-in for the Tauri backend, so ui/app.js runs in a plain browser (preview only).
 // Mirrors src-tauri/src/commands.rs: same command names, arguments and result shapes.
-// CATALOG is the real preset catalog, injected by build.py from crates/penates-core/data/presets.json.
+// CATALOG is the real preset catalog, injected by build.py from crates/penates-core/data/presets.json;
+// VERSION is the version in Cargo.toml. The sample self-update is the next patch version.
+const NEXT = VERSION.replace(/\d+$/, (n) => String(Number(n) + 1));
 const COLORS = ['#5865f2', '#2f5bea', '#c0392b', '#6d4aff', '#d9822b', '#0f8b9d'];
 function mkIcon(letter, color) {
   const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
@@ -37,9 +39,9 @@ const nameFor = (url) => { const h = bare(new URL(url).hostname); const known = 
 const sample = [['linear', 'Linear', 'https://linear.app/', false], ['cloudflare', 'Cloudflare', 'https://dash.cloudflare.com/', true], ['github', 'GitHub', 'https://github.com/', false]];
 const H = {
   list_apps: () => ({ apps: clone(db).sort((a, b) => a.name.localeCompare(b.name)), broken: [] }),
-  app_version: () => '0.1.0',
-  async check_self_update() { await wait(500); return { current: '0.1.0', version: '0.1.1', notes: 'Sample update, shown so the preview has something to install.', can_install: true, package_manager: false, releases_page: 'https://github.com/Natetronn/penates/releases/latest' }; },
-  async install_self_update() { await wait(800); say('Would download Penates 0.1.1, verify its signature, install it and restart (preview only).'); },
+  app_version: () => VERSION,
+  async check_self_update() { await wait(500); return { current: VERSION, version: NEXT, notes: 'Sample update, shown so the preview has something to install.', can_install: true, package_manager: false, releases_page: 'https://github.com/Natetronn/penates/releases/latest' }; },
+  async install_self_update() { await wait(800); say('Would download Penates ' + NEXT + ', verify its signature, install it and restart (preview only).'); },
   cache_info: ({ id }) => ({ bytes: (find(id).name.length * 7340032) % 94371840 + 3145728, running: false }),
   async clear_cache({ id }) { await wait(400); find(id); return 12582912; },
   clear_data({ id }) { find(id); },
@@ -92,7 +94,7 @@ const H = {
     await wait(500);
     const apps = db.map((a) => [a, entryFor(a)]).filter(([a, f]) => f && newer(f[1].v, a.catalog_version))
       .map(([a, [, e]]) => ({ id: a.id, name: a.name, from: a.catalog_version, to: e.v, notes: e.notes }));
-    return { current: '0.1.0', source: settings.catalog_url || 'Penates app catalog', catalog_size: CATALOG.catalog.length, app_count: db.length, apps };
+    return { current: VERSION, source: settings.catalog_url || 'Penates app catalog', catalog_size: CATALOG.catalog.length, app_count: db.length, apps };
   },
   async catalog_apps() {
     await wait(300);

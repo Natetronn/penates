@@ -21,7 +21,8 @@ catalog = json.loads((ROOT / "crates/penates-core/data/presets.json").read_text(
 catalog.pop("_comment", None)
 # What the manager passes in before the page loads (see manager_init_script in src-tauri/src/main.rs).
 init = 'window.__PENATES_START = location.hash.slice(1);\nwindow.__PENATES_APPEARANCE = {"theme":"system","skin":"default","accent":"violet"};\n'
-mock = "const CATALOG = " + json.dumps(catalog) + ";\n" + (HERE / "mock.js").read_text()
+version = re.search(r'^version = "([^"]+)"', (ROOT / "Cargo.toml").read_text(), re.M).group(1)
+mock = "const CATALOG = " + json.dumps(catalog) + ";\nconst VERSION = " + json.dumps(version) + ";\n" + (HERE / "mock.js").read_text()
 
 
 def data_uri(name, mime):

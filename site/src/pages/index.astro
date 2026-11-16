@@ -1,9 +1,7 @@
 ---
-// The home page. It has its own layout; the docs and guides use Starlight.
-import '@fontsource-variable/space-grotesk';
+// The home page (layout: src/layouts/Site.astro). The docs and guides use Starlight.
+import Site from '../layouts/Site.astro';
 import { Image } from 'astro:assets';
-import lockupDark from '../assets/lockup-dark.svg';
-import lockupLight from '../assets/lockup-light.svg';
 import appsDark from '../assets/screens/manager-apps.png';
 import appsLight from '../assets/screens/manager-apps-light.png';
 import edit from '../assets/screens/manager-edit.png';
@@ -11,7 +9,6 @@ import settings from '../assets/screens/manager-settings.png';
 import catalog from '../data/catalog.json';
 
 const RELEASES = 'https://github.com/Natetronn/penates/releases/latest';
-const REPO = 'https://github.com/Natetronn/penates';
 const title = 'Penates: turn websites into desktop apps';
 const description =
   'Penates turns websites and web apps into desktop apps, each with its own window, icon, taskbar entry and separate login. Free and open source, for Linux, Windows and macOS.';
@@ -64,8 +61,8 @@ const platforms = [
   {
     os: 'linux',
     name: 'Linux',
-    formats: 'AppImage, .deb, .rpm',
-    note: 'On Arch, from the AUR: <code>penates-bin</code>, or <code>penates</code> to build from source, with <code>makepkg -si</code> or an AUR helper.',
+    formats: 'AppImage, .deb, .rpm, Arch package',
+    note: 'On Arch: <code>sudo pacman -U</code> the package, or install <code>penates-bin</code> from the AUR to get updates.',
   },
   {
     os: 'windows',
@@ -82,49 +79,7 @@ const platforms = [
 ];
 ---
 
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
-    <meta name="description" content={description} />
-    <link rel="icon" href={href('favicon.svg')} type="image/svg+xml" />
-    <link rel="canonical" href={new URL(base, Astro.site)} />
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content={new URL(base, Astro.site)} />
-    <meta name="theme-color" content="#0c0b16" />
-    <!-- Cloudflare Web Analytics: cookieless page counts -->
-    <script is:inline type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "3601b300af25499b83bbddf47fd614c1"}'></script>
-    <script is:inline>
-      // Follow the theme chosen in the docs (Starlight stores it), else the system's.
-      try {
-        const t = localStorage.getItem('starlight-theme');
-        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
-      } catch {}
-    </script>
-  </head>
-  <body>
-    <header class="top">
-      <div class="wrap bar">
-        <a class="brand" href={href('')} aria-label="Penates home">
-          <Image src={lockupDark} alt="Penates" class="on-dark" height={30} loading="eager" />
-          <Image src={lockupLight} alt="Penates" class="on-light" height={30} loading="eager" />
-        </a>
-        <nav aria-label="Main">
-          <a href={href('getting-started/')}>Docs</a>
-          <a href={href('apps/')} class="wide">Popular apps</a>
-          <a href={href('demo/')} class="wide">Demo</a>
-          <a href={REPO} class="icon-link" aria-label="Penates on GitHub">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.36-3.88-1.36-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.25 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z" /></svg>
-          </a>
-          <a href="#download" class="button small">Download</a>
-        </nav>
-      </div>
-    </header>
-
+<Site title={title} description={description}>
     <main>
       <section class="hero">
         <div class="glow" aria-hidden="true"></div>
@@ -219,19 +174,6 @@ launcher: ~/.local/share/applications/penates-github.desktop</span>
       </section>
     </main>
 
-    <footer class="foot">
-      <div class="wrap foot-grid">
-        <p>Penates is free software under the MIT License. Named for the Roman household gods who kept the hearth.</p>
-        <nav aria-label="Footer">
-          <a href={href('getting-started/')}>Docs</a>
-          <a href={href('apps/')}>Popular apps</a>
-          <a href={href('docs/sharing/')}>Sharing</a>
-          <a href={REPO}>GitHub</a>
-          <a href={`${REPO}/issues`}>Report a problem</a>
-        </nav>
-      </div>
-    </footer>
-
     <script>
       // Point Download at this computer's system.
       const ua = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform || navigator.platform || navigator.userAgent;
@@ -243,185 +185,4 @@ launcher: ~/.local/share/applications/penates-github.desktop</span>
         if (button) button.textContent = `Download for ${names[os]}`;
       }
     </script>
-  </body>
-</html>
-
-<style is:global>
-  :root {
-    --bg: #f8f7fc;
-    --bg-2: #efedf8;
-    --card: #ffffff;
-    --line: #e3e0f0;
-    --fg: #17152a;
-    --muted: #625e7a;
-    --accent: #6d3fe0;
-    --accent-fg: #ffffff;
-    --grad: linear-gradient(100deg, #22e6ff, #8b5cff 50%, #ff4fd8);
-    --glow-a: 0.18;
-    --shadow: 0 24px 60px rgb(40 20 90 / 0.18);
-    color-scheme: light;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme='light']) {
-      --bg: #0c0b16; --bg-2: #13111f; --card: #171527; --line: #2a2742; --fg: #f4f2ff; --muted: #a9a5c4;
-      --accent: #9a76ff; --accent-fg: #0e1014; --glow-a: 0.35; --shadow: 0 30px 80px rgb(0 0 0 / 0.55);
-      color-scheme: dark;
-    }
-  }
-  :root[data-theme='dark'] {
-    --bg: #0c0b16; --bg-2: #13111f; --card: #171527; --line: #2a2742; --fg: #f4f2ff; --muted: #a9a5c4;
-    --accent: #9a76ff; --accent-fg: #0e1014; --glow-a: 0.35; --shadow: 0 30px 80px rgb(0 0 0 / 0.55);
-    color-scheme: dark;
-  }
-
-  * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body {
-    margin: 0; background: var(--bg); color: var(--fg);
-    font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', sans-serif;
-    -webkit-font-smoothing: antialiased; overflow-x: hidden;
-  }
-  a { color: var(--accent); }
-  img { display: block; max-width: 100%; height: auto; }
-  code { font: 0.9em ui-monospace, 'Cascadia Code', monospace; }
-  h1, h2, h3, .pname { font-family: 'Space Grotesk Variable', system-ui, sans-serif; letter-spacing: -0.03em; line-height: 1.1; }
-  h2 { font-size: clamp(1.7rem, 1.2rem + 2vw, 2.4rem); margin: 0 0 1rem; text-wrap: balance; }
-  h3 { font-size: 1.15rem; margin: 0.9rem 0 0.4rem; }
-  .wrap { width: min(1120px, 100% - 2rem); margin-inline: auto; }
-
-  /* theme-specific images */
-  .on-light { display: none; }
-  @media (prefers-color-scheme: light) {
-    :root:not([data-theme='dark']) .on-dark { display: none; }
-    :root:not([data-theme='dark']) .on-light { display: block; }
-  }
-  :root[data-theme='light'] .on-dark { display: none; }
-  :root[data-theme='light'] .on-light { display: block; }
-
-  /* top bar */
-  .top {
-    position: sticky; top: 0; z-index: 10;
-    background: color-mix(in srgb, var(--bg) 78%, transparent);
-    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-    border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
-  }
-  .bar { display: flex; align-items: center; justify-content: space-between; height: 64px; gap: 1rem; }
-  .brand img { height: 30px; width: auto; }
-  .top nav { display: flex; align-items: center; gap: 1.4rem; }
-  .top nav a:not(.button) { color: var(--fg); text-decoration: none; font-weight: 500; opacity: 0.85; }
-  .top nav a:not(.button):hover { opacity: 1; color: var(--accent); }
-  .icon-link svg { width: 22px; height: 22px; display: block; }
-  @media (max-width: 640px) { .top nav .wide { display: none; } .top nav { gap: 1rem; } }
-
-  /* buttons */
-  .button {
-    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
-    padding: 0.8rem 1.4rem; border-radius: 999px; font-weight: 600; text-decoration: none;
-    background: var(--accent); color: var(--accent-fg); border: 1px solid transparent;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-  }
-  .button:hover { transform: translateY(-1px); box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 35%, transparent); }
-  .button.ghost { background: transparent; color: var(--fg); border-color: var(--line); }
-  .button.ghost:hover { border-color: var(--accent); box-shadow: none; }
-  .button.small { padding: 0.45rem 1rem; font-size: 0.92rem; }
-
-  /* hero */
-  .hero { position: relative; padding: clamp(3rem, 8vw, 6.5rem) 0 clamp(2.5rem, 6vw, 4.5rem); }
-  .glow {
-    position: absolute; inset: -10% -20% auto; height: 120%; pointer-events: none; opacity: var(--glow-a);
-    background:
-      radial-gradient(40% 45% at 72% 38%, #8b5cff, transparent 70%),
-      radial-gradient(30% 35% at 88% 18%, #ff4fd8, transparent 70%),
-      radial-gradient(30% 35% at 58% 62%, #22e6ff, transparent 70%);
-    filter: blur(40px);
-  }
-  .hero-grid { position: relative; display: grid; gap: 3rem; align-items: center; }
-  @media (min-width: 900px) { .hero-grid { grid-template-columns: 1fr 1.05fr; } }
-  .eyebrow { margin: 0 0 1rem; font-size: 0.9rem; font-weight: 600; color: var(--muted); letter-spacing: 0.02em; }
-  h1 { font-size: clamp(2.5rem, 1.6rem + 3.4vw, 3.6rem); margin: 0 0 1.2rem; font-weight: 700; text-wrap: balance; }
-  h1 .grad { display: inline-block; }
-  .grad { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .lede { font-size: clamp(1.05rem, 1rem + 0.4vw, 1.25rem); color: var(--muted); max-width: 34rem; margin: 0 0 2rem; }
-  .actions { display: flex; flex-wrap: wrap; gap: 0.8rem; }
-
-  /* screenshots */
-  .shot { margin: 0; }
-  .shot img { border-radius: 12px; border: 1px solid var(--line); box-shadow: var(--shadow); }
-  /* The app list fills the top of its window: show that part and fade out below the last app. */
-  .hero-shot {
-    aspect-ratio: 1075 / 700; overflow: hidden; border-radius: 12px 12px 0 0;
-    border: 1px solid var(--line); border-bottom: 0;
-    -webkit-mask-image: linear-gradient(to bottom, #000 87%, transparent);
-    mask-image: linear-gradient(to bottom, #000 87%, transparent);
-  }
-  .hero-shot img { width: 100%; height: 100%; object-fit: cover; object-position: top; border: 0; border-radius: 0; box-shadow: none; }
-
-  /* catalog strip */
-  .strip {
-    display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.6rem 1rem;
-    padding: 1.4rem 0 3.5rem; color: var(--muted); font-size: 0.95rem;
-  }
-  .strip p { margin: 0; }
-  .strip ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; list-style: none; margin: 0; padding: 0; }
-  .strip li a {
-    display: block; padding: 0.3rem 0.8rem; border-radius: 999px; border: 1px solid var(--line);
-    background: var(--card); color: var(--fg); text-decoration: none; font-weight: 500; font-size: 0.9rem;
-  }
-  .strip li a:hover { border-color: var(--accent); }
-
-  /* features */
-  .features { padding: 3rem 0; }
-  .features h2 { text-align: center; margin-bottom: 2.2rem; }
-  .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 1.4rem 1.5rem; }
-  .card p { margin: 0; color: var(--muted); }
-  .ficon {
-    width: 40px; height: 40px; padding: 8px; border-radius: 10px; fill: none; stroke: #fff; stroke-width: 1.8;
-    stroke-linecap: round; stroke-linejoin: round; background: var(--grad);
-  }
-
-  /* text + screenshot rows */
-  .split { display: grid; gap: 2.5rem; align-items: center; padding: 3.5rem 0; }
-  .split > *, .hero-grid > * { min-width: 0; }
-  @media (min-width: 900px) {
-    .split { grid-template-columns: 1fr 1.15fr; gap: 4rem; }
-    .split.reverse > div { order: 2; }
-  }
-  .split p { color: var(--muted); font-size: 1.05rem; }
-  .more-link { font-weight: 600; text-decoration: none; }
-  .term {
-    margin: 1.4rem 0; padding: 1.1rem 1.3rem; border-radius: 12px; overflow-x: auto;
-    background: #0c0b16; color: #f4f2ff; border: 1px solid #2a2742; font-size: 0.95rem; line-height: 1.7;
-    box-shadow: inset 0 2px 0 0 transparent; position: relative;
-  }
-  .term::before { content: ''; position: absolute; inset: 0 0 auto; height: 2px; background: var(--grad); border-radius: 12px 12px 0 0; }
-  .term .dim { color: #8f8aad; user-select: none; }
-  .term .out { color: #a9a5c4; }
-
-  /* download */
-  .download { padding: 4rem 0 5rem; text-align: center; scroll-margin-top: 80px; }
-  .download .sub { color: var(--muted); max-width: 40rem; margin: 0 auto 2rem; }
-  .download .sub:last-child { margin: 2rem auto 0; }
-  .platforms { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); text-align: left; }
-  .platform { display: flex; flex-direction: column; gap: 0.35rem; text-decoration: none; color: var(--fg); transition: border-color 0.15s ease, transform 0.15s ease; }
-  .platform:hover { border-color: var(--accent); transform: translateY(-2px); }
-  .platform.yours { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--shadow); }
-  .pname { font-size: 1.4rem; font-weight: 700; }
-  .pformats { font-weight: 600; }
-  .pnote { color: var(--muted); font-size: 0.92rem; flex: 1; }
-  .pnote code { background: var(--bg-2); padding: 0.1em 0.35em; border-radius: 4px; }
-  .pget { color: var(--accent); font-weight: 600; margin-top: 0.6rem; }
-
-  /* footer */
-  .foot { border-top: 1px solid var(--line); background: var(--bg-2); padding: 2rem 0; font-size: 0.92rem; color: var(--muted); }
-  .foot-grid { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem 2rem; align-items: center; }
-  .foot p { margin: 0; max-width: 36rem; }
-  .foot nav { display: flex; flex-wrap: wrap; gap: 1.2rem; }
-  .foot a { color: var(--muted); text-decoration: none; }
-  .foot a:hover { color: var(--accent); }
-
-  @media (prefers-reduced-motion: reduce) {
-    html { scroll-behavior: auto; }
-    .button, .platform { transition: none; }
-  }
-</style>
+</Site>

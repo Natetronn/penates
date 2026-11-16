@@ -2,7 +2,7 @@
 //   docs/*.md             -> src/content/docs/docs/*.md   (title from the first heading; links rewritten)
 //   docs/images/*         -> src/assets/screens/          (screenshots, optimized by Astro)
 //   design/lockup-*.svg   -> src/assets/                  (the header logo)
-//   design/preview/…html  -> public/demo/index.html       (the clickable manager)
+//   design/preview/…html  -> public/demo/manager.html     (the clickable manager, shown by src/pages/demo.astro)
 //   the app catalog       -> src/data/catalog.json        (live, else the copy built into Penates)
 // Runs before `astro dev` and `astro build`; the outputs are git-ignored.
 import { cpSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -36,8 +36,9 @@ cpSync(join(root, 'docs/images'), join(site, 'src/assets/screens'), { recursive:
 mkdirSync(join(site, 'src/assets'), { recursive: true });
 for (const f of ['lockup-dark.svg', 'lockup-light.svg']) cpSync(join(root, 'design', f), join(site, 'src/assets', f));
 cpSync(join(root, 'src-tauri/icons/icon.svg'), join(site, 'public/favicon.svg'));
+rmSync(join(site, 'public/demo'), { recursive: true, force: true });
 mkdirSync(join(site, 'public/demo'), { recursive: true });
-cpSync(join(root, 'design/preview/penates-manager.html'), join(site, 'public/demo/index.html'));
+cpSync(join(root, 'design/preview/penates-manager.html'), join(site, 'public/demo/manager.html'));
 
 // The catalog as people get it: the live file, or Penates's built-in copy when offline.
 let catalog;
