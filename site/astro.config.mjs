@@ -27,7 +27,7 @@ export default defineConfig({
 			customCss: ['@fontsource-variable/space-grotesk', './src/styles/penates.css'],
       lastUpdated: false,
       sidebar: [
-        { label: 'Start here', items: [{ slug: 'getting-started' }, { label: 'Popular apps', link: '/apps/' }, { label: 'Try the manager', link: '/demo/' }] },
+        { label: 'Start here', items: [{ slug: 'getting-started' }, { label: 'Popular Apps', link: '/apps/' }, { label: 'Try the manager', link: '/demo/' }] },
         { label: 'Using Penates', items: ['cli', 'configuration', 'updates', 'sharing', 'theming'].map((d) => ({ slug: `docs/${d}` })) },
         { label: 'Under the hood', items: ['architecture', 'packaging', 'releasing', 'status', 'security'].map((d) => ({ slug: `docs/${d}` })) },
       ],
