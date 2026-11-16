@@ -57,6 +57,7 @@ function show(t) {
   if (t !== "apps") importing = submitting = null; // an unfinished edit is kept; it is still there on Apps
   document.querySelectorAll("nav button").forEach((b) => (b.dataset.tab === t ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")));
   for (const n of TABS) $("tab-" + n).hidden = n !== t;
+  document.querySelector("main").dataset.tab = t; // the Catalog grid gets a wider page than the forms
   $("banner").hidden = t === "updates"; // the Updates tab shows the same notice inline
   render();
 }
