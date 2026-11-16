@@ -7,7 +7,7 @@ Built with Rust and [Tauri 2](https://v2.tauri.app/), with a command line tool a
 **[getpenates.com](https://getpenates.com)**: the website, with the docs and a clickable demo of the manager.
 
 **[Download the latest release](https://github.com/Natetronn/penates/releases/latest)**:
-AppImage, .deb, .rpm, Arch package (`sudo pacman -U`), Windows installer, macOS .dmg, or on Arch from the AUR: `penates-bin` (prebuilt) or `penates` (built from source), installed with `makepkg -si` or an AUR helper such as paru or yay ([how](https://getpenates.com/getting-started/)).
+on Arch from the AUR, `paru -S penates-bin` (or `yay`, or `makepkg -si`); elsewhere the AppImage, `.deb` or `.rpm`; Windows installer; macOS `.dmg`. Every way, including building from git: [Getting started](https://getpenates.com/getting-started/).
 
 <p align="center"><img src="docs/images/manager-apps.png" width="640" alt="The Penates manager listing five apps: Discord, GitHub, Notion, Proton Mail and YouTube Music"></p>
 
@@ -33,21 +33,35 @@ AppImage, .deb, .rpm, Arch package (`sudo pacman -U`), Windows installer, macOS 
 | <img src="docs/images/manager-settings.png" width="400" alt="Settings: four looks, light or dark, accent colors, update checking and the app catalog"> | <img src="docs/images/manager-about.png" width="400" alt="About Penates: logo, version, links and Credits"> |
 
 ## Install
-Get an installer from the [releases page](https://github.com/Natetronn/penates/releases/latest). macOS needs version 14 or later.
+**Arch Linux and relatives (CachyOS, EndeavourOS, Manjaro…), from the AUR:** `penates-bin` is the prebuilt release
+(recommended, installs in seconds); `penates` builds from source (a few minutes). The two replace each other.
+
+```sh
+paru -S penates-bin                 # or: yay -S penates-bin; updates come with paru -Syu / yay -Syu
+
+# without an AUR helper (pacman installs what makepkg builds; update with: git pull && makepkg -si)
+sudo pacman -S --needed git base-devel
+git clone https://aur.archlinux.org/penates-bin.git && cd penates-bin
+makepkg -si
+```
+
+Each release also has an Arch package for `sudo pacman -U` (no automatic updates), and for other distributions an
+AppImage, `.deb` and `.rpm` that update themselves. Windows and macOS (14 or later) installers are on the
+[releases page](https://github.com/Natetronn/penates/releases/latest).
 
 **First launch on macOS and Windows:** the installers are not signed with an Apple or Microsoft certificate yet.
 On macOS, open the app once, then allow it under System Settings → Privacy & Security → **Open Anyway**.
 On Windows, SmartScreen may say it protected your PC: choose **More info → Run anyway**. Penates's own
 updates are signed and checked before they install.
 
-Or build from source
-(Arch/CachyOS shown; see [docs/PACKAGING.md](docs/PACKAGING.md) for `.deb`, `.rpm`, AppImage and tarball):
+**From source, with git** (Arch shown; other distributions and the tarball installer:
+[Getting started](https://getpenates.com/getting-started/) and [docs/PACKAGING.md](docs/PACKAGING.md)):
 
 ```sh
-sudo pacman -S --needed rustup webkit2gtk-4.1 libayatana-appindicator
+sudo pacman -S --needed git base-devel rustup webkit2gtk-4.1 libayatana-appindicator
 rustup default stable
-git clone https://github.com/Natetronn/penates && cd penates
-cd packaging/arch && makepkg -si        # installs penates + penates-desktop
+git clone https://github.com/Natetronn/penates && cd penates/packaging/arch
+makepkg -si                         # builds your checkout and installs penates + penates-desktop
 ```
 
 Or just run it from the checkout: `cargo build --workspace`, then `target/debug/penates gui`.

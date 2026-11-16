@@ -9,27 +9,67 @@ import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 
 <Tabs syncKey="os">
   <TabItem label="Linux">
-    Get the AppImage, `.deb` or `.rpm` from the [releases page](https://github.com/Natetronn/penates/releases/latest).
-    On Arch and its relatives, download the Arch package (`penates-bin-…-x86_64.pkg.tar.zst`) from the
-    [releases page](https://github.com/Natetronn/penates/releases/latest) and install it with pacman:
+    **Arch Linux and its relatives (CachyOS, EndeavourOS, Manjaro…): from the AUR.** Two packages, installed and
+    updated like the rest of your system:
+
+    | Package | What it is |
+    |---|---|
+    | `penates-bin` | the prebuilt release; installs in seconds (recommended) |
+    | `penates` | built on your computer from the release's source; takes a few minutes |
+
+    With an AUR helper, one command (updates come with `paru -Syu` or `yay -Syu`):
 
     ```sh
-    sudo pacman -U ./penates-bin-*-x86_64.pkg.tar.zst
+    paru -S penates-bin        # or: yay -S penates-bin
     ```
 
-    pacman does not update it by itself. To get updates with your other packages, install it from the AUR
-    instead, with the tools every Arch system has:
+    Without a helper, with the tools every Arch system has: clone the package, build it, and pacman installs it.
 
     ```sh
     sudo pacman -S --needed git base-devel   # once
     git clone https://aur.archlinux.org/penates-bin.git
     cd penates-bin
-    makepkg -si                               # builds the package and installs it with pacman
+    makepkg -si
     ```
 
-    `penates-bin` is the prebuilt release; use `penates` instead to build it from source. To update, run
-    `git pull && makepkg -si` in that folder. With an AUR helper it is one command: `paru -S penates-bin` or
-    `yay -S penates-bin`.
+    To update, run `git pull && makepkg -si` in that folder. To build from source instead, use `penates` in
+    place of `penates-bin`, either way. The two replace each other, so you only ever have one.
+
+    **Arch, without the AUR:** each release also has an Arch package. Download `penates-bin-…-x86_64.pkg.tar.zst`
+    from the [releases page](https://github.com/Natetronn/penates/releases/latest) and run
+    `sudo pacman -U ./penates-bin-*-x86_64.pkg.tar.zst`. It does not update by itself; install a newer one the
+    same way, or switch to the AUR.
+
+    **Other distributions:** from the [releases page](https://github.com/Natetronn/penates/releases/latest):
+
+    ```sh
+    sudo apt install ./penates_*_amd64.deb         # Debian, Ubuntu, Mint, Pop!_OS
+    sudo dnf install ./penates-*.x86_64.rpm        # Fedora, openSUSE (zypper install …)
+    chmod +x penates_*_amd64.AppImage && ./penates_*_amd64.AppImage   # anywhere
+    ```
+
+    These three update themselves: Penates offers new versions under **Updates**, signed and checked before they
+    install.
+
+    **From source, with git:** on Arch, the repo's own PKGBUILD builds and installs your checkout:
+
+    ```sh
+    sudo pacman -S --needed git base-devel rustup webkit2gtk-4.1 libayatana-appindicator
+    rustup default stable
+    git clone https://github.com/Natetronn/penates && cd penates/packaging/arch
+    makepkg -si
+    ```
+
+    Elsewhere, install Rust (from [rustup.rs](https://rustup.rs/)) and the WebKitGTK development files
+    (Debian and Ubuntu: `libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev build-essential pkg-config`;
+    Fedora: `webkit2gtk4.1-devel libappindicator-gtk3-devel librsvg2-devel gcc`), then build a tarball and install it
+    for your user:
+
+    ```sh
+    git clone https://github.com/Natetronn/penates && cd penates
+    ./scripts/make-tarball.sh
+    tar -xzf dist/penates-*.tar.gz -C /tmp && PREFIX=$HOME/.local /tmp/penates-*/install.sh
+    ```
   </TabItem>
   <TabItem label="Windows">
     Run the installer from the [releases page](https://github.com/Natetronn/penates/releases/latest). If
@@ -43,8 +83,8 @@ import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
   </TabItem>
 </Tabs>
 
-Penates updates itself (AppImage, `.deb`, `.rpm`, Windows and macOS); the updates are signed and checked
-before they install. AUR packages update with your package manager.
+Penates updates itself on Windows and macOS and as an AppImage, `.deb` or `.rpm`; the updates are signed and
+checked before they install. AUR packages update with your AUR helper or `makepkg`.
 
 ## Make your first app
 
