@@ -450,18 +450,11 @@ fn build_toolbar_window(
         LogicalPosition::new(0.0, TOOLBAR_HEIGHT),
         LogicalSize::new(size.width, (size.height - TOOLBAR_HEIGHT).max(0.0)),
     )?;
+    layout_toolbar_window(&window, &toolbar, &site);
     let (w, t, s) = (window.clone(), toolbar.clone(), site.clone());
     window.on_window_event(move |ev| {
         if matches!(ev, tauri::WindowEvent::Resized(_) | tauri::WindowEvent::ScaleFactorChanged { .. }) {
-            let Ok(size) = w.inner_size().and_then(|p| Ok(p.to_logical::<f64>(w.scale_factor()?))) else { return };
-            let _ = t.set_bounds(tauri::Rect {
-                position: LogicalPosition::new(0.0, 0.0).into(),
-                size: LogicalSize::new(size.width, TOOLBAR_HEIGHT).into(),
-            });
-            let _ = s.set_bounds(tauri::Rect {
-                position: LogicalPosition::new(0.0, TOOLBAR_HEIGHT).into(),
-                size: LogicalSize::new(size.width, (size.height - TOOLBAR_HEIGHT).max(0.0)).into(),
-            });
+            layout_toolbar_window(&w, &t, &s);
         }
     });
     let (t, s) = (toolbar.clone(), site.clone());
@@ -478,15 +471,43 @@ fn build_toolbar_window(
     Ok((window, site))
 }
 
-/// What the toolbar's buttons do. Only the toolbar page may call it: the site's pages cannot reach
+/// Place the toolbar (on top) and the site (the rest) in the window. Windows and macOS place child
+/// views by these bounds; on Linux the window's GTK box does the layout and the bounds have no effect.
+/// On macOS the views are positioned from the top of the window frame, title bar included, so they
+/// move down by the title bar's height (the outer height minus the inner height; 0 when frameless).
+fn layout_toolbar_window(window: &tauri::Window, toolbar: &tauri::Webview, site: &tauri::Webview) {
+    let Ok(scale) = window.scale_factor() else { return };
+    let Ok(inner) = window.inner_size().map(|p| p.to_logical::<f64>(scale)) else { return };
+    let top = if cfg!(target_os = "macos") {
+        window.outer_size().map(|o| (o.to_logical::<f64>(scale).height - inner.height).max(0.0)).unwrap_or(0.0)
+    } else {
+        0.0
+    };
+    if std::env::var_os("PENATES_DEBUG").is_some() {
+        let outer = window.outer_size().map(|o| o.to_logical::<f64>(scale));
+        eprintln!("toolbar layout: inner {inner:?}, outer {outer:?}, scale {scale}, top {top}");
+    }
+    let _ = toolbar.set_bounds(tauri::Rect {
+        position: LogicalPosition::new(0.0, top).into(),
+        size: LogicalSize::new(inner.width, TOOLBAR_HEIGHT).into(),
+    });
+    let _ = site.set_bounds(tauri::Rect {
+        position: LogicalPosition::new(0.0, top + TOOLBAR_HEIGHT).into(),
+        size: LogicalSize::new(inner.width, (inner.height - TOOLBAR_HEIGHT).max(0.0)).into(),
+    });
+}
+
+/// What the toolbar's buttons do, and the address it shows. Only the toolbar page may call it: the site's pages cannot reach
 /// Penates at all (no capability lets remote pages use IPC), and this check refuses any other caller.
 #[tauri::command]
-fn toolbar_action(webview: tauri::Webview, app: tauri::AppHandle, cfg: tauri::State<'_, WebApp>, action: String) -> Result<(), String> {
+fn toolbar_action(webview: tauri::Webview, app: tauri::AppHandle, cfg: tauri::State<'_, WebApp>, action: String) -> Result<String, String> {
     if webview.label() != "toolbar" {
         return Err("only the toolbar can do this".into());
     }
     let site = app.get_webview("site").ok_or("the site is not open")?;
     let done = match action.as_str() {
+        // The address the site shows now; the toolbar asks once it has loaded, the runner sends changes.
+        "address" => return Ok(site.url().map(|u| u.to_string()).unwrap_or_default()),
         "back" => site.eval("history.back()"),
         "forward" => site.eval("history.forward()"),
         "reload" => site.reload(),
@@ -502,7 +523,7 @@ fn toolbar_action(webview: tauri::Webview, app: tauri::AppHandle, cfg: tauri::St
         }
         _ => return Err(format!("unknown toolbar action '{action}'")),
     };
-    done.map_err(|e| e.to_string())
+    done.map(|()| String::new()).map_err(|e| e.to_string())
 }
 
 /// Closing the window hides it; the tray menu shows it again or quits.

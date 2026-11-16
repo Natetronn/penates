@@ -10,3 +10,5 @@ window.penatesAddress = (url) => {
   address.value = url;
   address.title = url;
 };
+// The runner may send the first address before this script runs, so ask for it once.
+invoke("toolbar_action", { action: "address" }).then((url) => url && window.penatesAddress(url), () => {});
