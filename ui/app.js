@@ -654,6 +654,7 @@ async function renderSettings() {
 
 // ---- about ----
 const RELEASES_URL = "https://github.com/Natetronn/penates/releases/latest";
+const SITE_URL = "https://getpenates.com/";
 function openAbout() { showAboutMain(false); $("about").showModal(); }
 
 /** A link that opens in the system browser. */
@@ -713,6 +714,7 @@ $("ver").onclick = openAbout;
 $("about-close").onclick = () => $("about").close();
 $("about").addEventListener("click", (e) => { if (e.target === $("about")) $("about").close(); });
 $("about-releases").onclick = (e) => { e.preventDefault(); invoke("open_url", { url: RELEASES_URL }).catch(fail); };
+$("about-site").onclick = (e) => { e.preventDefault(); invoke("open_url", { url: SITE_URL }).catch(fail); };
 
 function render() {
   const r = { apps: renderApps, create: renderCreate, updates: renderUpdates, settings: renderSettings }[tab];

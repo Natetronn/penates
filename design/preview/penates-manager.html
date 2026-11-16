@@ -277,6 +277,7 @@ if (window.__PENATES_APPEARANCE) window.penatesApplyAppearance(window.__PENATES_
     <p>Turn websites and web apps into desktop apps, each with its own window, icon, taskbar entry and login.</p>
     <p class="hint">Named after the Penates, the Roman household gods: every home had its own, and here every site gets a home of its own.</p>
     <dl class="about-facts">
+      <dt>Website</dt><dd><a href="#" id="about-site">getpenates.com</a></dd>
       <dt>Releases</dt><dd><a href="#" id="about-releases">github.com/Natetronn/penates</a></dd>
       <dt>License</dt><dd>MIT</dd>
       <dt>Built with</dt><dd>Rust, Tauri 2 and the system web view (WebKitGTK, WebView2, WKWebView)</dd>
@@ -1657,6 +1658,7 @@ async function renderSettings() {
 
 // ---- about ----
 const RELEASES_URL = "https://github.com/Natetronn/penates/releases/latest";
+const SITE_URL = "https://getpenates.com/";
 function openAbout() { showAboutMain(false); $("about").showModal(); }
 
 /** A link that opens in the system browser. */
@@ -1716,6 +1718,7 @@ $("ver").onclick = openAbout;
 $("about-close").onclick = () => $("about").close();
 $("about").addEventListener("click", (e) => { if (e.target === $("about")) $("about").close(); });
 $("about-releases").onclick = (e) => { e.preventDefault(); invoke("open_url", { url: RELEASES_URL }).catch(fail); };
+$("about-site").onclick = (e) => { e.preventDefault(); invoke("open_url", { url: SITE_URL }).catch(fail); };
 
 function render() {
   const r = { apps: renderApps, create: renderCreate, updates: renderUpdates, settings: renderSettings }[tab];

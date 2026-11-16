@@ -5,6 +5,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
+### Added
+- The website, [getpenates.com](https://getpenates.com), with the docs, the app catalog and a clickable demo of the manager. About links to it.
+
 ## [0.1.1] - 2026-11-15
 Share apps with the catalog, start apps in the tray, browser keys in app windows, Credits with full license texts, and a round of fixes.
 
