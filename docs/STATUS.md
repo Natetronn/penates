@@ -35,7 +35,7 @@ What has actually been run, and where. Last updated 2026-11-15, version 0.1.1.
 | Links (automated, 2026-11-15) | a local test site: an embedded frame from another site loads, a same-site link navigates in the app, and a link to another site does **not** load in the app |
 | Links (real clicks, 2026-11-15, current code) | on a local test site: a link to another site opened the browser; a same-site `target=_blank` link opened a Penates popup window, not the browser; a link to another site inside that popup opened the browser |
 | Sign-in | GitHub and Tailscale signed in inside their app windows (both redirect within the window) |
-| Preset update in the manager (real clicks) | a test catalog with a newer GitHub preset: Updates listed 1.1.0 → 1.1.1, Update applied it (version and the new in-app host saved), nothing else in the app changed |
+| Preset update in the manager (real clicks) | a test catalog with a newer GitHub preset: Updates listed 1.1.0 → 1.1.1, Update applied it (version and the new in-app host saved), nothing else in the app changed; with the live catalog, Cloudflare 1.0.0 → 1.0.1 applied and the icon the user had picked was kept |
 | Export in the manager (real click) | saved a `.penates` file to Downloads |
 | Wrapped-site isolation | a page inside an app window cannot call Tauri commands |
 | Site permissions | notifications and camera/microphone granted by real clicks when allowed, denied when not |
