@@ -5,6 +5,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-11-15
+The toolbar on by default, with a Keys button, a loading indicator and each site's own colors; and app catalogs of your own.
+
 ### Added
 - A Keys button on the toolbar that shows the key list, and the app's keys work while the toolbar has the focus.
 - While a page loads, the toolbar's Reload becomes Stop and a progress line runs along its bottom.
@@ -15,6 +18,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 ### Changed
 - `[updates] catalog_url` (one catalog instead of the Penates one) became `penates_catalog` and a `catalogs` list; an existing `catalog_url` is read as the only catalog, with the Penates one off.
 - The toolbar is on by default, also for apps made before it existed (turn it off under Edit → Window). `penates create --no-toolbar` makes an app without it; `--toolbar` is gone.
+
+### Fixed
+- Two people signed in on one computer no longer share single-window ports (the second person's apps lost single-window mode). A Penates run with its own folders (another `XDG_CONFIG_HOME`) also keeps apart from the installed one.
 
 ## [0.1.2] - 2026-11-15
 An optional toolbar for any app, a list of keys on F1, a start-page key, a choice of export folder, 22 apps in the catalog, and the website.
@@ -103,7 +109,8 @@ First release. Verified by hand on Linux (KDE Plasma, Wayland); Linux, Windows a
 - A page's own script can still navigate the window to another site (only link clicks are sent to the browser).
 - Two apps whose ids hash to the same loopback port lose single-window mode and the "is it running" check (rare).
 
-[Unreleased]: https://github.com/Natetronn/penates/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/Natetronn/penates/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/Natetronn/penates/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Natetronn/penates/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Natetronn/penates/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Natetronn/penates/releases/tag/v0.1.0

@@ -1,4 +1,5 @@
-//! Per-app presence on a loopback port derived from the app id.
+//! Per-app presence on a loopback port derived from the app id and Penates's config folder (so two people on
+//! one computer, or a second Penates with its own folders, never take each other's ports).
 //! A running app owns the port. A second launch asks it to focus (single-window mode), and the
 //! manager/CLI can ask whether an app is running (before clearing its data). The manager uses the
 //! same mechanism under its own key (`MANAGER`), so starting Penates twice focuses the open window.
@@ -16,8 +17,12 @@ use std::time::Duration;
 pub const MANAGER: &str = "penates:manager";
 
 fn addr(id: &str) -> SocketAddr {
+    port_for(&crate::store::root_config_dir().to_string_lossy(), id)
+}
+
+fn port_for(scope: &str, id: &str) -> SocketAddr {
     let mut h: u32 = 2166136261;
-    for b in id.bytes() {
+    for b in scope.bytes().chain([0]).chain(id.bytes()) {
         h = (h ^ b as u32).wrapping_mul(16777619);
     }
     SocketAddr::from((Ipv4Addr::LOCALHOST, 20000 + (h % 12000) as u16))
@@ -83,5 +88,15 @@ mod tests {
         assert!(request_focus(id));
         rx.recv_timeout(Duration::from_secs(2)).expect("focus callback");
         assert!(!is_running("someone-else-entirely"));
+    }
+
+    #[test]
+    fn each_config_folder_has_its_own_ports() {
+        let (mine, other) = ("/home/me/.config/penates", "/home/you/.config/penates");
+        assert_eq!(port_for(mine, "github"), port_for(mine, "github"));
+        assert_ne!(port_for(mine, "github"), port_for(other, "github"));
+        assert_ne!(port_for(mine, MANAGER), port_for("/home/me/.local/share/penates-test/config/penates", MANAGER));
+        let p = port_for(mine, "github").port();
+        assert!((20000..32000).contains(&p));
     }
 }
