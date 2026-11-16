@@ -1,7 +1,7 @@
 //! App icons: found on the site, chosen from a file or URL, stored as our own 256 px PNG.
 
 use crate::{http, site::Page, store};
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 use image::{imageops, RgbaImage};
 use std::path::{Path, PathBuf};
 use url::Url;
@@ -17,8 +17,9 @@ pub(crate) fn max_size(sizes: &str) -> i64 {
         .clamp(0, 10_000)
 }
 
-/// Icons listed in a PWA web manifest, scored (bigger is better; maskable-only icons carry
-/// extra padding so they rank lower).
+/// Icons listed in a PWA web manifest, scored (bigger is better). Monochrome icons (a single-color
+/// silhouette meant to be tinted by the system) are left out. Maskable-only icons are cropped to a
+/// full square with padding, so they rank below the site's ordinary icons of 64 px or more.
 pub fn parse_manifest_icons(manifest_url: &Url, json: &str) -> Vec<(i64, String)> {
     let Ok(v) = serde_json::from_str::<serde_json::Value>(json) else { return vec![] };
     let Some(icons) = v.get("icons").and_then(|i| i.as_array()) else { return vec![] };
@@ -27,11 +28,43 @@ pub fn parse_manifest_icons(manifest_url: &Url, json: &str) -> Vec<(i64, String)
         .filter_map(|i| {
             let src = manifest_url.join(i.get("src")?.as_str()?).ok()?;
             let size = max_size(i.get("sizes").and_then(|s| s.as_str()).unwrap_or(""));
-            let purpose = i.get("purpose").and_then(|p| p.as_str()).unwrap_or("any");
-            let pad = if purpose.trim() == "maskable" { 300 } else { 0 };
-            Some((size + 1500 - pad, src.to_string()))
+            let purpose = i.get("purpose").and_then(|p| p.as_str()).unwrap_or("any").to_ascii_lowercase();
+            let purposes: Vec<&str> = purpose.split_whitespace().collect();
+            if purposes.is_empty() || purposes.contains(&"any") {
+                Some((size + 1500, src.to_string()))
+            } else if purposes.contains(&"maskable") {
+                Some((size / 8, src.to_string()))
+            } else {
+                None // monochrome only
+            }
         })
         .collect()
+}
+
+/// Whether a normalized icon is a one-tone glyph: every visible pixel about the same gray, white or
+/// black (like a monochrome silhouette), which looks flat and can vanish against a light or dark
+/// panel. Such icons are used only when the site has nothing better.
+pub fn is_flat(png: &[u8]) -> bool {
+    let Ok(img) = image::load_from_memory(png) else { return false };
+    let img = img.to_rgba8();
+    let mut lum: Vec<u8> = vec![];
+    let mut colored = 0usize;
+    for p in img.pixels().filter(|p| p[3] >= 128) {
+        let (max, min) = (p[0].max(p[1]).max(p[2]), p[0].min(p[1]).min(p[2]));
+        if max - min > 40 {
+            colored += 1;
+        }
+        lum.push(((299 * p[0] as u32 + 587 * p[1] as u32 + 114 * p[2] as u32) / 1000) as u8);
+    }
+    if lum.len() < 64 {
+        return true; // next to nothing visible
+    }
+    if colored * 50 > lum.len() {
+        return false; // more than 2% colored pixels
+    }
+    lum.sort_unstable();
+    let at = |q: usize| lum[(lum.len() - 1) * q / 100];
+    at(95) - at(5) < 48
 }
 
 /// `short_name` or `name` from a PWA manifest.
@@ -160,14 +193,19 @@ pub fn import_source(src: &str, id: &str) -> Result<PathBuf> {
     }
 }
 
-/// The best usable icon on a page, normalized (not stored).
+/// The best usable icon on a page, normalized (not stored): the highest-ranked one that is not
+/// a one-tone glyph, else the highest-ranked usable one.
 pub fn best_from(page: &Page) -> Result<Vec<u8>> {
+    let mut flat = None;
     for c in page.icon_candidates() {
         if let Ok(png) = download(&c).and_then(|b| normalize(&b)) {
-            return Ok(png);
+            if !is_flat(&png) {
+                return Ok(png);
+            }
+            flat.get_or_insert(png);
         }
     }
-    bail!("could not find a usable icon for {}", page.final_url)
+    flat.ok_or_else(|| anyhow::anyhow!("could not find a usable icon for {}", page.final_url))
 }
 
 /// Fetch the site's best icon and store it (the default icon).
@@ -222,7 +260,10 @@ pub fn preview_candidates(page_url: &str) -> Vec<Candidate> {
             .collect();
         jobs.into_iter().map(|j| j.join().ok().flatten()).collect()
     });
-    got.into_iter().flatten().take(8).collect()
+    // One-tone glyphs last, as with the default choice.
+    let mut got: Vec<Candidate> = got.into_iter().flatten().collect();
+    got.sort_by_key(|c| is_flat(&c.png));
+    got.into_iter().take(8).collect()
 }
 
 /// Load a stored icon as raw RGBA scaled to `size` px, optionally converted to grayscale
@@ -249,15 +290,18 @@ mod tests {
     #[test]
     fn manifest_icons_rank_by_size_and_skip_padding() {
         let base = Url::parse("https://app.example/manifest.json").unwrap();
+        // As on youtube.com: a monochrome silhouette listed first, then a maskable icon.
         let json = r#"{"name":"My App","short_name":"MyApp","icons":[
+            {"src":"/i/mono.png","sizes":"512x512","purpose":"monochrome"},
+            {"src":"/i/512m.png","sizes":"512x512","purpose":"maskable"},
             {"src":"/i/192.png","sizes":"192x192"},
             {"src":"/i/512.png","sizes":"512x512","purpose":"any"},
-            {"src":"/i/512m.png","sizes":"512x512","purpose":"maskable"}]}"#;
+            {"src":"/i/both.png","sizes":"256x256","purpose":"any maskable"}]}"#;
         let mut v = parse_manifest_icons(&base, json);
         v.sort_by_key(|f| std::cmp::Reverse(f.0));
-        assert_eq!(v[0].1, "https://app.example/i/512.png");
-        assert_eq!(v[1].1, "https://app.example/i/512m.png");
-        assert_eq!(v[2].1, "https://app.example/i/192.png");
+        let order: Vec<&str> = v.iter().map(|f| f.1.trim_start_matches("https://app.example/i/")).collect();
+        assert_eq!(order, ["512.png", "both.png", "192.png", "512m.png"]);
+        assert!(v.iter().find(|f| f.1.ends_with("512m.png")).unwrap().0 < 100, "maskable ranks below ordinary 64 px+ icons");
         assert_eq!(parse_manifest_name(json).as_deref(), Some("MyApp"));
         assert_eq!(max_size("48x48 96x96"), 96);
         assert_eq!(max_size("any"), 0);
@@ -290,6 +334,47 @@ mod tests {
         assert_eq!(img.dimensions(), (256, 256));
         assert_eq!(img.get_pixel(128, 128).0, [200, 200, 200, 255], "the 64 px grayscale entry was used");
         assert!(ico_entries(b"not an ico").is_empty());
+    }
+
+    fn png_of(img: RgbaImage) -> Vec<u8> {
+        let mut out = vec![];
+        image::DynamicImage::ImageRgba8(img).write_to(&mut std::io::Cursor::new(&mut out), image::ImageFormat::Png).unwrap();
+        out
+    }
+
+    #[test]
+    fn one_tone_glyphs_are_flat() {
+        // A white play-button silhouette on transparent (YouTube's monochrome icon), and dark-gray dots
+        // on transparent (login.tailscale.com's favicon).
+        let mut white = RgbaImage::new(64, 64);
+        let mut gray = RgbaImage::new(64, 64);
+        for (x, y, p) in white.enumerate_pixels_mut() {
+            if (8..56).contains(&x) && (16..48).contains(&y) {
+                *p = image::Rgba([255, 255, 255, 255]);
+            }
+        }
+        for (x, y, p) in gray.enumerate_pixels_mut() {
+            if (x / 8) % 2 == 0 && (y / 8) % 2 == 0 {
+                *p = image::Rgba([70, 70, 70, 255]);
+            }
+        }
+        assert!(is_flat(&png_of(white.clone())));
+        assert!(is_flat(&png_of(gray)));
+        assert!(is_flat(&png_of(RgbaImage::new(64, 64))), "nothing visible");
+        // A red button with a white triangle, and white dots on a dark square (tailscale.com), are not.
+        let mut red = white.clone();
+        for p in red.pixels_mut().filter(|p| p[3] > 0) {
+            *p = image::Rgba([255, 0, 51, 255]);
+        }
+        red.put_pixel(30, 30, image::Rgba([255, 255, 255, 255]));
+        assert!(!is_flat(&png_of(red)));
+        let mut dark = RgbaImage::from_pixel(64, 64, image::Rgba([30, 30, 30, 255]));
+        for (x, y, p) in dark.enumerate_pixels_mut() {
+            if (x / 8) % 2 == 1 && (y / 8) % 2 == 1 {
+                *p = image::Rgba([255, 255, 255, 255]);
+            }
+        }
+        assert!(!is_flat(&png_of(dark)));
     }
 
     #[test]

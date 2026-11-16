@@ -5,6 +5,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
+### Fixed
+- Site icons: Penates no longer picks a site's monochrome icon (a one-color silhouette meant for the system
+  to tint, which came out flat white for YouTube), ranks maskable icons below the site's ordinary ones, and
+  passes over one-tone icons (all one gray, white or black, which can vanish on a dark or light panel) when
+  the site has a better one.
+
 ## [0.1.3] - 2026-11-15
 The App Catalog tab, the toolbar on by default (with a Keys button, a loading indicator and each site's own colors), and app catalogs of your own.
 

@@ -13,7 +13,7 @@ The `penates` command makes and manages apps from a terminal: `penates <command>
 | `gui` | Open the manager window. |
 | `install <id>` | (Re)create the application-menu launcher (also for apps made with `--no-install`). |
 | `icon <id> [file-or-url]` | Set the icon from a file or URL; with no argument, re-fetch the site's own. |
-| `icons <url>` | List icons found for a site, best first (PWA manifest, apple-touch, favicon). |
+| `icons <url>` | List icons found for a site, best first (PWA manifest, apple-touch, favicon; monochrome icons left out). |
 | `clear <id> [--data]` | Clear the cache (keeps logins). `--data` clears cookies and storage too. Refused while the app runs. |
 | `catalog [words…]` | List the apps in the App Catalog, ready-made fixes for known sites, marked when you already have one. Popular picks come first. Words keep only apps whose name, address, category or tags contain them all; `--category <name>` keeps one category (e.g. `--category "developer tools"`). |
 | `submit <id> --notes "…"` | Propose one of your apps for the app catalog: prints the entry and opens GitHub with it filled in (`--no-open` prints the address instead). Custom JavaScript is never included. |
