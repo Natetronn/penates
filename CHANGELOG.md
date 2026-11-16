@@ -5,21 +5,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-15
+An optional toolbar for any app, a list of keys on F1, a start-page key, a choice of export folder, 22 apps in the catalog, and the website.
+
 ### Added
 - Choose where exports and backups are saved: Settings → Backup and export → Export folder (Downloads unless you choose another; `[sharing] export_dir` in `settings.toml`).
 - An optional toolbar for any app (Edit → Window → Show a toolbar, or `penates create --toolbar`): back, forward, reload, start page, the page's address and Open in browser, above the site. Off by default.
 - In app windows, Alt+Home (Cmd+Shift+H on macOS) goes to the app's start page, and F1 or Ctrl+/ (Cmd+/) shows a list of the keys. A site that uses one of these keys itself keeps it.
 - The website, [getpenates.com](https://getpenates.com), with the docs, the app catalog and a clickable demo of the manager. About links to it.
 - 12 more apps in the app catalog, 22 in all: ChatGPT, Claude, Figma, Gmail, Google Calendar, Google Drive, Linear, Outlook, Slack, Telegram, Todoist and Trello. The catalog is live for every install; this release refreshes the built-in copy used when it cannot be reached.
-
 - An Arch Linux package on each release, `penates-bin-<version>-1-x86_64.pkg.tar.zst`, installed with `sudo pacman -U` (no AUR helper needed). It was also added to the 0.1.1 release.
-
-### Fixed
-- The third-party license texts (`THIRD-PARTY-LICENSES.txt`, and Full license texts in Credits) were missing lines such as "COPYRIGHT HOLDERS BE LIABLE…" from some licenses, which were mistaken for copyright notices. They are complete again.
 
 ### Changed
 - Creating an app uses its catalog preset's icon address first, as updating already did, so sites that refuse to be fetched (such as Claude and Cloudflare) still get an icon.
 - The update notice for package-manager installs no longer assumes an AUR helper: it says to update the way Penates was installed (the package manager, or makepkg or an AUR helper for the AUR).
+
+### Fixed
+- The third-party license texts (`THIRD-PARTY-LICENSES.txt`, and Full license texts in Credits) were missing lines such as "COPYRIGHT HOLDERS BE LIABLE…" from some licenses, which were mistaken for copyright notices. They are complete again.
 
 ## [0.1.1] - 2026-11-15
 Share apps with the catalog, start apps in the tray, browser keys in app windows, Credits with full license texts, and a round of fixes.
@@ -90,6 +92,7 @@ First release. Verified by hand on Linux (KDE Plasma, Wayland); Linux, Windows a
 - A page's own script can still navigate the window to another site (only link clicks are sent to the browser).
 - Two apps whose ids hash to the same loopback port lose single-window mode and the "is it running" check (rare).
 
-[Unreleased]: https://github.com/Natetronn/penates/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/Natetronn/penates/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/Natetronn/penates/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Natetronn/penates/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Natetronn/penates/releases/tag/v0.1.0

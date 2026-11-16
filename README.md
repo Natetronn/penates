@@ -11,7 +11,7 @@ on Arch from the AUR, `paru -S penates-bin` (or `yay`, or `makepkg -si`); elsewh
 
 <p align="center"><img src="docs/images/manager-apps.png" width="640" alt="The Penates manager listing five apps: Discord, GitHub, Notion, Proton Mail and YouTube Music"></p>
 
-> **Status: 0.1.1.** Verified by hand on Linux (KDE Plasma, Wayland). Windows and macOS are built, launched
+> **Status: 0.1.2.** Verified by hand on Linux (KDE Plasma, Wayland). Windows and macOS are built, launched
 > through their launchers and smoke-tested in CI on every push. See [docs/STATUS.md](docs/STATUS.md) for exactly what is verified.
 
 ## What it does
@@ -20,8 +20,9 @@ on Arch from the AUR, `paru -S penates-bin` (or `yay`, or `makepkg -si`); elsewh
 - **Per-app options:** window size, zoom, maximized/fullscreen/frameless, always on top, user agent, extra in-app hosts, custom CSS/JS, devtools, notification and camera/microphone permissions.
 - **App catalog:** add known sites (GitHub, Notion, Discord, Proton Mail, YouTube and more) in one click from Create → Popular apps, with small fixes such as in-app sign-in from the shared [penates-apps](https://github.com/Natetronn/penates-apps) catalog.
 - **Smart links:** links to other sites open in your browser; same-site popups (sign-in flows) stay in the app; downloads go to your Downloads folder.
-- **Browser keys without a browser:** Alt+←/→ or the mouse's side buttons go back and forward, F5 or Ctrl+R reloads.
-- **Share and back up:** export one app or all of them to a `.penates` file and import it elsewhere; logins are never included. Propose an app's fixes for the shared catalog from its ⋮ menu. See [docs/SHARING.md](docs/SHARING.md).
+- **Browser keys without a browser:** Alt+←/→ or the mouse's side buttons go back and forward, F5 or Ctrl+R reloads, Alt+Home goes to the app's start page, and F1 or Ctrl+/ lists these keys.
+- **An optional toolbar** per app: back, forward, reload, start page, the page's address and Open in browser.
+- **Share and back up:** export one app or all of them to a `.penates` file and import it elsewhere; logins are never included. Propose an app's fixes for the shared catalog from its ⋮ menu. Exports go to Downloads, or a folder you choose in Settings. See [docs/SHARING.md](docs/SHARING.md).
 - **Housekeeping:** clear cache (keeps you signed in) or clear cookies and data, update checks with versioned presets, icons from a file or URL.
 - **Themeable manager:** light/dark/system, six accents, four looks, all from plain CSS tokens.
 

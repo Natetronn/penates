@@ -1,6 +1,6 @@
 # Status
 
-What has actually been run, and where. Last updated 2026-11-15, version 0.1.1.
+What has actually been run, and where. Last updated 2026-11-15, version 0.1.2.
 
 | Platform | Build, tests, lint | App launched | Checked by hand |
 |---|---|---|---|

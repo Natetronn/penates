@@ -17,6 +17,8 @@ until you publish them.
    If dependencies changed, regenerate the credits and license texts: `python3 scripts/gen-credits.py` (CI checks them).
    Refresh the built-in preset copy: `curl -fsSL https://raw.githubusercontent.com/Natetronn/penates-apps/main/catalog.json`
    into `crates/penates-core/data/presets.json` (keep its `_comment`), or copy it from a `penates-apps` checkout.
+   If the manager looks different, regenerate the screenshots in `docs/images/` from the real manager:
+   `scripts/screenshots.sh` (an Arch container with a virtual display; needs docker).
 2. Optional rehearsal: **Actions → Release → Run workflow** builds and signs every installer without uploading anything.
 3. Commit, then tag and push: `git tag v0.2.0 && git push origin v0.2.0`.
 4. The **Release** workflow checks that the tag matches `Cargo.toml`, builds and signs installers on Linux,
@@ -26,10 +28,11 @@ until you publish them.
    draft's files (refusing duplicates or files of another version), writes `latest.json`, uploads it to the draft,
    sets the notes from `CHANGELOG.md`, publishes the release, and updates both AUR packages in `packaging/aur/`
    (`penates-bin` from the release tarball, `penates` from the tag's source).
-6. AUR: `scripts/push-aur.sh` clones each package into a temporary folder, copies in
+6. Commit the updated `packaging/aur` files here and push: that also rebuilds the website, which describes the
+   latest release (its docs, screenshots and demo come from the release's source).
+7. AUR: `scripts/push-aur.sh` clones each package into a temporary folder, copies in
    `packaging/aur/<name>/{PKGBUILD,.SRCINFO}`, commits and pushes, then deletes the folder. It needs your AUR key
-   for `aur.archlinux.org` (in `~/.ssh/config`: `Host aur aur.archlinux.org` with its `IdentityFile`). Then commit
-   the updated files here too.
+   for `aur.archlinux.org` (in `~/.ssh/config`: `Host aur aur.archlinux.org` with its `IdentityFile`).
 
 **Pre-releases** (`v0.2.0-rc.1`): `scripts/publish-release.py v0.2.0-rc.1 --prerelease`. They are published as
 pre-releases, never as "latest", so installed copies do not update to them, and the AUR is left alone.

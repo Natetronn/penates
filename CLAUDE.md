@@ -10,8 +10,9 @@ Linux (WebKitGTK) is the main platform; Windows and macOS are built, tested and 
 - `src-tauri`: `penates-desktop`. `main.rs` dispatch, `commands.rs` manager IPC, `runner.rs` the per-app window.
 - `ui/`: the manager front end, plain HTML/JS/CSS, no build step (`app.js`, `boot.js`, `tokens.css`, `skins.css`).
 - `design/`: logo sources, brand sheet, `preview/` (a browser copy of the manager with a mock backend).
-- `site/`: the website and docs (Astro + Starlight, served by Cloudflare Workers at getpenates.com). `site/scripts/sync.mjs`
-  copies in `docs/*.md`, the screenshots, logo, preview and catalog; edit those at their source.
+- `site/`: the website and docs (Astro + Starlight, served by Cloudflare Workers at getpenates.com). It describes the
+  latest release: `site/scripts/sync.mjs` copies in that release's `docs/*.md`, screenshots, logo and preview (`--local`:
+  the working copy) and the live catalog; edit those at their source.
 - Presets (per-site fixes) live in a separate repo, `Natetronn/penates-apps`; `crates/penates-core/data/presets.json`
   is the built-in copy of its `catalog.json`.
 - Docs: `docs/*.md` (architecture, CLI, configuration, updates, sharing, packaging, releasing, status).
