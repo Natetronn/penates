@@ -1,5 +1,5 @@
 //! Penates's own settings (`~/.config/penates/settings.toml`): update checks, the preset catalog
-//! address and the manager's look.
+//! address, the manager's look and where it saves exports.
 
 use crate::store;
 use anyhow::Result;
@@ -49,11 +49,30 @@ impl Appearance {
     }
 }
 
+/// Where the manager saves exports and backups.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct SharingSettings {
+    /// Folder for exports and backups. Empty: the Downloads folder.
+    pub export_dir: String,
+}
+impl SharingSettings {
+    /// The folder exports go to: the chosen one while it exists, else Downloads (else the home folder).
+    pub fn export_folder(&self) -> std::path::PathBuf {
+        let chosen = std::path::Path::new(self.export_dir.trim());
+        if !self.export_dir.trim().is_empty() && chosen.is_absolute() && chosen.is_dir() {
+            return chosen.to_path_buf();
+        }
+        dirs::download_dir().or_else(dirs::home_dir).unwrap_or_else(std::env::temp_dir)
+    }
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
     pub updates: UpdateSettings,
     pub appearance: Appearance,
+    pub sharing: SharingSettings,
     /// Version of Penates that last rewrote the launchers, and the program they point at
     /// (see `ops::refresh_launchers_if_needed`).
     pub launchers_version: String,
@@ -107,5 +126,18 @@ mod tests {
     fn appearance_is_checked() {
         assert!(Appearance::default().validate().is_ok());
         assert!(Appearance { accent: "neon".into(), ..Default::default() }.validate().is_err());
+    }
+
+    #[test]
+    fn export_folder_is_the_chosen_one_only_while_it_exists() {
+        let downloads = SharingSettings::default().export_folder();
+        let dir = std::env::temp_dir().join(format!("penates-export-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let chosen = SharingSettings { export_dir: dir.display().to_string() };
+        assert_eq!(chosen.export_folder(), dir);
+        std::fs::remove_dir(&dir).unwrap();
+        assert_eq!(chosen.export_folder(), downloads, "a folder that is gone falls back to Downloads");
+        let relative = SharingSettings { export_dir: "backups".into() };
+        assert_eq!(relative.export_folder(), downloads, "only absolute paths count");
     }
 }

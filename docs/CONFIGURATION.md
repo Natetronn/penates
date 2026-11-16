@@ -49,9 +49,13 @@ check_on_start = true
 theme = "system"         # system | light | dark
 skin = "default"         # default | nord | solarized | mono
 accent = "violet"        # violet | blue | green | orange | rose | slate
+
+[sharing]
+export_dir = ""          # folder for exports and backups (an absolute path); empty = Downloads
 ```
 `manifest_url` is accepted as another name for `catalog_url`. Penates also keeps
-`launchers_version` and `launchers_bin` here, to know when launchers need rewriting.
+`launchers_version` and `launchers_bin` here, to know when launchers need rewriting. If `export_dir` is gone
+(an unplugged drive, say), exports go to Downloads until it is back.
 
 If the file stops parsing (a hand edit gone wrong), Penates moves it to `settings.toml.broken`, says so
 on stderr and uses defaults, so the next save cannot overwrite your broken edit.

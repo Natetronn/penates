@@ -9,7 +9,7 @@ penates export github notion -o pair.penates
 penates export --all                     # -> penates-backup.penates
 penates export --all --settings          # also look, accent and app catalog address (backups)
 ```
-In the manager: **Export all** and each app's **⋮ → Export app…** save into your Downloads folder; **Settings → Backup** saves apps and settings.
+In the manager: **Export all** and each app's **⋮ → Export app…** save into your export folder, Downloads unless you choose another under **Settings → Backup and export**; **Back up apps and settings** there saves apps and settings. An existing file is never overwritten (the new one gets "(2)" and so on).
 
 ## Import
 ```sh

@@ -20,6 +20,7 @@ const db = [['discord', 'Discord', 'https://discord.com/app', null], ['github', 
 const CAT = Object.fromEntries(CATALOG.catalog.map((e) => [e.id, { v: e.version, hosts: e.internal_hosts || [], ua: e.user_agent, css: e.inject_css, notes: e.notes, name: e.name, url: e.url }]));
 let mockAppearance = window.__PENATES_APPEARANCE;
 let settings = { catalog_url: '', check_on_start: true };
+let exportDir = '';
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const clone = (x) => JSON.parse(JSON.stringify(x));
 const find = (id) => { const a = db.find((a) => a.id === id); if (!a) throw 'no app with id \'' + id + '\''; return a; };
@@ -45,7 +46,7 @@ const H = {
   cache_info: ({ id }) => ({ bytes: (find(id).name.length * 7340032) % 94371840 + 3145728, running: false }),
   async clear_cache({ id }) { await wait(400); find(id); return 12582912; },
   clear_data({ id }) { find(id); },
-  export_apps({ ids }) { return '~/Downloads/' + (ids.length === 1 ? ids[0] : 'penates-backup') + '.penates'; },
+  export_apps({ ids }) { return (exportDir || '~/Downloads') + '/' + (ids.length === 1 ? ids[0] : 'penates-backup') + '.penates'; },
   async inspect_import({ source, isUrl }) {
     await wait(300);
     if (isUrl && !/^https?:\/\//.test(source.trim())) throw source + ': not a web address';
@@ -120,6 +121,9 @@ const H = {
     return { kind: change ? 'change' : 'new', json: JSON.stringify(e, null, 2) + '\n', url: 'https://github.com/Natetronn/penates-apps/' + (change ? 'issues/new' : 'new/main/apps') };
   },
   get_update_settings: () => ({ ...settings }),
+  get_export_folder: () => ({ chosen: exportDir, folder: exportDir || '/home/you/Downloads' }),
+  set_export_folder({ dir }) { exportDir = dir; return { chosen: exportDir, folder: exportDir || '/home/you/Downloads' }; },
+  async pick_export_folder() { await wait(300); return '/home/you/Backups/Penates'; },
   set_update_settings({ updates }) { settings = updates; },
   open_url({ url }) { say('Would open ' + url + ' in your browser (preview only).'); },
   remove_app({ id }) { const i = db.findIndex((a) => a.id === id); if (i < 0) throw 'no app with id \'' + id + '\''; db.splice(i, 1); },

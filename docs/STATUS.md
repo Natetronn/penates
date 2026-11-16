@@ -45,6 +45,7 @@ What has actually been run, and where. Last updated 2026-11-15, version 0.1.1.
 | Packages | see [PACKAGING](PACKAGING.md); the tarball installs into `~/.local` and the installed manager runs; the Arch package (0.1.1, built from the release tarball in an `archlinux:base-devel` container) installs with `pacman -U` in a clean Arch container, pulls in its dependencies, `penates --version` runs and the desktop program's libraries all resolve |
 
 ## To check by hand
+- Settings → Export folder: the folder picker (it needs real clicks), and Export, Export all and the backup saving into the chosen folder. Automated: a chosen folder is used while it exists; a deleted folder or a relative path falls back to Downloads.
 - In the real manager window: Import (the file chooser was fixed to show `.penates` files), Save in Edit, and the icon file chooser.
 - The mouse's back and forward side buttons with a real mouse.
 

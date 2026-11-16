@@ -12,8 +12,12 @@ const TOOLBAR_HEIGHT: f64 = 40.0;
 
 /// Save downloads to the user's Downloads folder, never overwriting an existing file.
 pub fn unique_download_path(suggested: &std::path::Path) -> std::path::PathBuf {
+    unique_path_in(&dirs::download_dir().or_else(dirs::home_dir).unwrap_or_else(std::env::temp_dir), suggested)
+}
+
+/// A path for `suggested`'s file name in `dir` that does not overwrite anything: "name (2).ext" and so on.
+pub fn unique_path_in(dir: &std::path::Path, suggested: &std::path::Path) -> std::path::PathBuf {
     let name = suggested.file_name().map(|n| n.to_os_string()).unwrap_or_else(|| "download".into());
-    let dir = dirs::download_dir().or_else(dirs::home_dir).unwrap_or_else(std::env::temp_dir);
     let first = dir.join(&name);
     if !first.exists() {
         return first;

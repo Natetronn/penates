@@ -121,7 +121,7 @@ async function renderApps() {
     el("div", { class: "toolbar" },
       el("span", { class: "hint" }, plural(apps.length, "app") + " installed"),
       el("button", { textContent: "Import…", onclick: () => { importing = { stage: "pick" }; renderApps(); } }),
-      el("button", { textContent: "Export all", title: "Save every app to a .penates file in Downloads", onclick: async () => {
+      el("button", { textContent: "Export all", title: "Save every app to a .penates file in your export folder (Settings)", onclick: async () => {
         try { say("Saved to " + (await invoke("export_apps", { ids: [], withSettings: false }))); } catch (e) { fail(e); } } })),
     apps.length ? apps.map((a) => appRow(a, pending)) : el("p", { class: "hint" }, "No apps yet. Use the Create tab to add one."),
     broken.map(brokenRow));
@@ -641,12 +641,32 @@ function updatesSection(us) {
       catalogStatus)];
 }
 
+/** Settings → where exports and backups are saved: Downloads unless a folder is chosen. */
+function exportFolderSection(info) {
+  const shown = el("code", { class: "url" }, info.folder);
+  const note = el("span", { class: "hint" }, info.chosen ? "" : " (your Downloads folder)");
+  const reset = el("button", { type: "button", textContent: "Use Downloads", hidden: !info.chosen });
+  const show = (i) => { put(shown, i.folder); put(note, i.chosen ? "" : " (your Downloads folder)"); reset.hidden = !i.chosen; };
+  reset.onclick = () => invoke("set_export_folder", { dir: "" }).then((i) => { show(i); say("Exports go to your Downloads folder."); }).catch(fail);
+  const choose = el("button", { type: "button", textContent: "Choose folder…", onclick: (ev) => busy(ev.target, "Choosing…", async () => {
+    const dir = await invoke("pick_export_folder");
+    if (!dir) return;
+    show(await invoke("set_export_folder", { dir }));
+    say("Exports go to " + dir + ".");
+  }) });
+  return el("fieldset", {}, el("legend", {}, "Export folder"),
+    el("p", { class: "hint" }, "Where Export, Export all and backups are saved. Existing files are never overwritten."),
+    el("p", {}, shown, note),
+    el("div", { class: "row" }, choose, reset));
+}
+
 async function renderSettings() {
-  const us = await invoke("get_update_settings");
+  const [us, folder] = await Promise.all([invoke("get_update_settings"), invoke("get_export_folder")]);
   put($("tab-settings"), appearanceSection(), updatesSection(us),
-    el("h2", {}, "Backup"),
+    el("h2", {}, "Backup and export"),
+    exportFolderSection(folder),
     el("fieldset", {}, el("legend", {}, "Back up everything"),
-      el("p", { class: "hint" }, "Saves every app plus these settings to one .penates file in your Downloads folder. Restore it with Import on the Apps tab. It never includes logins or cookies."),
+      el("p", { class: "hint" }, "Saves every app plus these settings to one .penates file in your export folder. Restore it with Import on the Apps tab. It never includes logins or cookies."),
       el("div", { class: "row" }, el("button", { type: "button", textContent: "Back up apps and settings", onclick: async () => {
         try { say("Saved to " + (await invoke("export_apps", { ids: [], withSettings: true }))); } catch (e) { fail(e); } } }))),
     el("p", { class: "hint" }, "Each app's own window theme is under Edit → Window."),

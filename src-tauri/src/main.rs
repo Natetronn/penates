@@ -47,6 +47,7 @@ fn run_manager_window(start: Option<String>, listener: Option<std::net::TcpListe
     }
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             commands::list_apps, commands::app_version, commands::suggest_name, commands::create_app,
             commands::save_app, commands::remove_app, commands::run_app,
@@ -57,6 +58,7 @@ fn run_manager_window(start: Option<String>, listener: Option<std::net::TcpListe
             commands::check_self_update, commands::install_self_update,
             commands::get_update_settings, commands::set_update_settings, commands::get_appearance, commands::set_appearance,
             commands::export_apps, commands::inspect_import, commands::import_apps, commands::open_url,
+            commands::get_export_folder, commands::set_export_folder, commands::pick_export_folder,
         ])
         .setup(move |app| {
             if let Some(l) = listener {

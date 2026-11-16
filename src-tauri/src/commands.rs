@@ -341,7 +341,8 @@ pub fn set_appearance(app: tauri::AppHandle, appearance: settings::Appearance) -
 
 // ---- sharing ----
 
-/// Save an export into the Downloads folder (no file dialog needed). Empty `ids` = all apps.
+/// Save an export into the export folder (Settings; Downloads unless chosen), never overwriting a file.
+/// Empty `ids` = all apps.
 #[tauri::command]
 pub async fn export_apps(ids: Vec<String>, with_settings: bool) -> CmdResult<String> {
     blocking(move || {
@@ -350,9 +351,55 @@ pub async fn export_apps(ids: Vec<String>, with_settings: bool) -> CmdResult<Str
             [one] => format!("{}.penates", one.config.id),
             _ => "penates-backup.penates".to_string(),
         };
-        let path = crate::runner::unique_download_path(std::path::Path::new(&name));
+        let dir = settings::load().sharing.export_folder();
+        let path = crate::runner::unique_path_in(&dir, std::path::Path::new(&name));
         std::fs::write(&path, serde_json::to_string_pretty(&f)?)?;
         Ok(path.display().to_string())
+    })
+    .await
+}
+
+#[derive(serde::Serialize)]
+pub struct ExportFolder {
+    /// The folder chosen in Settings; empty for Downloads.
+    chosen: String,
+    /// The folder exports go to now (the chosen one, or Downloads when none is chosen or it is gone).
+    folder: String,
+}
+
+fn export_folder_info() -> ExportFolder {
+    let s = settings::load().sharing;
+    ExportFolder { folder: s.export_folder().display().to_string(), chosen: s.export_dir }
+}
+
+#[tauri::command]
+pub fn get_export_folder() -> ExportFolder {
+    export_folder_info()
+}
+
+/// Set the export folder: an existing absolute folder, or "" for Downloads.
+#[tauri::command]
+pub fn set_export_folder(dir: String) -> CmdResult<ExportFolder> {
+    let dir = dir.trim().to_string();
+    if !dir.is_empty() {
+        let p = std::path::Path::new(&dir);
+        if !p.is_absolute() || !p.is_dir() {
+            return Err(format!("{dir} is not a folder"));
+        }
+    }
+    settings::update(|s| s.sharing.export_dir = dir).map_err(err)?;
+    Ok(export_folder_info())
+}
+
+/// Ask for a folder with the system's own folder picker; None when cancelled. Only this command opens
+/// dialogs: the manager page has no access to the dialog plugin itself.
+#[tauri::command]
+pub async fn pick_export_folder(app: tauri::AppHandle) -> CmdResult<Option<String>> {
+    use tauri_plugin_dialog::DialogExt;
+    let start = settings::load().sharing.export_folder();
+    blocking(move || {
+        Ok(app.dialog().file().set_title("Folder for exports and backups").set_directory(start).blocking_pick_folder()
+            .and_then(|f| f.into_path().ok()).map(|p| p.display().to_string()))
     })
     .await
 }
