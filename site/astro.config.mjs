@@ -12,7 +12,18 @@ export default defineConfig({
       favicon: '/favicon.svg',
       social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/Natetronn/penates' }],
       editLink: { baseUrl: 'https://github.com/Natetronn/penates/edit/main/site/' },
-			customCss: ['./src/styles/penates.css'],
+			// Cloudflare Web Analytics: cookieless page counts; also on the home page (src/pages/index.astro).
+			head: [
+				{
+					tag: 'script',
+					attrs: {
+						type: 'module',
+						src: 'https://static.cloudflareinsights.com/beacon.min.js',
+						'data-cf-beacon': '{"token": "3601b300af25499b83bbddf47fd614c1"}',
+					},
+				},
+			],
+			customCss: ['@fontsource-variable/space-grotesk', './src/styles/penates.css'],
       lastUpdated: false,
       sidebar: [
         { label: 'Start here', items: [{ slug: 'getting-started' }, { slug: 'apps' }, { label: 'Try the manager', link: '/demo/', attrs: { target: '_blank' } }] },

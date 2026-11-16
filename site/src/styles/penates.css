@@ -1,17 +1,42 @@
-/* Penates colors (from the app's ui/tokens.css): violet accent, the logo's gradient, and the app's
-   dark surfaces. Starlight's own theme sits in a cascade layer, so each set is scoped to its theme. */
-:root { --penates-gradient: linear-gradient(90deg, #22e6ff, #8b5cff, #ff4fd8); }
+/* The docs use the home page's colors (from the app's ui/tokens.css) and its heading font, so the two read
+   as one site. Starlight builds its palette from these grays; its theme sits in a cascade layer, so each
+   set is scoped to its theme. */
 :root[data-theme='dark'] {
   --sl-color-accent-low: #2c2152;
   --sl-color-accent: #9a76ff;
   --sl-color-accent-high: #ddd2ff;
-  --sl-color-black: #191726;
+  --sl-color-white: #f4f2ff;
+  --sl-color-gray-1: #e4e1f5;
+  --sl-color-gray-2: #c9c5e0;
+  --sl-color-gray-3: #a9a5c4;
+  --sl-color-gray-4: #6f6a8c;
+  --sl-color-gray-5: #2a2742;
+  --sl-color-gray-6: #171527;
+  --sl-color-black: #0c0b16;
+  --sl-color-bg-nav: #0c0b16;
+  --sl-color-bg-sidebar: #0c0b16;
+  --sl-color-hairline: #221f36;
+  --sl-color-hairline-shade: #221f36;
 }
 :root[data-theme='light'] {
   --sl-color-accent-low: #e7defd;
   --sl-color-accent: #6d3fe0;
   --sl-color-accent-high: #2e1a70;
+  --sl-color-white: #17152a;
+  --sl-color-gray-1: #2a2740;
+  --sl-color-gray-2: #3d3956;
+  --sl-color-gray-3: #625e7a;
+  --sl-color-gray-4: #8f8aad;
+  --sl-color-gray-5: #c9c5e0;
+  --sl-color-gray-6: #e3e0f0;
+  --sl-color-gray-7: #efedf8;
+  --sl-color-black: #f8f7fc;
+  --sl-color-bg-nav: #f8f7fc;
+  --sl-color-bg-sidebar: #f8f7fc;
+  --sl-color-hairline-shade: #e3e0f0;
 }
-/* The header carries the logo's gradient underline, as in the app. */
-.header { border-bottom: 0; box-shadow: 0 1px 0 var(--sl-color-hairline); }
-.header::after { content: ''; position: absolute; inset: auto 0 0 0; height: 2px; background: var(--penates-gradient); opacity: 0.85; }
+/* Headings in the logo's typeface, as on the home page. */
+h1, h2, h3, h4, .site-title, [data-page-title] {
+  font-family: 'Space Grotesk Variable', system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}

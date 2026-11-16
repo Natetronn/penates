@@ -96,6 +96,8 @@ const platforms = [
     <meta property="og:type" content="website" />
     <meta property="og:url" content={new URL(base, Astro.site)} />
     <meta name="theme-color" content="#0c0b16" />
+    <!-- Cloudflare Web Analytics: cookieless page counts -->
+    <script is:inline type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "3601b300af25499b83bbddf47fd614c1"}'></script>
     <script is:inline>
       // Follow the theme chosen in the docs (Starlight stores it), else the system's.
       try {
