@@ -1,0 +1,44 @@
+---
+// What the website and the app collect and connect to. Keep in step with the code (updates.rs, icon.rs,
+// tauri.conf.json) and the site (analytics in Site.astro and astro.config.mjs).
+import Site from '../layouts/Site.astro';
+import FinePrint from '../components/FinePrint.astro';
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+---
+<Site title="Privacy: Penates" description="What the Penates app and this website collect (very little) and what they connect to.">
+  <FinePrint title="Privacy" updated="2026-11-15">
+    <p>Short version: Penates has no account and no telemetry. It never sends anything about you or your apps to us. This website counts page views without cookies.</p>
+
+    <h2>The app</h2>
+    <ul>
+      <li><b>No account, no telemetry.</b> Penates does not report what you do, which apps you have, or anything else.</li>
+      <li><b>Your apps stay on your computer.</b> Each app's settings, icon, cookies and logins live in its own folder on your computer. Exports (<code>.penates</code> files) contain settings and icons, never cookies or logins.</li>
+      <li><b>What it connects to:</b>
+        <ul>
+          <li>The sites you turn into apps, when you use them, and when you create or update an app (to read its name and icon).</li>
+          <li>GitHub, to check for and download Penates updates. The manager checks when it starts (you can turn that off in Settings) and when you press Check. App windows never check.</li>
+          <li>GitHub, for the app catalog: when you open Popular apps, create an app, or check your apps for updates. You can point Settings at a catalog of your own instead.</li>
+          <li>The sites in Popular apps, to show their icons (kept for 30 days, then fetched again).</li>
+        </ul>
+      </li>
+      <li><b>Sharing with the catalog</b> opens GitHub in your browser with the entry filled in; Penates itself sends nothing.</li>
+      <li>The sites you use through Penates have their own privacy policies; Penates does not change what they collect.</li>
+    </ul>
+
+    <h2>This website</h2>
+    <ul>
+      <li><b>Page counts without cookies:</b> Cloudflare Web Analytics records page views, the page you came from, your country and your kind of device, without cookies and without following you across sites.</li>
+      <li><b>No cookies.</b> If you pick light or dark in the docs, your browser remembers it locally; it is never sent to us.</li>
+      <li><b>Hosting:</b> the site is served by Cloudflare, which handles requests like any web host (including your IP address).</li>
+      <li><b>Download buttons</b> ask GitHub which files the latest release has, so your browser contacts GitHub, where the downloads come from anyway.</li>
+      <li>The <a href={base + 'demo/'}>demo</a> runs entirely in your browser; nothing you do there is saved or sent.</li>
+      <li>The fonts are served from this site, not from Google.</li>
+    </ul>
+
+    <h2>Email</h2>
+    <p>Mail to <a href="mailto:hello@getpenates.com">hello@getpenates.com</a> is forwarded to the maintainer's inbox and used only to answer you.</p>
+
+    <h2>Questions</h2>
+    <p>Write to <a href="mailto:hello@getpenates.com">hello@getpenates.com</a> or open an issue on <a href="https://github.com/Natetronn/penates/issues">GitHub</a>.</p>
+  </FinePrint>
+</Site>

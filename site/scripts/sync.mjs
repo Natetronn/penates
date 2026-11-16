@@ -32,6 +32,13 @@ for (const file of readdirSync(join(root, 'docs')).filter((f) => f.endsWith('.md
     `---\ntitle: ${JSON.stringify(title)}\ndescription: ${JSON.stringify(description)}\neditUrl: ${REPO}docs/${file}\n---\n\n${linked}`);
 }
 
+// SECURITY.md (repo root) is a docs page too, so the policy has one source.
+{
+  const text = readFileSync(join(root, 'SECURITY.md'), 'utf8');
+  const body = text.replace(/^#\s+.+\n+/, '');
+  writeFileSync(join(docsOut, 'security.md'),
+    `---\ntitle: "Security"\ndescription: "How to report a security problem in Penates, and what is in scope."\neditUrl: ${REPO}SECURITY.md\n---\n\n${body}`);
+}
 cpSync(join(root, 'docs/images'), join(site, 'src/assets/screens'), { recursive: true });
 mkdirSync(join(site, 'src/assets'), { recursive: true });
 for (const f of ['lockup-dark.svg', 'lockup-light.svg']) cpSync(join(root, 'design', f), join(site, 'src/assets', f));

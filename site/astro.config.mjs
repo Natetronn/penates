@@ -28,7 +28,7 @@ export default defineConfig({
       sidebar: [
         { label: 'Start here', items: [{ slug: 'getting-started' }, { label: 'Popular apps', link: '/apps/' }, { label: 'Try the manager', link: '/demo/' }] },
         { label: 'Using Penates', items: ['cli', 'configuration', 'updates', 'sharing', 'theming'].map((d) => ({ slug: `docs/${d}` })) },
-        { label: 'Under the hood', items: ['architecture', 'packaging', 'releasing', 'status'].map((d) => ({ slug: `docs/${d}` })) },
+        { label: 'Under the hood', items: ['architecture', 'packaging', 'releasing', 'status', 'security'].map((d) => ({ slug: `docs/${d}` })) },
       ],
     }),
   ],

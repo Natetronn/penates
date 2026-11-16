@@ -1,0 +1,20 @@
+---
+// Shared layout for the plain text pages (privacy, terms): a heading, the date it was last changed, and prose.
+interface Props { title: string; updated: string }
+const { title, updated } = Astro.props;
+---
+<main class="wrap fine-print">
+  <h1>{title}</h1>
+  <p class="updated">Last changed {updated}</p>
+  <slot />
+</main>
+<style>
+  .fine-print { padding: clamp(2.5rem, 6vw, 4.5rem) 0 4rem; max-width: 46rem; }
+  .fine-print h1 { font-size: clamp(2.2rem, 1.6rem + 2.4vw, 3rem); margin: 0 0 0.4rem; }
+  .updated { color: var(--muted); font-size: 0.9rem; margin: 0 0 2rem; }
+  .fine-print :global(h2) { font-size: 1.35rem; margin: 2.2rem 0 0.6rem; }
+  .fine-print :global(p), .fine-print :global(li) { color: var(--muted); }
+  .fine-print :global(li) { margin: 0.35rem 0; }
+  .fine-print :global(b) { color: var(--fg); }
+  .fine-print :global(code) { background: var(--bg-2); padding: 0.1em 0.35em; border-radius: 4px; }
+</style>
