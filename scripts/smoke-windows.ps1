@@ -6,6 +6,13 @@ $out = 'smoke-out'; New-Item -ItemType Directory -Force $out | Out-Null
 $env:PENATES_DESKTOP = (Resolve-Path 'target/debug/penates-desktop.exe').Path
 $A = (Resolve-Path 'target/debug/penates.exe').Path
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+# No update check when the manager starts: GitHub counts each one as a latest.json download, and test runs
+# would swamp the real users in the release stats (scripts/downloads.py). Only on a fresh machine (CI).
+$settings = Join-Path $env:APPDATA 'penates\settings.toml'
+if (-not (Test-Path $settings)) {
+  New-Item -ItemType Directory -Force (Split-Path $settings) | Out-Null
+  [IO.File]::WriteAllText($settings, "[updates]`ncheck_on_start = false`n")  # UTF-8 without a BOM
+}
 function Shot($name) {
   try {
     $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds

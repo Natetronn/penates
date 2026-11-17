@@ -5,8 +5,8 @@
     python3 scripts/downloads.py --csv    # one dated row per file (the Stats workflow keeps these on the
                                           # `stats` branch, so the counts have a history)
 
-GitHub keeps only running totals per file. `latest.json` counts update checks (every installed copy checks
-when it starts), not people. Downloading a whole release (a check, a publish dry run) adds one to every
+GitHub keeps only running totals per file. `latest.json` counts update checks (every manager start, unless
+switched off; the smoke tests and screenshots switch it off), not people, on whichever release was Latest. Downloading a whole release (a check, a publish dry run) adds one to every
 file, so prefer fetching only the files a check needs.
 """
 import collections, datetime, json, os, subprocess, sys

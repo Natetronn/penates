@@ -7,6 +7,10 @@ OUT=smoke-out; mkdir -p "$OUT"
 export PENATES_DESKTOP="$PWD/target/debug/penates-desktop"
 A=target/debug/penates
 B="$HOME/Applications/Penates/Smoke.app"
+# No update check when the manager starts: GitHub counts each one as a latest.json download, and test runs
+# would swamp the real users in the release stats (scripts/downloads.py). Only on a fresh machine (CI).
+S="$HOME/Library/Application Support/penates/settings.toml"
+[ -e "$S" ] || { mkdir -p "$(dirname "$S")" && printf '[updates]\ncheck_on_start = false\n' > "$S"; }
 
 $A create https://example.com --name Smoke --id smoke --icon src-tauri/icons/icon.png --no-toolbar
 test -x "$B/Contents/MacOS/launcher"

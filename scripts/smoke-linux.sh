@@ -12,6 +12,9 @@ TMP=$(mktemp -d); APP=; MGR=
 trap 'kill $APP $MGR 2>/dev/null || true; rm -rf "$TMP"' EXIT
 export XDG_CONFIG_HOME="$TMP/config" XDG_DATA_HOME="$TMP/data"
 export PENATES_DESKTOP="$PWD/target/debug/penates-desktop"
+# No update check when the manager starts: GitHub counts each one as a latest.json download, and test runs
+# would swamp the real users in the release stats (scripts/downloads.py).
+mkdir -p "$XDG_CONFIG_HOME/penates" && printf '[updates]\ncheck_on_start = false\n' > "$XDG_CONFIG_HOME/penates/settings.toml"
 A=target/debug/penates
 L="$XDG_DATA_HOME/applications/penates-smoke.desktop"
 

@@ -31,7 +31,9 @@ APPS
 cat > /tmp/shots.sh <<'SHOTS'
 set -euo pipefail
 shot() { # theme, --tab value, file name
-  printf '[updates]\ncheck_on_start = true\n\n[appearance]\ntheme = "%s"\nskin = "default"\naccent = "violet"\n' "$1" > /tmp/c/penates/settings.toml
+  # The update check only where Settings shows its box ticked: each check counts as a latest.json download.
+  local check=false; [ "$2" = settings ] && check=true
+  printf '[updates]\ncheck_on_start = %s\n\n[appearance]\ntheme = "%s"\nskin = "default"\naccent = "violet"\n' "$check" "$1" > /tmp/c/penates/settings.toml
   /w/penates-desktop --tab "$2" >/dev/null 2>&1 & local pid=$!
   sleep 6
   import -window root "/out/$3.png"

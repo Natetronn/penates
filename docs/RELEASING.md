@@ -62,5 +62,8 @@ signature of the download with the public key in `src-tauri/tauri.conf.json`, in
 `python3 scripts/downloads.py` prints every release file's downloads by platform, and the repo's traffic
 for the last 14 days. GitHub keeps only running totals, so the **Stats** workflow appends dated counts to
 `downloads.csv` on the `stats` branch every Monday (or run it by hand: Actions → Stats → Run workflow).
-`latest.json` counts update checks, not people. Downloading a whole release adds one to every file, so
+`latest.json` counts update checks, not people: one per manager start (with **Check at startup** on) and per
+Check click, counted on whichever release was Latest at the time. The smoke tests and `scripts/screenshots.sh`
+switch the startup check off so they stay out of these counts; the `stats` branch was restarted after that
+(2026-11-16), so its first rows are the baseline. Downloading a whole release adds one to every file, so
 checks should fetch only the files they need.
