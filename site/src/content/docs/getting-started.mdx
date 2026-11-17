@@ -103,6 +103,10 @@ import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 Penates updates itself on Windows and macOS and as an AppImage, `.deb` or `.rpm`; the updates are signed and
 checked before they install. AUR packages update with your AUR helper or `makepkg`.
 
+To check a download, get `SHA256SUMS` from the same release and, in the folder you downloaded to, run
+`sha256sum -c SHA256SUMS --ignore-missing` (Linux), `shasum -a 256 -c SHA256SUMS --ignore-missing` (macOS) or
+`Get-FileHash .\Penates_*_x64-setup.exe` (Windows PowerShell; compare it with the line in `SHA256SUMS`).
+
 ## Make Your First App
 
 <Steps>

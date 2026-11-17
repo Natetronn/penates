@@ -1,7 +1,8 @@
 # Releasing
 
 Releases live on `Natetronn/penates`: installers, the in-app update file (`latest.json`), the AUR
-tarball and an Arch package (`penates-bin-<ver>-1-x86_64.pkg.tar.zst`) are attached to each GitHub release. Builds sit in a draft (visible only to the repo's owners)
+tarball, an Arch package (`penates-bin-<ver>-1-x86_64.pkg.tar.zst`) and `SHA256SUMS` (the checksum of every
+other file) are attached to each GitHub release. Builds sit in a draft (visible only to the repo's owners)
 until you publish them.
 
 ## Before the First Release (Once)
@@ -25,7 +26,8 @@ until you publish them.
    Windows and macOS (Apple Silicon and Intel), builds the Arch package from the Linux tarball in an Arch container,
    and attaches them to a **draft** release. Nothing is public yet.
 5. When it is green: `scripts/publish-release.py v0.2.0 --dry-run`, then without `--dry-run`. It downloads the
-   draft's files (refusing duplicates or files of another version), writes `latest.json`, uploads it to the draft,
+   draft's files (refusing duplicates or files of another version), writes `latest.json` and `SHA256SUMS`,
+   uploads them to the draft,
    sets the notes from `CHANGELOG.md`, publishes the release, and updates both AUR packages in `packaging/aur/`
    (`penates-bin` from the release tarball, `penates` from the tag's source).
 6. Commit the updated `packaging/aur` files here and push: that also rebuilds the website, which describes the

@@ -52,6 +52,8 @@ makepkg -si
 Each release also has an Arch package for `sudo pacman -U` (no automatic updates), and for other distributions an
 AppImage, `.deb` and `.rpm` that update themselves. Windows and macOS (14 or later) installers are on the
 [releases page](https://github.com/Natetronn/penates/releases/latest).
+To check a download, get `SHA256SUMS` from the same release and run `sha256sum -c SHA256SUMS --ignore-missing`
+in the folder you downloaded to (macOS: `shasum -a 256 -c SHA256SUMS --ignore-missing`).
 
 **First launch on macOS and Windows:** the installers are not signed with an Apple or Microsoft certificate yet.
 On macOS, open the app once, then allow it under System Settings → Privacy & Security → **Open Anyway**.

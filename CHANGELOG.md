@@ -5,6 +5,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
+### Added
+- Each release has a `SHA256SUMS` file with the checksum of every other file, so a download can be checked
+  with `sha256sum -c SHA256SUMS --ignore-missing`.
+
 ### Fixed
 - App Catalog icons: a catalog entry that changes its icon (or a Penates that chooses site icons differently)
   shows the new one at once, instead of the cached old one for up to 30 days.

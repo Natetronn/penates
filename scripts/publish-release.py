@@ -6,8 +6,9 @@
 
 1. Downloads the files the Release workflow attached to the draft release for the tag.
 2. Collects installers and their updater signatures under unique names.
-3. Writes latest.json in Tauri's updater format (what the app checks and installs from).
-4. Uploads latest.json to the draft, sets the notes from CHANGELOG.md and publishes it (skipped with --dry-run).
+3. Writes latest.json in Tauri's updater format (what the app checks and installs from), and SHA256SUMS
+   (the SHA-256 of every file on the release, for `sha256sum -c SHA256SUMS --ignore-missing`).
+4. Uploads latest.json and SHA256SUMS to the draft, sets the notes from CHANGELOG.md and publishes it (skipped with --dry-run).
 5. Updates the AUR packages in packaging/aur/ (PKGBUILD + .SRCINFO): penates-bin (the release tarball) and
    penates (built from the tag's source). Pushing them to the AUR is manual.
 
@@ -126,6 +127,9 @@ def main():
     }
     (up / "latest.json").write_text(json.dumps(latest, indent=2) + "\n")
     assets.append(up / "latest.json")
+    sums = "".join(f"{hashlib.sha256(a.read_bytes()).hexdigest()}  {a.name}\n" for a in sorted(assets, key=lambda a: a.name))
+    (up / "SHA256SUMS").write_text(sums)
+    assets.append(up / "SHA256SUMS")
 
     print(f"{len(assets)} files for {tag}:")
     for a in assets:
@@ -140,8 +144,8 @@ def main():
     if dry:
         print("dry run: nothing published")
         return
-    # The installers are already on the draft under these names; add the updater file and publish.
-    gh("release", "upload", tag, "-R", REPO, "--clobber", str(up / "latest.json"), capture=False)
+    # The installers are already on the draft under these names; add the updater file and checksums, and publish.
+    gh("release", "upload", tag, "-R", REPO, "--clobber", str(up / "latest.json"), str(up / "SHA256SUMS"), capture=False)
     gh("release", "edit", tag, "-R", REPO, "--title", f"Penates {ver}", "--notes-file", str(work / "notes.md"),
        "--draft=false", *(["--prerelease", "--latest=false"] if pre else ["--latest"]), capture=False)
     print(f"published https://github.com/{REPO}/releases/tag/{tag}")
