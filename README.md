@@ -11,7 +11,7 @@ on Arch from the AUR, `paru -S penates-bin` (or `yay`, or `makepkg -si`); elsewh
 
 <p align="center"><img src="docs/images/manager-apps.png" width="640" alt="The Penates manager listing five apps: Discord, GitHub, Notion, Proton Mail and YouTube Music"></p>
 
-> **Status: 0.1.4.** Verified by hand on Linux (KDE Plasma, Wayland). Windows and macOS are built, launched
+> **Status: 0.1.5.** Verified by hand on Linux (KDE Plasma, Wayland). Windows and macOS are built, launched
 > through their launchers and smoke-tested in CI on every push. See [docs/STATUS.md](docs/STATUS.md) for exactly what is verified.
 
 ## What It Does

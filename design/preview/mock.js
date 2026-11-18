@@ -151,9 +151,9 @@ const H = {
   open_url({ url }) { say('Would open ' + url + ' in your browser (preview only).'); },
   async problem_report({ what }) {
     await wait(200);
-    const text = 'Penates 0.1.4 (Arch package penates-bin)\nSystem: CachyOS, KDE, wayland, x86_64\nWeb view: WebKitGTK 2.48.3\nApps: ' + db.length
-      + '\n\nRecent log (oldest first, 2 lines):\n2026-11-16T07:12:03Z WARN 0.1.4 app discord: popup window: the window could not be created'
-      + '\n2026-11-16T07:14:40Z ERROR 0.1.4 manager: could not reach https://example.org/… (timed out)\n';
+    const text = 'Penates 0.1.5 (Arch package penates-bin)\nSystem: CachyOS, KDE, wayland, x86_64\nWeb view: WebKitGTK 2.48.3\nApps: ' + db.length
+      + '\n\nRecent log (oldest first, 2 lines):\n2026-11-16T07:12:03Z WARN 0.1.5 app discord: popup window: the window could not be created'
+      + '\n2026-11-16T07:14:40Z ERROR 0.1.5 manager: could not reach https://example.org/… (timed out)\n';
     return { text, left_out: 0, log: '/home/you/.local/share/penates/logs/penates.log',
       link: 'https://github.com/Natetronn/penates/issues/new?template=bug.yml&what=' + encodeURIComponent(what || '') + '&report=' + encodeURIComponent(text) };
   },

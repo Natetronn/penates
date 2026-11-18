@@ -5,6 +5,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-11-18
+Ctrl+Shift+T hides the toolbar and shows it again, a checksum file with every release, and App Catalog icons that change at once.
+
 ### Added
 - Ctrl+Shift+T (Cmd+Shift+T on macOS) hides the toolbar and shows it again, so the site can have the whole
   window. It stays hidden until the app closes; Edit → Window → Show a toolbar still turns it off for good.
@@ -142,7 +145,8 @@ First release. Verified by hand on Linux (KDE Plasma, Wayland); Linux, Windows a
 - A page's own script can still navigate the window to another site (only link clicks are sent to the browser).
 - Two apps whose ids hash to the same loopback port lose single-window mode and the "is it running" check (rare).
 
-[Unreleased]: https://github.com/Natetronn/penates/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/Natetronn/penates/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/Natetronn/penates/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/Natetronn/penates/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/Natetronn/penates/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Natetronn/penates/compare/v0.1.1...v0.1.2
