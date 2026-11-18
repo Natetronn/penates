@@ -6,6 +6,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 ## [Unreleased]
 
 ### Added
+- Ctrl+Shift+T (Cmd+Shift+T on macOS) hides the toolbar and shows it again, so the site can have the whole
+  window. It stays hidden until the app closes; Edit → Window → Show a toolbar still turns it off for good.
+  The key list shows it in apps with the toolbar.
 - Each release has a `SHA256SUMS` file with the checksum of every other file, so a download can be checked
   with `sha256sum -c SHA256SUMS --ignore-missing`.
 

@@ -3,12 +3,16 @@
 //! `toolbar_action`, serves the optional toolbar (a local page above the site) and refuses anyone else.
 
 use penates_core::{icon, integration, ops, single, WebApp};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use tauri::webview::WebviewBuilder;
 use tauri::{LogicalPosition, LogicalSize, Manager, WebviewUrl, WebviewWindowBuilder};
 
 /// Height of the optional toolbar, in logical pixels.
 const TOOLBAR_HEIGHT: f64 = 40.0;
+
+/// Whether the toolbar is on screen: its key (`toolbar_key`) hides and shows it until the app closes.
+static TOOLBAR_SHOWN: AtomicBool = AtomicBool::new(true);
 
 /// The toolbar's current color: a CSS color the site declared, a custom `#rrggbb`, or "" for Penates's.
 #[derive(Default)]
@@ -217,8 +221,9 @@ document.addEventListener("click", (e) => {{
 /// page, and F1 or Ctrl+/ (Cmd+/) shows these keys. A page that handles one of these itself (it calls
 /// preventDefault) keeps it; for the key list, whose keys sites often use for their own help (Slack, Google
 /// Docs), the decision waits until the page's own handlers have run. The key list lives in a shadow root with constructed styles, so the site's
-/// CSS cannot restyle it and a strict content security policy cannot block it.
-fn navigation_script(home: &str) -> String {
+/// CSS cannot restyle it and a strict content security policy cannot block it. With `toolbar`, the list
+/// also shows the toolbar's key (the window handles that key itself: `toolbar_key`).
+fn navigation_script(home: &str, toolbar: bool) -> String {
     const SCRIPT: &str = r#"(() => {
   if (window.top !== window) return;
   const HOME = __HOME__;
@@ -228,6 +233,7 @@ fn navigation_script(home: &str) -> String {
     ["Forward", mac ? "⌘ ]" : "Alt+→", "or the mouse's forward button"],
     ["Reload", mac ? "⌘ R" : "F5 or Ctrl+R", ""],
     ["Start page", mac ? "⌘ ⇧ H" : "Alt+Home", ""],
+    ...(__TOOLBAR__ ? [["Toolbar", mac ? "⌘ ⇧ T" : "Ctrl+Shift+T", "hides or shows it"]] : []),
     ["These keys", mac ? "⌘ /" : "F1 or Ctrl+/", "Esc closes"],
   ];
   let host = null;
@@ -280,7 +286,7 @@ small{display:block;color:#a9a5c4;font-size:12px}`;
     history.go(e.button === 3 ? -1 : 1);
   });
 })();"#;
-    SCRIPT.replace("__HOME__", &serde_json::to_string(home).unwrap())
+    SCRIPT.replace("__HOME__", &serde_json::to_string(home).unwrap()).replace("__TOOLBAR__", if toolbar { "true" } else { "false" })
 }
 
 /// Hosts the app's main window has actually loaded (the site itself, redirect targets). Popups to
@@ -299,10 +305,11 @@ fn remember(visited: &Visited, u: &url::Url) {
 /// The rules every web view of a wrapped app gets: the site in its main window and any popup it opens.
 /// A macro because the plain window (`WebviewWindowBuilder`) and the site under the toolbar
 /// (`WebviewBuilder`) are different builders with the same methods.
+/// `$toolbar`: the web view sits under the toolbar (its key list then shows the toolbar's key).
 macro_rules! with_rules {
-    ($b:expr, $cfg:expr, $visited:expr, $handle:expr) => {{
+    ($b:expr, $cfg:expr, $visited:expr, $handle:expr, $toolbar:expr) => {{
         let cfg: &WebApp = $cfg;
-        let mut b = $b.initialization_script(navigation_script(&cfg.url));
+        let mut b = $b.initialization_script(navigation_script(&cfg.url, $toolbar));
         if cfg.external_links_in_browser {
             b = b.initialization_script(link_guard_script(cfg));
         }
@@ -375,7 +382,7 @@ macro_rules! site_view {
             w = w.initialization_script(js.clone());
         }
         let seen = $visited.clone();
-        w = with_rules!(w, cfg, $visited, $handle).on_page_load(move |wv, payload| {
+        w = with_rules!(w, cfg, $visited, $handle, cfg.toolbar).on_page_load(move |wv, payload| {
             remember(&seen, payload.url());
             // With the toolbar: Reload becomes Stop and a progress line runs while a page loads.
             if let Some(bar) = wv.app_handle().get_webview("toolbar") {
@@ -411,7 +418,7 @@ fn open_popup(
         .on_document_title_changed(|w, title| {
             let _ = w.set_title(&title);
         });
-    match with_rules!(b, cfg, visited, handle.clone()).build() {
+    match with_rules!(b, cfg, visited, handle.clone(), false).build() {
         Ok(w) => Some(w),
         Err(e) => {
             penates_core::log::warn(&format!("popup window: {e}"));
@@ -485,6 +492,7 @@ fn build_toolbar_window(
         LogicalSize::new(size.width, (size.height - TOOLBAR_HEIGHT).max(0.0)),
     )?;
     layout_toolbar_window(&window, &toolbar, &site);
+    toolbar_key(app.handle(), &window, &toolbar, &site);
     let (w, t, s) = (window.clone(), toolbar.clone(), site.clone());
     window.on_window_event(move |ev| {
         if matches!(ev, tauri::WindowEvent::Resized(_) | tauri::WindowEvent::ScaleFactorChanged { .. }) {
@@ -534,14 +542,142 @@ fn layout_toolbar_window(window: &tauri::Window, toolbar: &tauri::Webview, site:
         eprintln!("toolbar layout: inner {inner:?}, scale {scale}, title bar {top}");
     }
     let inner = LogicalSize::new(inner.width, (inner.height - top).max(0.0));
+    let bar = if TOOLBAR_SHOWN.load(Ordering::Relaxed) { TOOLBAR_HEIGHT } else { 0.0 };
     let _ = toolbar.set_bounds(tauri::Rect {
         position: LogicalPosition::new(0.0, top).into(),
         size: LogicalSize::new(inner.width, TOOLBAR_HEIGHT).into(),
     });
     let _ = site.set_bounds(tauri::Rect {
-        position: LogicalPosition::new(0.0, top + TOOLBAR_HEIGHT).into(),
-        size: LogicalSize::new(inner.width, (inner.height - TOOLBAR_HEIGHT).max(0.0)).into(),
+        position: LogicalPosition::new(0.0, top + bar).into(),
+        size: LogicalSize::new(inner.width, (inner.height - bar).max(0.0)).into(),
     });
+}
+
+/// Hide the toolbar, or show it again; the site takes the room. Hidden, the focus moves into the site,
+/// where the key brings it back. Lasts until the app closes (Edit → Window turns the toolbar off for good).
+fn toggle_toolbar(app: &tauri::AppHandle) {
+    let (Some(window), Some(toolbar), Some(site)) = (app.get_window("main"), app.get_webview("toolbar"), app.get_webview("site"))
+    else {
+        return;
+    };
+    let shown = !TOOLBAR_SHOWN.fetch_xor(true, Ordering::Relaxed);
+    if shown {
+        let _ = toolbar.show();
+    } else {
+        let _ = toolbar.hide();
+        let _ = site.set_focus();
+    }
+    // On Linux the window's GTK box leaves a hidden view out; elsewhere the site's bounds change.
+    layout_toolbar_window(&window, &toolbar, &site);
+}
+
+/// The toolbar's key: Ctrl+Shift+T (Cmd+Shift+T on macOS), which browsers keep for themselves, so sites do
+/// not use it. The window sees it before either web view does, so a site cannot keep it, and the key needs
+/// no script in the site: the site's pages still have no way to reach Penates. Holding the key toggles once.
+fn toolbar_key(app: &tauri::AppHandle, window: &tauri::Window, toolbar: &tauri::Webview, site: &tauri::Webview) {
+    #[cfg(target_os = "linux")]
+    {
+        let _ = (toolbar, site);
+        use gtk::gdk::{keys::constants as key, ModifierType as M};
+        use gtk::prelude::*;
+        let Ok(gw) = window.gtk_window() else { return };
+        // GDK repeats key presses while a key is held; only the first one after a release counts.
+        let held = Arc::new(AtomicBool::new(false));
+        let (app, down) = (app.clone(), held.clone());
+        gw.connect_key_press_event(move |_, ev| {
+            let mods = ev.state() & (M::CONTROL_MASK | M::SHIFT_MASK | M::MOD1_MASK | M::SUPER_MASK | M::META_MASK);
+            if mods != M::CONTROL_MASK | M::SHIFT_MASK || ev.keyval().to_lower() != key::t {
+                return gtk::glib::Propagation::Proceed;
+            }
+            if !down.swap(true, Ordering::Relaxed) {
+                toggle_toolbar(&app);
+            }
+            gtk::glib::Propagation::Stop
+        });
+        gw.connect_key_release_event(move |_, ev| {
+            if ev.keyval().to_lower() == key::t {
+                held.store(false, Ordering::Relaxed);
+            }
+            gtk::glib::Propagation::Proceed
+        });
+    }
+    // WebView2 runs the page in another process; each web view reports keys with Ctrl first.
+    #[cfg(windows)]
+    {
+        let _ = window;
+        for view in [toolbar, site] {
+            let app = app.clone();
+            let _ = view.with_webview(move |wv| {
+                use webview2_com::AcceleratorKeyPressedEventHandler;
+                use webview2_com::Microsoft::Web::WebView2::Win32::{
+                    COREWEBVIEW2_KEY_EVENT_KIND, COREWEBVIEW2_KEY_EVENT_KIND_KEY_DOWN, COREWEBVIEW2_PHYSICAL_KEY_STATUS,
+                };
+                use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetKeyState, VK_CONTROL, VK_LWIN, VK_MENU, VK_RWIN, VK_SHIFT};
+                let handler = AcceleratorKeyPressedEventHandler::create(Box::new(move |_, args| {
+                    let Some(args) = args else { return Ok(()) };
+                    let (mut kind, mut vk) = (COREWEBVIEW2_KEY_EVENT_KIND::default(), 0u32);
+                    let mut status = COREWEBVIEW2_PHYSICAL_KEY_STATUS::default();
+                    // SAFETY: WebView2 calls this on the UI thread with live event arguments.
+                    unsafe {
+                        args.KeyEventKind(&mut kind)?;
+                        args.VirtualKey(&mut vk)?;
+                        args.PhysicalKeyStatus(&mut status)?;
+                    }
+                    let down = |k: u16| unsafe { GetKeyState(i32::from(k)) } < 0;
+                    if kind != COREWEBVIEW2_KEY_EVENT_KIND_KEY_DOWN
+                        || vk != u32::from(b'T')
+                        || !down(VK_CONTROL)
+                        || !down(VK_SHIFT)
+                        || down(VK_MENU)
+                        || down(VK_LWIN)
+                        || down(VK_RWIN)
+                    {
+                        return Ok(());
+                    }
+                    // SAFETY: as above.
+                    unsafe { args.SetHandled(true)? };
+                    if !status.WasKeyDown.as_bool() {
+                        toggle_toolbar(&app);
+                    }
+                    Ok(())
+                }));
+                let mut token = 0i64;
+                // SAFETY: the controller is this web view's own, used on the UI thread.
+                if let Err(e) = unsafe { wv.controller().add_AcceleratorKeyPressed(&handler, &mut token) } {
+                    penates_core::log::warn(&format!("toolbar key: {e}"));
+                }
+            });
+        }
+    }
+    // A local monitor sees the app's key presses before any view; only those in the main window count.
+    #[cfg(target_os = "macos")]
+    {
+        let _ = (toolbar, site);
+        use objc2_app_kit::{NSEvent, NSEventMask, NSEventModifierFlags as F};
+        let Ok(ptr) = window.ns_window() else { return };
+        // SAFETY: Tauri hands out this window's live NSWindow; only its number is read, on the main thread.
+        let number = unsafe { &*(ptr as *const objc2_app_kit::NSWindow) }.windowNumber();
+        let app = app.clone();
+        let block = block2::RcBlock::new(move |ev: std::ptr::NonNull<NSEvent>| -> *mut NSEvent {
+            // SAFETY: AppKit passes a live event for the duration of the call.
+            let e = unsafe { ev.as_ref() };
+            let mods = e.modifierFlags() & (F::Command | F::Shift | F::Option | F::Control);
+            let is_t = e.charactersIgnoringModifiers().is_some_and(|s| s.to_string().eq_ignore_ascii_case("t"));
+            if e.windowNumber() != number || mods != F::Command | F::Shift || !is_t {
+                return ev.as_ptr();
+            }
+            if !e.isARepeat() {
+                toggle_toolbar(&app);
+            }
+            std::ptr::null_mut()
+        });
+        // SAFETY: the block returns the event it was given or null, as AppKit expects. The monitor lives as
+        // long as the app, so it is never removed.
+        match unsafe { NSEvent::addLocalMonitorForEventsMatchingMask_handler(NSEventMask::KeyDown, &block) } {
+            Some(monitor) => std::mem::forget(monitor),
+            None => penates_core::log::warn("toolbar key: no event monitor"),
+        }
+    }
 }
 
 /// The height of the title bar over the window's content on macOS (the window frame minus the part the

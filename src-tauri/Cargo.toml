@@ -31,11 +31,15 @@ gtk = "0.18"
 webkit2gtk = { version = "2.0", features = ["v2_40"] }
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.59", features = ["Win32_UI_Shell"] }
+windows-sys = { version = "0.59", features = ["Win32_UI_Shell", "Win32_UI_Input_KeyboardAndMouse"] }
+# The toolbar's key in the web views (already in the build through wry; the same version as wry's).
+webview2-com = "0.39"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 # The title bar's height, for placing the toolbar below it (already in the build through wry).
-objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSResponder", "NSWindow", "objc2-core-foundation"] }
+# NSEvent and block2: the toolbar's key, seen before the web views get it.
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSResponder", "NSWindow", "NSEvent", "block2", "objc2-core-foundation"] }
+block2 = "0.6"
 
 [features]
 # Production build: serve the embedded UI (set automatically by `cargo tauri build`).
