@@ -5,7 +5,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
-## [0.1.5] - 2026-11-18
+## [0.1.5] - 2026-11-19
 Ctrl+Shift+T hides the toolbar and shows it again, a checksum file with every release, and App Catalog icons that change at once.
 
 ### Added
