@@ -13,6 +13,10 @@ on:
 permissions:
   contents: write
 
+env:
+  # Bump with the tauri crate (Cargo.lock); the version must have a tauri-cli-v<version> release on tauri-apps/tauri.
+  TAURI_CLI_VERSION: 2.12.6
+
 jobs:
   draft:
     if: github.ref_type == 'tag'
@@ -55,7 +59,21 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf rpm
-      - run: cargo install tauri-cli --version "^2" --locked
+      # The Tauri project's own prebuilt cargo-tauri (compiling it took 5-7 minutes per job).
+      - name: Tauri CLI
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          host="$(rustc -vV | sed -n 's/^host: //p')"
+          case "$host" in *-linux-*) ext=tgz ;; *) ext=zip ;; esac
+          dir="$(mktemp -d)"
+          gh release download "tauri-cli-v$TAURI_CLI_VERSION" -R tauri-apps/tauri \
+            -p "cargo-tauri-$host.$ext" -D "$dir"
+          if [ "$ext" = tgz ]; then tar -xzf "$dir"/*.tgz -C "$dir"; else unzip -q "$dir"/*.zip -d "$dir"; fi
+          bin="$dir/cargo-tauri"; [ -f "$bin.exe" ] && bin="$bin.exe"
+          mkdir -p "$HOME/.cargo/bin" && cp "$bin" "$HOME/.cargo/bin/" && chmod +x "$HOME/.cargo/bin/$(basename "$bin")"
+          cargo tauri --version
       - name: Build packages
         shell: bash
         env:
