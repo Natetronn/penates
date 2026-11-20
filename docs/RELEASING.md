@@ -24,7 +24,8 @@ until you publish them.
 3. Commit, then tag and push: `git tag v0.2.0 && git push origin v0.2.0`.
 4. The **Release** workflow checks that the tag matches `Cargo.toml`, builds and signs installers on Linux,
    Windows and macOS (Apple Silicon and Intel), builds the Arch package from the Linux tarball in an Arch container,
-   and attaches them to a **draft** release. Nothing is public yet.
+   and attaches them to a **draft** release. Nothing is public yet. It uses the Tauri project's prebuilt
+   `cargo-tauri` of the version in `TAURI_CLI_VERSION` (top of `release.yml`); bump that with the `tauri` crate.
 5. When it is green: `scripts/publish-release.py v0.2.0 --dry-run`, then without `--dry-run`. It downloads the
    draft's files (refusing duplicates or files of another version), writes `latest.json` and `SHA256SUMS`,
    uploads them to the draft,
